@@ -15,6 +15,8 @@ target_compile_definitions(Engine PRIVATE GOLD_ENGINE)
 
 target_compile_features(Engine PRIVATE cxx_std_17)
 
+target_link_libraries(Engine glm)
+
 target_include_directories(Engine PUBLIC ${ENGINE_HEADER_DIR})
 
 foreach(_source IN ITEMS ${ENGINE_SOURCE_LIST})

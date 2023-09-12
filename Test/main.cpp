@@ -8,9 +8,10 @@
 #include <vector>
 #include <iostream>
 
+
 struct Foo
 {
-    u32 a;
+    glm::vec3 a;
 };
 
 void PrintStats(gold::Allocator& allocator)
@@ -26,20 +27,31 @@ void PrintStats(gold::Allocator& allocator)
 
 int main(int argc, char** argv)
 {
-    constexpr u64 MB = 1024 * 1024;
-    constexpr u64 GB = 1024 * 1024 * 1024;
+    constexpr u64 KB = 1024;
+    constexpr u64 MB = KB * 1024;
+    constexpr u64 GB = MB * 1024;
 
-    gold::StackAllocator allocator(malloc(GB * 8), GB * 8);
-    
+    gold::StackAllocator allocator(malloc(GB * 1), GB * 1);
+
 	{
 		std::vector<Foo, gold::STLAdapter<Foo>> vec(allocator);
         vec.reserve(2048);
 
         for (int i = 0; i < 2048; ++i)
         {
-            vec.push_back(Foo{ static_cast<u32>(i) });
+            vec.push_back(Foo{ {i,i,i} });
             PrintStats(allocator);
         }
+		
+        for (int i = 2047; i >=0; --i)
+		{
+            auto foo = vec.back();
+            
+            DEBUG_ASSERT(foo.a == glm::vec3(i,i,i));
+
+            vec.pop_back();
+			PrintStats(allocator);
+		}
     }
 
     return 0;

@@ -21,5 +21,6 @@ endif()
 # Let's nicely support folders in IDEs
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-add_subdirectory(engine)
-add_subdirectory(test)
+add_subdirectory(Dependencies)
+add_subdirectory(Engine)
+add_subdirectory(Test)

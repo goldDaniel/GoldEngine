@@ -8,7 +8,7 @@ namespace gold
 	class STLAdapter
 	{
 	public:
-		gold::Allocator & mAllocator;
+		gold::Allocator& mAllocator;
 
 		typedef size_t size_type;
 		typedef ptrdiff_t difference_type;
