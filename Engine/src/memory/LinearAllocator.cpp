@@ -53,7 +53,6 @@ void* LinearAllocator::Allocate(const u64 size, const u64 alignment)
 void LinearAllocator::Free(void* mem)
 {
 	// cannot free with linear allocator
-	DEBUG_ASSERT(false);
 }
 
 void LinearAllocator::Reset() 
