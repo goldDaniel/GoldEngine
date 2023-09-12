@@ -17,7 +17,7 @@ namespace gold
 
 		virtual ~StackAllocator() override;
 
-		virtual void* Allocate(const u64 size, const u64 allignment) override;
+		virtual void* Allocate(const u64 size, const u64 allignment = 0) override;
 
 		virtual void Free(void* mem) override;
 
