@@ -1,52 +1,60 @@
 #pragma once 
 
-#include "core/Core.h"
 #include "Allocator.h"
 
 namespace gold
 {
-	template<typename T>
+	template <typename T>
 	class STLAdapter
 	{
-	private:
-		gold::Allocator& mAllocator;
 	public:
+		gold::Allocator & mAllocator;
 
+		typedef size_t size_type;
+		typedef ptrdiff_t difference_type;
+		typedef T* pointer;
+		typedef const T* const_pointer;
+		typedef T& reference;
+		typedef const T& const_reference;
 		typedef T value_type;
 
-		STLAdapter() = delete;
-		
-		STLAdapter(gold::Allocator& allocator)
-			: mAllocator(allocator)
-		{	
+		STLAdapter() {}
+		~STLAdapter() {}
+
+		template <class U> struct rebind { typedef STLAdapter<U> other; };
+		template <class U> STLAdapter(const STLAdapter<U>& other) : mAllocator(std::move(other.mAllocator)){ }
+
+		STLAdapter(gold::Allocator& allocator) : mAllocator(allocator) {}
+
+		pointer address(reference x) const { return &x; }
+		const_pointer address(const_reference x) const { return &x; }
+		size_type max_size() const throw() { return size_t(-1) / sizeof(value_type); }
+
+		pointer allocate(size_type n, STLAdapter<T>::const_pointer hint = 0)
+		{
+			return static_cast<pointer>(mAllocator.Allocate(n * sizeof(T), alignof(T)));
 		}
 
-		[[nodiscard]] constexpr T* allocate(u64 num)
+		void deallocate(pointer p, size_type n)
 		{
-			return reinterpret_cast<T*>(mAllocator.Allocate(num * sizeof(T), alignof(T)));
-		}
-
-		constexpr void deallocate(T* p, std::size_t num) noexcept
-		{
-			UNUSED_VAR(num);
+			UNUSED_VAR(n);
 			mAllocator.Free(p);
 		}
 
-
-		u64 MaxAllocationSize() const noexcept
+		void construct(pointer p, const T& val)
 		{
-			return mAllocator.mAllocatorSize;
+			new(static_cast<void*>(p)) T(val);
 		}
 
-		bool operator==(const STLAdapter<T>& rhs) const noexcept
+		void construct(pointer p)
 		{
-			return mAllocator == rhs.mAllocator;
+			new(static_cast<void*>(p)) T();
 		}
 
-		bool operator!=(const STLAdapter<T>& rhs) const noexcept
+		void destroy(pointer p)
 		{
-			return !(*this == rhs);
+			p->~T();
 		}
-
 	};
 }
+

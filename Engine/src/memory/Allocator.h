@@ -22,7 +22,7 @@ namespace gold
 
 		void* mMemory;
 	public:
-		Allocator(void* mem, const u64 allocatorSize)
+		Allocator(void* mem, const u64 allocatorSize) noexcept
 			: mAllocatorSize(allocatorSize)
 			, mUsed(0)
 			, mPeak(0)
