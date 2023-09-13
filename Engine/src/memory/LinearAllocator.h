@@ -7,22 +7,20 @@ namespace gold
 	class LinearAllocator : public Allocator
 	{
 	private:
-		uint64_t mOffset;
+		void* mCurrentAddress;
+
 	public:
-		LinearAllocator(void* mem, const u64 totalSize);
 
-		LinearAllocator(LinearAllocator&) = delete;
-		LinearAllocator(LinearAllocator&&) = delete;
-		void operator=(LinearAllocator&) = delete;
+		LinearAllocator(void* start, u64 size);
+		
+		LinearAllocator(const LinearAllocator&) = delete;
+		LinearAllocator(LinearAllocator&&) = default;
+		LinearAllocator& operator=(const LinearAllocator&) = delete;
 
-		virtual ~LinearAllocator() override;
+		~LinearAllocator();
 
-		virtual void* Allocate(const u64 size, const u64 allignment) override;
-
-		virtual void Free(void* mem) override;
-
-		virtual void Init() override;
-
+		void* Allocate(size_t size, u8 alignment = 4) override;
+		void Deallocate(void* p) override;
 		void Reset();
 	};
 }

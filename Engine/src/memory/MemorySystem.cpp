@@ -2,49 +2,53 @@
 
 using namespace gold;
 
-
+MemorySystem& gold::MemorySystem::Get()
+{
+	static MemorySystem sys;
+	return sys;
+}
 
 void MemorySystem::Init()
 {
 	DEBUG_ASSERT(!mInitialized);
 	
-	mMemorySize = 256 * MB;
-	mMemory = malloc(mMemorySize);
-	
-	mGlobalAllocator = std::make_unique<LinearAllocator>(mMemory, mMemorySize);
+	mMemorySize = 4 * memory::GB;
+	mMemory = (u8*)malloc(mMemorySize);
 
-	u8* generalMemory = mGlobalAllocator->Allocate(mMemorySize / 2);
-	mGeneralAllocator = std::make_unique<FreeListAllocator>(generalMemory, mMemorySize / 2);
+	mMemorySize -= sizeof(LinearAllocator);
+	mGlobalAllocator = new(mMemory) LinearAllocator(mMemory + sizeof(LinearAllocator), mMemorySize);
 
-	u8* perFrameMemory = mGlobalAllocator->Allocate(mMemorySize / 4);
-	mFrameAllocator = std::make_unique<LinearAllocator>(perFrameMemory, mMemorySize / 4);
+	void* generalAllocatorMemory = mGlobalAllocator->Allocate(sizeof(FreeListAllocator));
+
+	u64 remainingMemory = mGlobalAllocator->GetSize() - mGlobalAllocator->GetUsedMemory();
+	void* generalMemory = mGlobalAllocator->Allocate(remainingMemory);
+	mGeneralAllocator = new(generalAllocatorMemory) FreeListAllocator(generalMemory, remainingMemory);
 
 	mInitialized = true;
 }
 
 void MemorySystem::Shutdown()
 {
-	FreeGlobalMemory();
 	free(mMemory);
 }
 
+void* operator new(std::size_t n) throw(std::bad_alloc)
+{
+	return gold::MemorySystem::Get().GetGeneralAllocator().Allocate(n);
+}
+
+void operator delete(void* p) throw()
+{
+	gold::MemorySystem::Get().GetGeneralAllocator().Deallocate(p);
+}
+
+
 void* operator new[](std::size_t n) throw(std::bad_alloc)
 {
-	return mGeneralAllocator.Allocate(n);
+	return gold::MemorySystem::Get().GetGeneralAllocator().Allocate(n);
 }
 
 void operator delete[](void* p) throw()
 {
-	mGeneralAllocator.Free(p);
-}
-
-
-void* operator new[](std::size_t n) throw(std::bad_alloc)
-{
-	return mGeneralAllocator.Allocate(n);
-}
-
-void operator delete[](void* p) throw()
-{
-	mGeneralAllocator.Free(p);
+	gold::MemorySystem::Get().GetGeneralAllocator().Deallocate(p);
 }

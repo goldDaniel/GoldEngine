@@ -2,15 +2,18 @@
 
 #include "core/Core.h"
 
-namespace memory
-{
-	constexpr u64 KB = 1024;
-	constexpr u64 MB = KB * 1024;
-	constexpr u64 GB = MB * 1024;
-}
+#include "LinearAllocator.h"
+#include "FreeListAllocator.h"
 
 namespace gold
 {
+	namespace memory
+	{
+		constexpr u64 KB = 1024;
+		constexpr u64 MB = KB * 1024;
+		constexpr u64 GB = MB * 1024;
+	}
+
 	class MemorySystem
 	{
 	private:
@@ -18,19 +21,16 @@ namespace gold
 		u64 mMemorySize{};
 		bool mInitialized{};
 
-		std::unique_ptr<LinearAllocator> mGlobalAllocator;
+		LinearAllocator* mGlobalAllocator;
 
-		std::unique_ptr<LinearAllocator> mFrameAllocator;
-		std::unique_ptr<FreeListAllocator> mGeneralAllocator;
+		FreeListAllocator* mGeneralAllocator;
 		
 	public:
+		static MemorySystem& Get();
+
 		void Init();
 		void Shutdown();
 
-		Allocator& GetGeneralAllocator();
-		Allocator& GetPerFrameAllocator();
-
-		u8* AllocateSystemMemory(u64 memorySize);
-		void FreeGlobalMemory();
+		inline Allocator& GetGeneralAllocator() { return *mGeneralAllocator; }
 	};
 }

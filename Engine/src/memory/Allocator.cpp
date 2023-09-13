@@ -1,13 +1,16 @@
 #include "Allocator.h"
 
-using namespace gold;
-
-AllocatorStats Allocator::GetStats() const
+gold::Allocator::Allocator(void* mem, u64 size)
+	: mMemory(mem)
+	, mSize(size)
+	, mUsed(0)
+	, mNumAllocations(0)
 {
-	return
-	{
-		mAllocatorSize,
-		mUsed,
-		mPeak,
-	};
+}
+
+gold::Allocator::~Allocator()
+{
+	DEBUG_ASSERT(mNumAllocations == 0 && mUsed == 0);
+	mMemory = nullptr;
+	mSize = 0;
 }
