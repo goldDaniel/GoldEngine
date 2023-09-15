@@ -19,6 +19,13 @@ target_link_libraries(Engine glm)
 
 target_include_directories(Engine PUBLIC ${ENGINE_HEADER_DIR})
 
+
+get_property(sdl_include GLOBAL PROPERTY SDL2_INCLUDE_DIRS)
+target_include_directories(Engine PUBLIC ${sdl_include})
+get_property(sdl_lib GLOBAL PROPERTY SDL2_LIBRARIES)
+target_link_libraries(Engine ${sdl_lib})
+
+
 foreach(_source IN ITEMS ${ENGINE_SOURCE_LIST})
     get_filename_component(_source_path "${_source}" PATH)
     string(REPLACE "${CMAKE_SOURCE_DIR}" "" _group_path "${_source_path}")
@@ -32,3 +39,7 @@ foreach(_source IN ITEMS ${ENGINE_HEADER_LIST})
     string(REPLACE "/" "\\" _group_path "${_group_path}")
     source_group("${_group_path}" FILES "${_source}")
 endforeach()
+
+
+get_property(sdl_lib_dir GLOBAL PROPERTY SDL_BINARY_DIR)
+add_custom_command(TARGET Engine POST_BUILD COMMAND "${CMAKE_COMMAND}" -E copy "${sdl_lib_dir}/SDL2.dll" "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/$<CONFIG>/")

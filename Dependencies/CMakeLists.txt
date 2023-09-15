@@ -1,1 +1,14 @@
 add_subdirectory(glm)
+
+#SDL
+if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
+set_property(GLOBAL PROPERTY SDL_BINARY_DIR "${CMAKE_CURRENT_SOURCE_DIR}/SDL/bin_msvc")
+else()
+    message(FATAL_ERROR "Could not find supported compiler")
+endif()
+
+set_property(GLOBAL PROPERTY SDL2_INCLUDE_DIRS "${CMAKE_CURRENT_SOURCE_DIR}/SDL/include")
+
+get_property(sdl_bin_dir GLOBAL PROPERTY SDL_BINARY_DIR)
+set_property(GLOBAL PROPERTY SDL2_LIBRARIES "${sdl_bin_dir}/SDL2.lib;${sdl_bin_dir}/SDL2main.lib")
+

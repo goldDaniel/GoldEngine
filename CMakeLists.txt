@@ -6,6 +6,12 @@ project(GoldEngine VERSION 1.0 LANGUAGES CXX)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin CACHE STRING "") 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin CACHE STRING "")
 
+# 64bit only
+if (NOT ${CMAKE_SIZEOF_VOID_P} MATCHES 8)
+    message(FATAL_ERROR "We only support 64bit builds!")
+endif()
+
+
 find_package(Git QUIET)
 
 if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
