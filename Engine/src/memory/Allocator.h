@@ -118,7 +118,7 @@ namespace gold
 		template <class T> 
 		T* allocateArray(gold::Allocator& allocator, u64 length)
 		{
-			DEBUG_ASSERT(length != 0);
+			DEBUG_ASSERT(length != 0, "Attempting to allocate size 0!");
 
 			u8 headerSize = sizeof(u64) / sizeof(T);
 
@@ -142,7 +142,7 @@ namespace gold
 		template <class T> 
 		void deallocateArray(gold::Allocator& allocator, T* array)
 		{
-			DEBUG_ASSERT(array != nullptr);
+			DEBUG_ASSERT(array != nullptr, "Attempting to deallocate null!");
 
 			u64 length = *(((u64*)array) - 1);
 

@@ -1,10 +1,11 @@
 #pragma once
 
-
 #include "Platform.h"
-#include "core/Application.h"
 
-#include <SDL.h>
+#include "core/Application.h"
+#include "memory/FreeListAllocator.h"
+
+struct SDL_Window;
 
 namespace gold
 {
@@ -19,8 +20,10 @@ namespace gold
 
 		virtual void InitializeWindow(const ApplicationConfig& config) override;
 
-		virtual uint32_t GetElapsedTimeMS() const override;
+		virtual u32 GetElapsedTimeMS() const override;
 
 		virtual void PlatformEvents(Application& app) override;
+
+		virtual void* GetWindowHandle() const override;
 	};
 }

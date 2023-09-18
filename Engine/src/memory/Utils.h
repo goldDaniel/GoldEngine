@@ -10,7 +10,7 @@ namespace gold::memory
 		if (alignment == 0)
 		{
 			return 0;
-		}
+		} 
 
 		const u64 multiplier = (baseAddress / alignment) + 1;
 		const u64  alignedAddress = multiplier * alignment;

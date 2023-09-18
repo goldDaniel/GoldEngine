@@ -13,7 +13,7 @@ static std::unique_ptr<gold::Platform> CreatePlatform(std::vector<std::string>&&
 	return std::move(std::make_unique<gold::Platform_SDL>(std::move(commandArgs)));
 }
 
-int main(int argc, char** argv)
+int main(int argc, char* argv[])
 {
 	std::vector<std::string> commandArgs;
 	for (int i = 0; i < argc; ++i)

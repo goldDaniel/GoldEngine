@@ -3,6 +3,8 @@
 #include "Core.h"
 #include "platform/Platform.h"
 
+#include "graphics/Renderer.h"
+
 namespace gold
 {
 	struct ApplicationConfig
@@ -20,7 +22,7 @@ namespace gold
 	{
 	private:
 		std::unique_ptr<Platform> mPlatform = nullptr;
-
+		
 		f32 mTime;
 		f32 mAccumulator;
 
@@ -28,6 +30,8 @@ namespace gold
 
 	protected:
 		ApplicationConfig mConfig;
+
+		std::unique_ptr<graphics::Renderer> mRenderer = nullptr;
 
 	public:
 		Application(ApplicationConfig&& config);

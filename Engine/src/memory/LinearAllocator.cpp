@@ -7,7 +7,7 @@ LinearAllocator::LinearAllocator(void* start, u64 size)
 	: Allocator(start, size)
 	, mCurrentAddress(start) 
 { 
-	DEBUG_ASSERT(size > 0); 
+	DEBUG_ASSERT(size > 0, "size must be greater than 0");
 }
 
 LinearAllocator::~LinearAllocator() 
@@ -17,7 +17,7 @@ LinearAllocator::~LinearAllocator()
 
 void* LinearAllocator::Allocate(size_t size, u8 alignment)
 {
-	DEBUG_ASSERT(size > 0);
+	DEBUG_ASSERT(size > 0, "size must be greater than 0");
 
 	u8 adjustment = allocator::alignForwardAdjustment(mCurrentAddress, alignment);
 
@@ -37,7 +37,7 @@ void* LinearAllocator::Allocate(size_t size, u8 alignment)
 
 void LinearAllocator::Deallocate(void* p)
 {
-	DEBUG_ASSERT(false && "Use Reset() instead");
+	DEBUG_ASSERT(false, "Use Reset() instead");
 }
 
 void LinearAllocator::Reset()

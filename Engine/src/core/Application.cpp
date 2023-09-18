@@ -20,6 +20,9 @@ void Application::StartApplication(std::unique_ptr<Platform> platform)
 {
 	mPlatform = std::move(platform);
 	mPlatform->InitializeWindow(mConfig);
+	
+	mRenderer = std::unique_ptr<graphics::Renderer>();
+	mRenderer->Init(mPlatform->GetWindowHandle());
 }
 
 void Application::Run()

@@ -14,7 +14,7 @@ FreeListAllocator::FreeListAllocator(void* start, u64 size)
 {
 	STATIC_ASSERT(sizeof(AllocationHeader) >= sizeof(FreeListAllocator::FreeBlock), "sizeof(AllocationHeader) < sizeof(FreeBlock)");
 
-	DEBUG_ASSERT(size > sizeof(FreeBlock));
+	DEBUG_ASSERT(size > sizeof(FreeBlock), "Size must be larger than allocation tracking block");
 	mFreeBlocks->size = size;
 	mFreeBlocks->next = nullptr;
 }
@@ -26,7 +26,7 @@ FreeListAllocator::~FreeListAllocator()
 
 void* FreeListAllocator::Allocate(size_t size, u8 alignment)
 {
-	DEBUG_ASSERT(size > 0 && alignment > 0);
+	DEBUG_ASSERT(size > 0 && alignment > 0, "invalid arguments");
 	FreeBlock* prevFreeBlock = nullptr;
 	FreeBlock* currFreeBlock = mFreeBlocks;
 
@@ -84,18 +84,18 @@ void* FreeListAllocator::Allocate(size_t size, u8 alignment)
 		mUsed += totalSize;
 		mNumAllocations++;
 
-		DEBUG_ASSERT(allocator::alignForwardAdjustment((void*)aligned_address, alignment) == 0);
+		DEBUG_ASSERT(allocator::alignForwardAdjustment((void*)aligned_address, alignment) == 0, "Invalid allignment");
 
 		return (void*)aligned_address;
 	}
 
-	DEBUG_ASSERT(false && "Couldn't find free block large enough!"); 
+	DEBUG_ASSERT(false, "Couldn't find free block large enough!"); 
 	return nullptr;
 }
 
 void FreeListAllocator::Deallocate(void* p)
 {
-	DEBUG_ASSERT(p);
+	DEBUG_ASSERT(p, "Attempting to deallocate nullptr!");
 
 	AllocationHeader* header = (AllocationHeader*)allocator::subtract(p, sizeof(AllocationHeader));
 	

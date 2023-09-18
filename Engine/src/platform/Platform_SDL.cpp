@@ -11,6 +11,7 @@ static_assert(false && "Known Platform for SDL backend!");
 
 #include "core/Application.h"
 
+#include <SDL.h>
 #include <filesystem>
 
 using namespace gold;
@@ -26,7 +27,7 @@ static void SetWorkingDirectory(const std::string& pathOffset)
 	if (!SetCurrentDirectory(pathAsString.c_str()))
 	{
 		//G_ENGINE_ERROR("Failed to set data directory to: {}", pathAsString);
-		DEBUG_ASSERT(false && "Failed to set data directory");
+		DEBUG_ASSERT(false, "Failed to set data directory");
 	}
 	else
 	{
@@ -34,9 +35,9 @@ static void SetWorkingDirectory(const std::string& pathOffset)
 	}
 #elif defined (__linux__)
 	G_ENGINE_ERROR("Failed to set data directory to: {}", desiredDir);
-	DEBUG_ASSERT(false && "Failed to set data directory");
+	DEBUG_ASSERT(false, "Failed to set data directory");
 #else 
-	STATIC_ASSERT(false && "Known Platform for SDL backend!");
+	STATIC_ASSERT(false, "Known Platform for SDL backend!");
 #endif
 }
 
@@ -47,7 +48,7 @@ Platform_SDL::Platform_SDL(std::vector<std::string>&& commandArgs)
 
 	for (const std::string& arg : GetCommandArgs())
 	{
-		size_t idx = arg.find(dataRedirectKey);
+		u64 idx = arg.find(dataRedirectKey);
 		if (idx != std::string::npos)
 		{
 			std::string path = arg.substr(idx + dataRedirectKey.size(), arg.size());
@@ -80,11 +81,10 @@ void Platform_SDL::InitializeWindow(const ApplicationConfig& config)
 	}
 }
 
-uint32_t Platform_SDL::GetElapsedTimeMS() const
+u32 Platform_SDL::GetElapsedTimeMS() const
 {
 	return SDL_GetTicks();
 }
-
 
 void Platform_SDL::PlatformEvents(Application& app)
 {
@@ -100,4 +100,9 @@ void Platform_SDL::PlatformEvents(Application& app)
 		}
 		}
 	}
+}
+
+void* Platform_SDL::GetWindowHandle() const
+{
+	return mWindow;
 }

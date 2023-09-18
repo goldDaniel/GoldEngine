@@ -24,7 +24,9 @@ namespace gold
 		virtual void InitializeWindow(const ApplicationConfig& config) = 0;
 		virtual void PlatformEvents(Application& app) = 0;
 
-		virtual uint32_t GetElapsedTimeMS() const = 0;
+		virtual u32 GetElapsedTimeMS() const = 0;
+
+		virtual void* GetWindowHandle() const = 0;
 
 		const std::vector<std::string>& GetCommandArgs() const { return mCommandArgs; }
 	};
