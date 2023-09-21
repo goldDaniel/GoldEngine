@@ -56,7 +56,7 @@ namespace graphics
 				if (e.GetType() == type) return e;
 			}
 
-			DEBUG_ASSERT(false && "Could not resolve element type");
+			DEBUG_ASSERT(false, "Could not resolve element type");
 			return mElements.at(0);
 		}
 
@@ -151,7 +151,7 @@ namespace graphics
 			case VertexLayout::ElementType::Color3:	   SetAttrib<glm::vec3>(attribPtr, std::forward<T>(value)); break;
 			case VertexLayout::ElementType::Color4:    SetAttrib<glm::vec4>(attribPtr, std::forward<T>(value)); break;
 
-			default: DEBUG_ASSERT(false && "Invalid Element Type");
+			default: DEBUG_ASSERT(false, "Invalid Element Type");
 			}
 		}
 
@@ -171,7 +171,7 @@ namespace graphics
 			}
 			else
 			{
-				DEBUG_ASSERT(false && "Parameter - attribute mismatch!");
+				DEBUG_ASSERT(false, "Parameter - attribute mismatch!");
 			}
 		}
 
@@ -203,7 +203,7 @@ namespace graphics
 		template<typename... Args>
 		void Emplace(Args&&... args)
 		{
-			DEBUG_ASSERT(sizeof...(args) == mLayout.ElementCount() && "parameter count mismatch");
+			DEBUG_ASSERT(sizeof...(args) == mLayout.ElementCount(), "parameter count mismatch");
 
 			mBuffer.resize(mBuffer.size() + mLayout.Size());
 			Back().SetAttribByIndex(0u, std::forward<Args>(args)...);
@@ -211,7 +211,7 @@ namespace graphics
 
 		Vertex Back()
 		{
-			DEBUG_ASSERT(mBuffer.size() > 0);
+			DEBUG_ASSERT(mBuffer.size() > 0, "Emtpy buffer!");
 
 			uint8_t* data = mBuffer.data() + mBuffer.size() - mLayout.Size();
 			return Vertex{ data, mLayout };
@@ -219,7 +219,7 @@ namespace graphics
 
 		Vertex Front()
 		{
-			DEBUG_ASSERT(mBuffer.size() > 0);
+			DEBUG_ASSERT(mBuffer.size() > 0, "Empty Buffer!");
 
 			uint8_t* data = mBuffer.data();
 			return Vertex{ data, mLayout };
@@ -227,7 +227,7 @@ namespace graphics
 
 		Vertex operator[](size_t index)
 		{
-			DEBUG_ASSERT(mBuffer.size() > 0 && index < VertexCount() );
+			DEBUG_ASSERT(mBuffer.size() > 0 && index < VertexCount() , "");
 
 			uint8_t* data = mBuffer.data() + mLayout.Size() * index;
 			return Vertex{ data, mLayout };

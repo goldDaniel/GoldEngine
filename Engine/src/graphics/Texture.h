@@ -38,7 +38,7 @@ namespace graphics
 
 		int mChannels = 0;
 
-		void* mData;
+		void* mData = 0;
 	};
 }
 

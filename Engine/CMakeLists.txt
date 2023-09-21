@@ -34,6 +34,8 @@ target_link_libraries(Engine ${sdl_lib})
 get_property(glad_include GLOBAL PROPERTY GLAD_INCLUDE_DIR)
 target_include_directories(Engine PRIVATE ${glad_include})
 
+#stb 
+target_include_directories(Engine PRIVATE "${PROJECT_SOURCE_DIR}/Dependencies/stb/")
 
 foreach(_source IN ITEMS ${ENGINE_SOURCE_LIST})
     get_filename_component(_source_path "${_source}" PATH)

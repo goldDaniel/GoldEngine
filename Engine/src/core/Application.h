@@ -46,7 +46,16 @@ namespace gold
 
 		const std::vector<std::string>& GetCommandArgs() const;
 
-		glm::vec2 GetScreenSize() const { return { mConfig.windowWidth, mConfig.windowHeight }; }
+		void SetScreenSize(int w, int h) 
+		{ 
+			mConfig.windowWidth = w; 
+			mConfig.windowHeight = h; 
+		}
+
+		glm::vec2 GetScreenSize() const 
+		{ 
+			return { mConfig.windowWidth, mConfig.windowHeight }; 
+		}
 
 		const std::string& GetTitle() const { return mConfig.title; }
 

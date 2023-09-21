@@ -31,6 +31,7 @@ static void SetWorkingDirectory(const std::string& pathOffset)
 	}
 	else
 	{
+		std::cout << "Working directory set to: " << pathAsString << std::endl;
 		//G_ENGINE_INFO("Working directory set to: {}", pathAsString);
 	}
 #elif defined (__linux__)
@@ -97,6 +98,15 @@ void Platform_SDL::PlatformEvents(Application& app)
 		{
 			app.Shutdown();
 			break;
+		}
+		case SDL_WINDOWEVENT:
+		{
+			switch (event.window.event)
+			{
+			case SDL_WINDOWEVENT_SIZE_CHANGED:
+			case SDL_WINDOWEVENT_RESIZED:
+				app.SetScreenSize(event.window.data1, event.window.data2);
+			}
 		}
 		}
 	}
