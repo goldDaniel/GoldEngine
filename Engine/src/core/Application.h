@@ -2,8 +2,10 @@
 
 #include "Core.h"
 #include "platform/Platform.h"
-
 #include "graphics/Renderer.h"
+
+#include <thread>
+#include <condition_variable>
 
 namespace gold
 {
@@ -22,16 +24,24 @@ namespace gold
 	{
 	private:
 		std::unique_ptr<Platform> mPlatform = nullptr;
-		
+		std::unique_ptr<graphics::Renderer> mRenderer = nullptr;
+
+		std::thread mRenderThread;
+		std::mutex mRenderMutex;
+		std::condition_variable mRenderCond;
+		//RenderCommands commands;
+
+
 		f32 mTime;
 		f32 mAccumulator;
 
 		bool mRunning;
 
+		void RenderThread();
+
 	protected:
 		ApplicationConfig mConfig;
 
-		std::unique_ptr<graphics::Renderer> mRenderer = nullptr;
 
 	public:
 		Application(ApplicationConfig&& config);
@@ -63,5 +73,6 @@ namespace gold
 	protected:
 		virtual void Init() = 0;
 		virtual void Update(float delta) = 0;
+		virtual void Render(graphics::Renderer& renderer) = 0;
 	};
 }

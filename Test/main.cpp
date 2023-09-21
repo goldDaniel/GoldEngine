@@ -11,6 +11,8 @@ private:
 
 	graphics::MeshHandle mMesh{};
 	
+	bool mFirstFrame = true;
+
 public:
 	TestApp(gold::ApplicationConfig&& config)
 		: gold::Application(std::move(config))
@@ -18,7 +20,8 @@ public:
 	}
 
 protected:
-	virtual void Init() override
+
+	void InitRenderData(graphics::Renderer& renderer)
 	{
 		glm::mat4 mvp;
 
@@ -27,21 +30,21 @@ protected:
 		mvp = glm::perspective(glm::radians(65.f), screenSize.x / screenSize.y, 1.f, 100.f);
 		mvp *= glm::lookAt(glm::vec3{ 0, 0, 5 }, glm::vec3{ 0,0,0 }, glm::vec3{ 0,1,0 });
 
-		mView = mRenderer->CreateUniformBlock(mvp);
+		mView = renderer.CreateUniformBlock(mvp);
 
 		std::string vertSrc = util::LoadStringFromFile("shaders/default.vert.glsl");
 
 		std::string fragSrc = util::LoadStringFromFile("shaders/default.frag.glsl");
-		mShader = mRenderer->CreateShader(vertSrc.c_str(), fragSrc.c_str());
+		mShader = renderer.CreateShader(vertSrc.c_str(), fragSrc.c_str());
 
-		
+
 		graphics::VertexLayout layout;
 		layout.Push<graphics::VertexLayout::Position3>();
 		layout.Push<graphics::VertexLayout::Color3>();
 
 		graphics::VertexBuffer buffer(std::move(layout));
 
-		glm::vec3 pos0 = {-1, -1, 0 };
+		glm::vec3 pos0 = { -1, -1, 0 };
 		glm::vec3 col0 = { 1, 0, 0 };
 
 		glm::vec3 pos1 = { 1, -1, 0 };
@@ -61,40 +64,56 @@ protected:
 
 		graphics::MeshDescription mesh;
 		mesh.mIndicesFormat = graphics::IndexFormat::U16;
-		mesh.mIndices = mRenderer->CreateIndexBuffer(indices);
+		mesh.mIndices = renderer.CreateIndexBuffer(indices);
 		mesh.mIndexCount = 3;
 
 		mesh.mVertexCount = 3;
 		mesh.mStride = buffer.GetLayout().Size();
 		mesh.offsets.mPositionOffset = buffer.GetLayout().Resolve<graphics::VertexLayout::Position3>().GetOffset();
-		mesh.offsets.mColorsOffset= buffer.GetLayout().Resolve<graphics::VertexLayout::Color3>().GetOffset();
+		mesh.offsets.mColorsOffset = buffer.GetLayout().Resolve<graphics::VertexLayout::Color3>().GetOffset();
 
-		mesh.mInterlacedBuffer = mRenderer->CreateVertexBuffer(buffer.Raw(), buffer.SizeInBytes());
+		mesh.mInterlacedBuffer = renderer.CreateVertexBuffer(buffer.Raw(), buffer.SizeInBytes());
 
-		mMesh = mRenderer->CreateMesh(mesh);
+		mMesh = renderer.CreateMesh(mesh);
+	}
+
+	virtual void Init() override
+	{
+		
 	}
 
 
 	virtual void Update(float delta) override
 	{
+		
+	}
+
+	virtual void Render(graphics::Renderer& renderer) override
+	{
+		if (mFirstFrame)
+		{
+			InitRenderData(renderer);
+			mFirstFrame = false;
+		}
+
 		glm::vec2 screenSize = GetScreenSize();
 
 		glm::mat4 mvp = glm::perspective(glm::radians(65.f), screenSize.x / screenSize.y, 1.f, 100.f);
 		mvp *= glm::lookAt(glm::vec3{ 0, 0, 5 }, glm::vec3{ 0,0,0 }, glm::vec3{ 0,1,0 });
-		mRenderer->UpdateUniformBlock(mvp, mView);
+		renderer.UpdateUniformBlock(mvp, mView);
 
-		mRenderer->SetBackBufferSize((int)screenSize.x, (int)screenSize.y);
-		mRenderer->BeginFrame();
+		renderer.SetBackBufferSize((int)screenSize.x, (int)screenSize.y);
+		renderer.BeginFrame();
 
-		uint8_t pass = mRenderer->AddRenderPass("Default", graphics::ClearColor::YES, graphics::ClearDepth::YES);
+		uint8_t pass = renderer.AddRenderPass("Default", graphics::ClearColor::YES, graphics::ClearDepth::YES);
 		graphics::RenderState state;
 		state.mRenderPass = pass;
 		state.mShader = &mShader;
 		state.SetUniformBlock("View_UBO", mView);
 
-		mRenderer->DrawMesh(mMesh, state);
+		renderer.DrawMesh(mMesh, state);
 
-		mRenderer->EndFrame();
+		renderer.EndFrame();
 	}
 };
 

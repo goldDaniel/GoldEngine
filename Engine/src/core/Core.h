@@ -5,6 +5,7 @@
 
 #include <array>
 #include <vector>
+#include <queue>
 #include <unordered_map>
 #include <string>
 #include <memory>
