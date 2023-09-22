@@ -5,7 +5,7 @@
 using namespace graphics;
 using namespace gold;
 
-FrameEncoder::FrameEncoder(RenderResources& resources)
+FrameEncoder::FrameEncoder(ClientResources& resources)
 	: mMemory(static_cast<u8*>(malloc(kSize)))
 	, mWriter(mMemory, kSize)
 	, mResources(resources)
@@ -56,7 +56,7 @@ u8 FrameEncoder::AddRenderPass(const graphics::RenderPass& pass)
 	mWriter.Write(pass.mTarget.mHandle); // client handle
 	for (u64 i = 0; i < static_cast<u64>(OutputSlot::Count); ++i)
 	{
-		mWriter.Write(pass.mTarget.mTextures[i]);
+		mWriter.Write(pass.mTarget.mTextures[i]); // client handles
 	}
 	mWriter.Write(pass.mTarget.mWidth);
 	mWriter.Write(pass.mTarget.mHeight);
@@ -166,11 +166,13 @@ ShaderHandle FrameEncoder::CreateShader(const char* vertSrc, const char* fragSrc
 	// frag
 	mWriter.Write(fragLen);
 	mWriter.Write(fragSrc, fragLen);
+
+	return clientHandle;
 }
 
 MeshHandle FrameEncoder::CreateMesh(const MeshDescription& desc)
 {
-
+	return {0};
 }
 
 void FrameEncoder::DrawMesh(const MeshHandle handle, const RenderState& state)

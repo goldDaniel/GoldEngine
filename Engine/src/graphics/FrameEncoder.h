@@ -17,14 +17,14 @@ namespace gold
 		static constexpr u64 kSize = 1024 * 1024 * 128;
 		u8* mMemory;
 
-		RenderResources& mResources;
+		ClientResources& mResources;
 		BinaryWriter mWriter;
 
 		// TODO (danielg): Move this somewhere else? it needs to be reset every frame
 		u8 mNextPass{};
 
 	public:
-		FrameEncoder(RenderResources& resources);
+		FrameEncoder(ClientResources& resources);
 
 		~FrameEncoder();
 
@@ -32,7 +32,7 @@ namespace gold
 
 		void End();
 
-		BinaryReader GetReader(); 
+		BinaryReader GetReader();
 
 		u8 AddRenderPass(const graphics::RenderPass& pass);
 		u8 AddRenderPass(const char* name, graphics::FrameBuffer target, graphics::ClearColor color, graphics::ClearDepth depth);
