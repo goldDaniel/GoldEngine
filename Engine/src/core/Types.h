@@ -25,5 +25,5 @@ STATIC_ASSERT(sizeof(i64) == 8, "i64 size mismatch!");
 using f32	= float;
 using f64	= double;
 
-STATIC_ASSERT(sizeof(f32) == 4, "Type size mismatch!");
-STATIC_ASSERT(sizeof(f64) == 8, "Type size mismatch!");
+STATIC_ASSERT(sizeof(f32) == 4, "f32 size mismatch!");
+STATIC_ASSERT(sizeof(f64) == 8, "f64 size mismatch!");

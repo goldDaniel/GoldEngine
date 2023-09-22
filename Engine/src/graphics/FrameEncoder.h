@@ -19,32 +19,13 @@ namespace gold
 		BinaryWriter mWriter;
 
 	public:
-		FrameEncoder(RenderResources& resources)
-			: mMemory(static_cast<u8*>(malloc(size)))
-			, mWriter(mMemory, size)
-			, mResources(resources)
-		{
+		FrameEncoder(RenderResources& resources);
 
-		}
+		~FrameEncoder();
 
-		~FrameEncoder()
-		{
-			DEBUG_ASSERT(!mRecording, "Destroyed while recording frame!");
-			free(mMemory);
-		}
+		void Begin();
 
-		void Begin()
-		{
-			DEBUG_ASSERT(!mRecording, "Must end begin recording before beginning");
-			mRecording = true;
-			mWriter.Reset();
-		}
-
-		void End()
-		{
-			DEBUG_ASSERT(mRecording, "Must begin recording before ending");
-			mRecording = false;
-		}
+		void End();
 
 		graphics::IndexBufferHandle CreateIndexBuffer(const void* data, u64 size);
 

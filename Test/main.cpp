@@ -7,7 +7,7 @@ class TestApp : public gold::Application
 {
 private:
 	graphics::UniformBufferHandle mView{};
-	graphics::Shader mShader{};
+	graphics::ShaderHandle mShader{};
 
 	graphics::MeshHandle mMesh{};
 	
@@ -108,7 +108,7 @@ protected:
 		uint8_t pass = renderer.AddRenderPass("Default", graphics::ClearColor::YES, graphics::ClearDepth::YES);
 		graphics::RenderState state;
 		state.mRenderPass = pass;
-		state.mShader = &mShader;
+		state.mShader = mShader;
 		state.SetUniformBlock("View_UBO", { mView });
 
 		renderer.DrawMesh(mMesh, state);

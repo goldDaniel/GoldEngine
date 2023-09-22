@@ -1,6 +1,5 @@
 #include "Texture.h"
 
-#include "Renderer.h"
 #include "core/Util.h"
 
 #define STB_IMAGE_IMPLEMENTATION
@@ -52,17 +51,17 @@ Texture2D::~Texture2D()
 	
 }
 
-int Texture2D::GetWidth() const
+u16 Texture2D::GetWidth() const
 {
 	return mWidth;
 }
 
-int Texture2D::GetHeight() const
+u16 Texture2D::GetHeight() const
 {
 	return mHeight;
 }
 
-uint32_t Texture2D::GetNameHash() const
+u32 Texture2D::GetNameHash() const
 {
 	return mNameHash;
 }
@@ -72,7 +71,7 @@ const void* Texture2D::GetData() const
 	return mData;
 }
 
-uint32_t Texture2D::GetDataSize() const
+u32 Texture2D::GetDataSize() const
 {
 	return sizeof(uint8_t) * mChannels * mWidth * mHeight;
 }

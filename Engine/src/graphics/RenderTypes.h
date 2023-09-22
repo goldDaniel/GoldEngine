@@ -2,18 +2,18 @@
 
 #include "core/Core.h"
 #include "core/Util.h"
-#include "Texture.h"
 
 #define G_RENDER_HANDLE(name) \
 	namespace graphics { \
 		struct name { \
-			uint32_t idx; \
+			u32 idx; \
+			void operator=(const name &rhs) { idx = rhs.idx; } \
 			bool operator==(const name &other) const { return idx == other.idx; } \
 		}; \
 	} \
 	template <> struct std::hash<graphics::##name> {  \
-		uint64_t operator()(const graphics::##name& data) const noexcept { \
-			return std::hash<uint32_t>{}(data.idx); \
+		u64 operator()(const graphics::##name& data) const noexcept { \
+			return std::hash<u32>{}(data.idx); \
 		} \
 	};
 
@@ -23,12 +23,13 @@ G_RENDER_HANDLE(UniformBufferHandle);
 G_RENDER_HANDLE(ShaderBufferHandle);
 G_RENDER_HANDLE(TextureHandle);
 G_RENDER_HANDLE(MeshHandle);
+G_RENDER_HANDLE(ShaderHandle);
 
 #undef G_RENDER_HANDLE
 
 namespace graphics
 {
-	enum class OutputSlot
+	enum class OutputSlot : u8
 	{
 		Color0 = 0, // albedo
 		Color1,		// normal
@@ -39,14 +40,14 @@ namespace graphics
 		Count
 	};
 
-	enum class CullFace
+	enum class CullFace : u8
 	{
 		BACK,
 		FRONT,
 		DISABLED,
 	};
 
-	enum class DepthFunction
+	enum class DepthFunction : u8
 	{
 		LESS,
 		LESS_EQUAL,
@@ -55,7 +56,7 @@ namespace graphics
 		DISABLED,
 	};
 
-	enum class BlendFunction
+	enum class BlendFunction : u8
 	{
 		SRC_ALPHA,
 		ONE_MINUS_SRC_ALPHA,
@@ -63,14 +64,14 @@ namespace graphics
 		ZERO,
 	};
 
-	enum class BufferUsage
+	enum class BufferUsage : u8
 	{
 		STATIC,
 		DYNAMIC,
 		STREAM
 	};
 
-	enum class PrimitiveType
+	enum class PrimitiveType : u8
 	{
 		TRIANGLES,
 		TRIANGLE_STRIP,
@@ -78,7 +79,7 @@ namespace graphics
 		LINES
 	};
 
-	enum class TextureFormat
+	enum class TextureFormat : u8
 	{
 		INVALID,
 
@@ -100,7 +101,7 @@ namespace graphics
 		DEPTH,
 	};
 
-	enum class CubemapFace
+	enum class CubemapFace : u8
 	{
 		POSITIVE_X = 0,
 		NEGATIVE_X,
@@ -112,7 +113,7 @@ namespace graphics
 		COUNT,
 	};
 
-	enum class TextureWrap
+	enum class TextureWrap : u8
 	{
 		REPEAT,
 		CLAMP,
@@ -120,13 +121,13 @@ namespace graphics
 		BORDER
 	};
 
-	enum class TextureFilter
+	enum class TextureFilter : u8
 	{
 		LINEAR,
 		POINT,
 	};
 
-	enum class FramebufferAttachment
+	enum class FramebufferAttachment : u8
 	{
 		COLOR0,
 		COLOR1,
@@ -135,7 +136,7 @@ namespace graphics
 		DEPTH,
 	};
 
-	enum class VertexFormat
+	enum class VertexFormat : u8
 	{
 		U8x3,
 		U8x4,
@@ -152,14 +153,14 @@ namespace graphics
 		FLOATx4,
 	};
 
-	enum class IndexFormat
+	enum class IndexFormat : u8
 	{
 		U16,
 		U32
 	};
 
-	enum class ClearColor { YES, NO };
-	enum class ClearDepth { YES, NO };
+	enum class ClearColor : u8 { YES, NO };
+	enum class ClearDepth : u8 { YES, NO };
 
 	struct Mesh
 	{
@@ -260,16 +261,7 @@ namespace graphics
 		glm::vec4 mBorderColor{ 0 };
 
 		TextureDescription2D() = default;
-		TextureDescription2D(const Texture2D& tex, bool mipmaps)
-		{
-			mNameHash = tex.GetNameHash();
-			mData = tex.GetData();
-			mDataSize = tex.GetDataSize();
-			mWidth = tex.GetWidth();
-			mHeight = tex.GetHeight();
-			mFormat = tex.GetFormat();
-			mMipmaps = mipmaps;
-		}
+		TextureDescription2D(const class Texture2D& tex, bool mipmaps);
 	};
 
 	struct TextureDescription3D
@@ -291,26 +283,7 @@ namespace graphics
 		glm::vec4 mBorderColor{ 0 };
 
 		TextureDescription3D() = default;
-		TextureDescription3D(const std::vector<Texture2D>& data, bool mipmaps)
-		{
-			mWidth = data[0].GetWidth();
-			mHeight = data[0].GetHeight();
-			mDepth = static_cast<uint32_t>(data.size());
-
-			mDataSize = data[0].GetDataSize();
-			mFormat = data[0].GetFormat();
-
-
-			for (size_t i = 0; i < data.size(); ++i)
-			{
-				DEBUG_ASSERT(mDataSize == data[i].GetDataSize(), "");
-				DEBUG_ASSERT(mWidth == data[i].GetWidth(), "");
-				DEBUG_ASSERT(mHeight == data[i].GetHeight(), "");
-				DEBUG_ASSERT(mFormat == data[i].GetFormat(), "");
-
-				mData[i] = data[i].GetData();
-			}
-		}
+		TextureDescription3D(const std::vector<Texture2D>& data, bool mipmaps);
 	};
 
 	struct CubemapDescription
@@ -327,32 +300,12 @@ namespace graphics
 		TextureFilter mFilter = TextureFilter::LINEAR;
 
 		CubemapDescription() = default;
-		CubemapDescription(const std::unordered_map<CubemapFace, Texture2D&>& data)
-		{
-			DEBUG_ASSERT(data.size() == static_cast<uint32_t>(CubemapFace::COUNT), "Incorrect number of cubemap faces!");
-
-			mDataSize = data.at(CubemapFace::POSITIVE_X).GetDataSize();
-			mWidth = data.at(CubemapFace::POSITIVE_X).GetWidth();
-			mHeight = data.at(CubemapFace::POSITIVE_X).GetHeight();
-			mFormat = data.at(CubemapFace::POSITIVE_X).GetFormat();
-
-			for (const auto& iter : data)
-			{
-				DEBUG_ASSERT(mDataSize == iter.second.GetDataSize(), "");
-				DEBUG_ASSERT(mWidth == iter.second.GetWidth(), "");
-				DEBUG_ASSERT(mHeight == iter.second.GetHeight(), "");
-				DEBUG_ASSERT(mFormat == iter.second.GetFormat(), "");
-
-				mData[iter.first] = iter.second.GetData();
-			}
-		}
+		CubemapDescription(const std::unordered_map<CubemapFace, Texture2D&>& data);
 	};
-
-
 
 	struct Shader
 	{
-		uint32_t mHandle = 0;
+		ShaderHandle mHandle{};
 
 		// tessellation params
 		bool mTesselation = false;
@@ -368,7 +321,7 @@ namespace graphics
 		UniformBufferHandle mID{ 0 };
 		uint32_t mSize{ 0 };
 
-		uint8_t* Map();
+		u8* Map();
 		void Unmap();
 	};
 
@@ -377,14 +330,14 @@ namespace graphics
 		ShaderBufferHandle mID{ 0 };
 		uint32_t mSize{ 0 };
 
-		uint8_t* Map();
+		u8* Map();
 		void Unmap();
 	};
 
 	struct FrameBuffer
 	{
 		uint32_t mHandle = 0;
-		std::array<TextureHandle, static_cast<size_t>(OutputSlot::Count)> mTextures;
+		std::array<TextureHandle, static_cast<u64>(OutputSlot::Count)> mTextures;
 
 		uint32_t mWidth = 0;
 		uint32_t mHeight = 0;
@@ -398,7 +351,7 @@ namespace graphics
 			FramebufferAttachment mAttachment{};
 		};
 
-		std::array<FrameBufferTexture, static_cast<size_t>(OutputSlot::Count)> mTextures;
+		std::array<FrameBufferTexture, static_cast<u64>(OutputSlot::Count)> mTextures;
 	};
 
 	struct RenderPass
@@ -461,21 +414,21 @@ namespace graphics
 		};
 
 		std::array<UniformBlock, 12> mUniformBlocks{};
-		size_t mNumUniformBlocks = 0;
+		u64 mNumUniformBlocks = 0;
 
 		std::array<StorageBlock, 8> mStorageBlocks{};
-		size_t mNumStorageBlocks = 0;
+		u64 mNumStorageBlocks = 0;
 
 		std::array<Texture, 16> mTextures{};
-		size_t mNumTextures = 0;
+		u64 mNumTextures = 0;
 
 		std::array<Image, 16> mImages{};
-		size_t mNumImages = 0;
+		u64 mNumImages = 0;
 
-		uint8_t mRenderPass = std::numeric_limits<uint8_t>::max();
-		const Shader* mShader = nullptr;
+		u8 mRenderPass = std::numeric_limits<u8>::max();
+		ShaderHandle mShader{};
 
-		Viewport viewport{ 0,0,0,0 };
+		Viewport mViewport{ 0,0,0,0 };
 
 		DepthFunction mDepthFunc = DepthFunction::LESS;
 		BlendFunction mSrcBlendFunc = BlendFunction::SRC_ALPHA;
@@ -491,14 +444,10 @@ namespace graphics
 
 		void SetUniformBlock(const std::string& name, UniformBufferHandle binding)
 		{
-			// These constants much match
-			DEBUG_ASSERT(mUniformBlocks.size() == mShader->mUniformBlocks.size(), "Uniform block constant size mismatch!");
-
-
 			u64 nameHash = util::Hash(name.c_str(), name.size());
 
 			// update uniform block if it exists
-			for (size_t i = 0; i < mNumUniformBlocks; ++i)
+			for (u64 i = 0; i < mNumUniformBlocks; ++i)
 			{
 				if (mUniformBlocks[i].mNameHash == nameHash)
 				{
@@ -517,13 +466,10 @@ namespace graphics
 
 		void SetStorageBlock(const std::string& name, ShaderBufferHandle binding)
 		{
-			// These constants much match
-			DEBUG_ASSERT(mStorageBlocks.size() == mShader->mStorageBlocks.size(), "Storage block constant size mismatch!");
-
 			u64 nameHash = util::Hash(name.c_str(), name.size());
 
 			// update uniform block if it exists
-			for (size_t i = 0; i < mNumStorageBlocks; ++i)
+			for (u64 i = 0; i < mNumStorageBlocks; ++i)
 			{
 				if (mStorageBlocks[i].mNameHash == nameHash)
 				{
@@ -543,13 +489,10 @@ namespace graphics
 
 		void SetTexture(const std::string& name, TextureHandle texture)
 		{
-			// These constants much match
-			DEBUG_ASSERT(mTextures.size() == mShader->mTextures.size(), "Texture slot size mismatch!");
-
 			u64 nameHash = util::Hash(name.c_str(), name.size());
 
 			// update texture if it exists
-			for (size_t i = 0; i < mNumTextures; ++i)
+			for (u64 i = 0; i < mNumTextures; ++i)
 			{
 				if (mTextures[i].mNameHash == nameHash)
 				{
@@ -568,13 +511,10 @@ namespace graphics
 
 		void SetImage(const std::string& name, TextureHandle texture, bool read = true, bool write = true)
 		{
-			// These constants much match
-			DEBUG_ASSERT(mImages.size() == mShader->mImages.size(), "Image slot size mismatch!");
-
 			u64 nameHash = util::Hash(name.c_str(), name.size());
 
 			// update texture if it exists
-			for (size_t i = 0; i < mNumImages; ++i)
+			for (u64 i = 0; i < mNumImages; ++i)
 			{
 				if (mImages[i].mNameHash == nameHash)
 				{

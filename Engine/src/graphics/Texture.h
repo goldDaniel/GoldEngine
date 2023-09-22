@@ -1,7 +1,7 @@
 #pragma once
 
-#include <cstdint>
-#include <string>
+#include "core/Core.h"
+#include "RenderTypes.h"
 
 namespace graphics
 {
@@ -15,21 +15,21 @@ namespace graphics
 
 		~Texture2D();
 
-		int GetWidth() const;
+		u16 GetWidth() const;
 
-		int GetHeight() const;
+		u16 GetHeight() const;
 
-		uint32_t GetNameHash() const;
+		u32 GetNameHash() const;
 
 		const void* GetData() const;
 
-		enum class TextureFormat GetFormat() const;
+		graphics::TextureFormat GetFormat() const;
 
-		uint32_t GetDataSize() const;
+		u32 GetDataSize() const;
 
 	private:
 
-		uint32_t mNameHash = 0;
+		u32 mNameHash = 0;
 
 		bool mCompressedLoad = false;
 

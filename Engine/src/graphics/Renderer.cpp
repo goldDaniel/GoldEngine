@@ -153,8 +153,8 @@ struct TextureDesc
 struct StateCache
 {
 	// previous state
-	RenderState prevRenderState;
-	FrameBuffer prevFrameBuffer;
+	RenderState prevRenderState{};
+	FrameBuffer prevFrameBuffer{};
 	Mesh prevMesh;
 };
 
@@ -163,6 +163,7 @@ static SDL_GLContext glContext;
 
 static StateCache stateCache;
 
+static std::unordered_map<ShaderHandle, Shader> shaders;
 static std::unordered_map<UniformBufferHandle, UniformBuffer> uniformBuffers;
 static std::unordered_map<ShaderBufferHandle, StorageBuffer> shaderBuffers;
 
@@ -481,8 +482,6 @@ void Renderer::Init(void* window)
 	glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &maxUBOSize);
 	
 	buildingFrame = false;
-	stateCache.prevRenderState = {};
-	stateCache.prevFrameBuffer = {};
 	stateCache.prevMesh = {};
 	 
 	// default GL state
@@ -579,13 +578,16 @@ void Renderer::EndFrame()
 			return GL_INVALID_ENUM;
 		};
 
-		if (state.mShader != stateCache.prevRenderState.mShader)
+		if (state.mShader.idx != stateCache.prevRenderState.mShader.idx)
 		{
-			glUseProgram(state.mShader->mHandle);
+			glUseProgram(state.mShader.idx);
 		}
 
+
+		const Shader& shader = shaders[state.mShader];
+
 		// uniforms blocks
-		for (u64 i = 0; i < state.mShader->mUniformBlocks.size(); ++i)
+		for (u64 i = 0; i < shader.mUniformBlocks.size(); ++i)
 		{
 			bool foundBinding = false;
 
@@ -595,7 +597,7 @@ void Renderer::EndFrame()
 				const UniformBuffer& buffer = uniformBuffers[binding];
 
 				u32 nameHash = state.mUniformBlocks[j].mNameHash;
-				if (nameHash == state.mShader->mUniformBlocks[i] && buffer.mSize > 0)
+				if (nameHash == shader.mUniformBlocks[i] && buffer.mSize > 0)
 				{
 					glBindBufferRange(GL_UNIFORM_BUFFER, static_cast<GLuint>(i), binding.idx, 0, buffer.mSize);
 					foundBinding = true;
@@ -610,7 +612,7 @@ void Renderer::EndFrame()
 		}
 
 		// shader storage blocks
-		for (u64 i = 0; i < state.mShader->mStorageBlocks.size(); ++i)
+		for (u64 i = 0; i < shader.mStorageBlocks.size(); ++i)
 		{
 			bool foundBinding = false;
 
@@ -621,7 +623,7 @@ void Renderer::EndFrame()
 
 
 				u32 nameHash = state.mStorageBlocks[j].mNameHash;
-				if (nameHash == state.mShader->mStorageBlocks[i] && buffer.mSize > 0)
+				if (nameHash == shader.mStorageBlocks[i] && buffer.mSize > 0)
 				{
 					glBindBufferRange(GL_SHADER_STORAGE_BUFFER, static_cast<GLuint>(i), binding.idx, 0, buffer.mSize);
 					foundBinding = true;
@@ -635,13 +637,13 @@ void Renderer::EndFrame()
 		}
 
 		// textures
-		for (u64 i = 0; i < state.mShader->mTextures.size(); ++i)
+		for (u64 i = 0; i < shader.mTextures.size(); ++i)
 		{
 			bool foundTexture = false;
 			for (u64 j = 0; j < state.mNumTextures; ++j)
 			{
 				u32 nameHash = state.mTextures[j].mNameHash;
-				if (nameHash == state.mShader->mTextures[i])
+				if (nameHash == shader.mTextures[i])
 				{
 					TextureHandle handle = state.mTextures[j].mHandle;
 					glBindTextureUnit(static_cast<GLuint>(i), handle.idx);
@@ -655,13 +657,13 @@ void Renderer::EndFrame()
 		// Images
 		if (isCompute)
 		{
-			for (u64 i = 0; i < state.mShader->mImages.size(); ++i)
+			for (u64 i = 0; i < shader.mImages.size(); ++i)
 			{
 				bool foundTexture = false;
 				for (u64 j = 0; j < state.mNumImages; ++j)
 				{
 					u32 nameHash = state.mImages[j].mNameHash;
-					if (nameHash == state.mShader->mImages[i])
+					if (nameHash == shader.mImages[i])
 					{
 						TextureHandle handle = state.mImages[j].mHandle;
 						const TextureDesc& d = textureDescriptions[handle];
@@ -782,11 +784,11 @@ void Renderer::EndFrame()
 			}
 		}
 
-		if (stateCache.prevRenderState.viewport != state.viewport)
+		if (stateCache.prevRenderState.mViewport != state.mViewport)
 		{
 			// NOTE (danielg): if we do not set the viewport manually, we want it to be the width/height of the framebuffer
-			if( (state.viewport.x     == 0 && state.viewport.y      == 0 && 
-				 state.viewport.width == 0 && state.viewport.height == 0))
+			if( (state.mViewport.x     == 0 && state.mViewport.y      == 0 && 
+				 state.mViewport.width == 0 && state.mViewport.height == 0))
 			{
 				const auto& renderPass = renderPasses[state.mRenderPass];
 				const auto& frameBuffer = renderPass.mTarget;
@@ -795,7 +797,7 @@ void Renderer::EndFrame()
 			}
 			else
 			{
-				glViewport(state.viewport.x, state.viewport.y, state.viewport.width, state.viewport.height);
+				glViewport(state.mViewport.x, state.mViewport.y, state.mViewport.width, state.mViewport.height);
 			}
 		}
 
@@ -820,23 +822,23 @@ void Renderer::EndFrame()
 		if (mask)
 		{
 			// FrameBufferHandle == 0 is the backbuffer
-			glm::ivec4 viewport = { 0, 0, backBufferSize.x, backBufferSize.y };
+			glm::ivec4 mViewport = { 0, 0, backBufferSize.x, backBufferSize.y };
 			if (framebuffer.mHandle)
 			{
-				viewport = {0, 0, framebuffer.mWidth, framebuffer.mHeight };
+				mViewport = {0, 0, framebuffer.mWidth, framebuffer.mHeight };
 			}
 
 			glm::ivec4 prevViewport = 
 			{ 
-				stateCache.prevRenderState.viewport.x, 
-				stateCache.prevRenderState.viewport.y, 
-				stateCache.prevRenderState.viewport.width, 
-				stateCache.prevRenderState.viewport.height 
+				stateCache.prevRenderState.mViewport.x, 
+				stateCache.prevRenderState.mViewport.y, 
+				stateCache.prevRenderState.mViewport.width, 
+				stateCache.prevRenderState.mViewport.height 
 			};
 
-			if (viewport != prevViewport)
+			if (mViewport != prevViewport)
 			{
-				glViewport(0, 0, static_cast<GLsizei>(viewport.z), static_cast<GLsizei>(viewport.w));
+				glViewport(0, 0, static_cast<GLsizei>(mViewport.z), static_cast<GLsizei>(mViewport.w));
 			}
 			
 			if (pass.mClearColor)
@@ -943,7 +945,7 @@ void Renderer::EndFrame()
 		{
 			return a.mState.mRenderPass < b.mState.mRenderPass;
 		}
-		return a.mState.mShader < b.mState.mShader;
+		return a.mState.mShader.idx < b.mState.mShader.idx;
 	});
 
 	u8 passIndex = std::numeric_limits<uint8_t>::max();
@@ -980,8 +982,9 @@ void Renderer::EndFrame()
 		else
 		{
 			Mesh& mesh = meshes[draw.mMesh];
+			Shader& shader = shaders[draw.mState.mShader];
 			GLenum prim = primitiveTypeGL(mesh.mPrimitiveType);
-			if (draw.mState.mShader->mTesselation)
+			if (shader.mTesselation)
 			{
 				setPatchParameters(prim);
 				prim = GL_PATCHES;
@@ -1416,7 +1419,7 @@ void Renderer::DestroyFramebuffer(FrameBuffer buffer)
 	}
 }
 
-Shader Renderer::CreateShader(const char* vertexSrc, const char* fragSrc, const char* tessCtrlSrc, const char* tessEvalSrc)
+ShaderHandle Renderer::CreateShader(const char* vertexSrc, const char* fragSrc, const char* tessCtrlSrc, const char* tessEvalSrc)
 {
 	auto createShader = [](GLenum shaderType, const char* src)
 	{
@@ -1507,8 +1510,8 @@ Shader Renderer::CreateShader(const char* vertexSrc, const char* fragSrc, const 
 
 	glUseProgram(program);
 
-	Shader result{};
-	result.mHandle = program;
+	Shader& result = shaders[{program}];
+	result.mHandle.idx = program;
 	result.mTesselation = (tessCtrlSrc && tessEvalSrc);
 
 	GatherShaderTextures(program, result);
@@ -1517,10 +1520,10 @@ Shader Renderer::CreateShader(const char* vertexSrc, const char* fragSrc, const 
 	
 	glUseProgram(0);
 
-	return result;
+	return result.mHandle;
 }
 
-Shader Renderer::CreateComputeShader(const char* src)
+ShaderHandle Renderer::CreateComputeShader(const char* src)
 {
 	auto createShader = [](GLenum shaderType, const char* src)
 	{
@@ -1576,8 +1579,8 @@ Shader Renderer::CreateComputeShader(const char* src)
 
 	glUseProgram(program);
 
-	Shader result{};
-	result.mHandle = program;
+	Shader& result = shaders[{program}];;
+	result.mHandle.idx = program;
 
 
 	GatherShaderTextures(program, result);
@@ -1587,13 +1590,13 @@ Shader Renderer::CreateComputeShader(const char* src)
 
 	glUseProgram(0);
 
-
-	return result;
+	return result.mHandle;
 }
 
-void Renderer::DestroyShader(Shader shader)
+void Renderer::DestroyShader(ShaderHandle shader)
 {
-	glDeleteProgram(shader.mHandle);
+	shaders.erase(shader);
+	glDeleteProgram(shader.idx);
 }
 
 MeshHandle Renderer::CreateMesh(const MeshDescription& desc)
@@ -1828,7 +1831,7 @@ void Renderer::DrawMesh(MeshHandle mesh, const RenderState& state, std::function
 {
 	DEBUG_ASSERT(buildingFrame, "Cannot submit draw if a frame is not in flight");
 	DEBUG_ASSERT(state.mRenderPass != std::numeric_limits<uint8_t>::max(), "Invalid render pass");
-	DEBUG_ASSERT(state.mShader, "invalid shader!");
+	DEBUG_ASSERT(state.mShader.idx, "invalid shader!");
 
 	DrawCall draw;
 	draw.mMesh = mesh;
@@ -1844,7 +1847,7 @@ void Renderer::DrawMeshInstanced(MeshHandle mesh, const RenderState& state, Vert
 {
 	DEBUG_ASSERT(buildingFrame, "Cannot submit draw if a frame is not in flight");
 	DEBUG_ASSERT(state.mRenderPass != std::numeric_limits<uint8_t>::max(), "Invalid render pass");
-	DEBUG_ASSERT(state.mShader, "invalid shader!");
+	DEBUG_ASSERT(state.mShader.idx, "invalid shader!");
 
 	if (!instanceCount) return;
 
@@ -1863,7 +1866,7 @@ void Renderer::DispatchCompute(const RenderState& state, u16 groupsX, u16 groups
 {
 	DEBUG_ASSERT(buildingFrame, "Cannot submit draw if a frame is not in flight");
 	DEBUG_ASSERT(state.mRenderPass != std::numeric_limits<uint8_t>::max(), "Invalid render pass");
-	DEBUG_ASSERT(state.mShader, "invalid shader!");
+	DEBUG_ASSERT(state.mShader.idx, "invalid shader!");
 
 	DrawCall draw;
 	draw.isCompute = true;

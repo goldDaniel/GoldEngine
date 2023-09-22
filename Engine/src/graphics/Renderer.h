@@ -35,6 +35,7 @@ namespace graphics
 		}
 		UniformBufferHandle CreateUniformBlock(const void* data, uint32_t size);
 
+
 		template<typename T>
 		void UpdateUniformBlock(const std::vector<T>& data, UniformBufferHandle& binding)
 		{
@@ -135,9 +136,9 @@ namespace graphics
 		void DestroyFramebuffer(FrameBuffer buffer);
 
 		// shaders /////////////////////////////////////////////
-		Shader CreateShader(const char* vertexSrc, const char* fragSrc, const char* tessCtrlSrc = nullptr, const char* tessEvalSrc = nullptr);
-		Shader CreateComputeShader(const char* src);
-		void DestroyShader(Shader shader);
+		ShaderHandle CreateShader(const char* vertexSrc, const char* fragSrc, const char* tessCtrlSrc = nullptr, const char* tessEvalSrc = nullptr);
+		ShaderHandle CreateComputeShader(const char* src);
+		void DestroyShader(ShaderHandle shader);
 
 		// meshes //////////////////////////////////////////////
 		MeshHandle CreateMesh(const MeshDescription& description);
