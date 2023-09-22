@@ -1,9 +1,8 @@
-
 #include "core/Core.h"
 
 namespace gold
 {
-	class BinaryWriter
+	class BinaryReader
 	{
 	private:
 		u8* mMemory;
@@ -11,7 +10,7 @@ namespace gold
 		u64 mOffset;
 
 	public:
-		BinaryWriter(u8* memory, u64 size)
+		BinaryReader(u8* memory, u64 size)
 			: mMemory(memory)
 			, mSize(size)
 			, mOffset(0)
@@ -25,23 +24,24 @@ namespace gold
 		}
 
 		template<typename T>
-		void Write(const T& data)
+		const T Read()
 		{
+			T result{};
 			u64 size = sizeof(T);
 			DEBUG_ASSERT(size + mOffset <= mSize, "Data overflow!");
 
 			void* address = mMemory + mOffset;
-			memcpy(address, &data, size);
+			memcpy(&result, address, size);
 
 			mOffset += size;
 		}
 
-		void Write(const void* data, u64 size)
+		void Read(u8* data, u64 size)
 		{
 			DEBUG_ASSERT(size + mOffset <= mSize, "Data overflow!");
 
 			void* address = mMemory + mOffset;
-			memcpy(address, data, size);
+			memcpy(data, address, size);
 
 			mOffset += size;
 		}

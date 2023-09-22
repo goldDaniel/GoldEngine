@@ -6,9 +6,10 @@ using namespace graphics;
 using namespace gold;
 
 FrameEncoder::FrameEncoder(RenderResources& resources)
-	: mMemory(static_cast<u8*>(malloc(size)))
-	, mWriter(mMemory, size)
+	: mMemory(static_cast<u8*>(malloc(kSize)))
+	, mWriter(mMemory, kSize)
 	, mResources(resources)
+	, mNextPass(0)
 {
 
 }
@@ -24,6 +25,7 @@ void FrameEncoder::Begin()
 	DEBUG_ASSERT(!mRecording, "Must end begin recording before beginning");
 	mRecording = true;
 	mWriter.Reset();
+	mNextPass = 0;
 }
 
 void FrameEncoder::End()
@@ -33,11 +35,69 @@ void FrameEncoder::End()
 	mRecording = false;
 }
 
+BinaryReader FrameEncoder::GetReader()
+{
+	DEBUG_ASSERT(!mRecording, "Cannot read frame if encoding!");
+	return BinaryReader(mMemory, kSize);
+}
+
+u8 FrameEncoder::AddRenderPass(const graphics::RenderPass& pass)
+{
+	DEBUG_ASSERT(mRecording, "");
+
+	mWriter.Write(RenderCommand::AddRenderPass);
+
+	// name
+	u64 size = strlen(pass.mName) + 1;
+	mWriter.Write(size);
+	mWriter.Write(pass.mName, size);
+
+	// framebuffer
+	mWriter.Write(pass.mTarget.mHandle); // client handle
+	for (u64 i = 0; i < static_cast<u64>(OutputSlot::Count); ++i)
+	{
+		mWriter.Write(pass.mTarget.mTextures[i]);
+	}
+	mWriter.Write(pass.mTarget.mWidth);
+	mWriter.Write(pass.mTarget.mHeight);
+
+
+	// clear color/depth
+	u8 clearColorBit = 1 << 0;
+	u8 clearDepthBit = 1 << 1;
+
+	u8 clearBits =	pass.mClearColor ? clearColorBit : 0 |
+					pass.mClearDepth ? clearDepthBit : 0;
+	mWriter.Write(clearBits);
+	
+	mWriter.Write(pass.mColor); 
+	mWriter.Write(pass.mDepth);
+
+	return mNextPass++;
+}
+
+u8 FrameEncoder::AddRenderPass(const char* name, FrameBuffer target, ClearColor color, ClearDepth depth)
+{
+	RenderPass pass{};
+	pass.mName = name;
+	pass.mTarget = target;
+	pass.mClearColor = color == ClearColor::YES;
+	pass.mClearDepth = depth == ClearDepth::YES;
+
+	return AddRenderPass(pass);
+}
+
+u8 FrameEncoder::AddRenderPass(const char* name, ClearColor color, ClearDepth depth)
+{
+	FrameBuffer framebufffer{};
+	return AddRenderPass(name, framebufffer, color, depth);
+}
+
 IndexBufferHandle FrameEncoder::CreateIndexBuffer(const void* data, u64 size)
 {
 	DEBUG_ASSERT(mRecording, "");
 
-	IndexBufferHandle clientHandle = mResources.createIndexBuffer();
+	IndexBufferHandle clientHandle = mResources.CreateIndexBuffer();
 
 	mWriter.Write(RenderCommand::CreateIndexBuffer);
 	mWriter.Write(clientHandle);
@@ -51,7 +111,7 @@ VertexBufferHandle FrameEncoder::CreateVertexBuffer(const void* data, u64 size)
 {
 	DEBUG_ASSERT(mRecording, "");
 
-	VertexBufferHandle clientHandle = mResources.createVertexBuffer();
+	VertexBufferHandle clientHandle = mResources.CreateVertexBuffer();
 
 	mWriter.Write(RenderCommand::CreateVertexBuffer);
 	mWriter.Write(clientHandle);
@@ -87,6 +147,30 @@ ShaderBufferHandle FrameEncoder::CreateShaderBuffer(const void* data, u64 size)
 	mWriter.Write(data, size);
 
 	return clientHandle;
+}
+
+ShaderHandle FrameEncoder::CreateShader(const char* vertSrc, const char* fragSrc)
+{
+	DEBUG_ASSERT(mRecording, "");
+	mWriter.Write(RenderCommand::CreateShader);
+
+	ShaderHandle clientHandle = mResources.CreateShader();
+
+	u64 vertLen = strlen(vertSrc) + 1;
+	u64 fragLen = strlen(fragSrc) + 1;
+
+	// vert
+	mWriter.Write(vertLen);
+	mWriter.Write(vertSrc, vertLen);
+	
+	// frag
+	mWriter.Write(fragLen);
+	mWriter.Write(fragSrc, fragLen);
+}
+
+MeshHandle FrameEncoder::CreateMesh(const MeshDescription& desc)
+{
+
 }
 
 void FrameEncoder::DrawMesh(const MeshHandle handle, const RenderState& state)
@@ -166,9 +250,9 @@ void FrameEncoder::DrawMesh(const MeshHandle handle, const RenderState& state)
 	u8 alphaBlendBit = 1 << 2;
 	u8 wireframeBit  = 1 << 3;
 	
-	u8 toggles =	state.mDepthWriteEnabled ? depthWriteBit : 0 ||
-					state.mColorWriteEnabled ? colorWriteBit : 0 ||
-					state.mAlphaBlendEnabled ? alphaBlendBit : 0 ||
+	u8 toggles =	state.mDepthWriteEnabled ? depthWriteBit : 0 |
+					state.mColorWriteEnabled ? colorWriteBit : 0 |
+					state.mAlphaBlendEnabled ? alphaBlendBit : 0 |
 					state.mWireFrame		 ? wireframeBit  : 0;
 	
 	mWriter.Write(toggles);

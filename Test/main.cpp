@@ -2,6 +2,7 @@
 #include "core/Application.h"
 
 #include "graphics/Vertex.h"
+#include "graphics/FrameEncoder.h"
 
 class TestApp : public gold::Application
 {
@@ -13,6 +14,9 @@ private:
 	
 	bool mFirstFrame = true;
 
+	gold::RenderResources mRenderResources;
+	std::unique_ptr<gold::FrameEncoder> mEncoder;
+
 public:
 	TestApp(gold::ApplicationConfig&& config)
 		: gold::Application(std::move(config))
@@ -21,7 +25,7 @@ public:
 
 protected:
 
-	void InitRenderData(graphics::Renderer& renderer)
+	void InitRenderData()
 	{
 		glm::mat4 mvp;
 
@@ -30,12 +34,12 @@ protected:
 		mvp = glm::perspective(glm::radians(65.f), screenSize.x / screenSize.y, 1.f, 100.f);
 		mvp *= glm::lookAt(glm::vec3{ 0, 0, 5 }, glm::vec3{ 0,0,0 }, glm::vec3{ 0,1,0 });
 
-		mView = renderer.CreateUniformBlock(mvp);
+		mView = mEncoder->CreateUniformBuffer(&mvp, sizeof(glm::mat4));
 
 		std::string vertSrc = util::LoadStringFromFile("shaders/default.vert.glsl");
 
 		std::string fragSrc = util::LoadStringFromFile("shaders/default.frag.glsl");
-		mShader = renderer.CreateShader(vertSrc.c_str(), fragSrc.c_str());
+		mShader = mEncoder->CreateShader(vertSrc.c_str(), fragSrc.c_str());
 
 
 		graphics::VertexLayout layout;
@@ -64,7 +68,7 @@ protected:
 
 		graphics::MeshDescription mesh;
 		mesh.mIndicesFormat = graphics::IndexFormat::U16;
-		mesh.mIndices = renderer.CreateIndexBuffer(indices);
+		mesh.mIndices = mEncoder->CreateIndexBuffer(indices.data(), sizeof(uint16_t) * indices.size());
 		mesh.mIndexCount = 3;
 
 		mesh.mVertexCount = 3;
@@ -72,9 +76,9 @@ protected:
 		mesh.offsets.mPositionOffset = buffer.GetLayout().Resolve<graphics::VertexLayout::Position3>().GetOffset();
 		mesh.offsets.mColorsOffset = buffer.GetLayout().Resolve<graphics::VertexLayout::Color3>().GetOffset();
 
-		mesh.mInterlacedBuffer = renderer.CreateVertexBuffer(buffer.Raw(), buffer.SizeInBytes());
+		mesh.mInterlacedBuffer = mEncoder->CreateVertexBuffer(buffer.Raw(), buffer.SizeInBytes());
 
-		mMesh = renderer.CreateMesh(mesh);
+		mMesh = mEncoder->CreateMesh(mesh);
 	}
 
 	virtual void Init() override
@@ -85,16 +89,17 @@ protected:
 
 	virtual void Update(float delta) override
 	{
-		
+		if (mFirstFrame)
+		{
+			mEncoder = std::make_unique<gold::FrameEncoder>(mRenderResources);
+			InitRenderData();
+			mFirstFrame = false;
+		}
 	}
 
 	virtual void Render(graphics::Renderer& renderer) override
 	{
-		if (mFirstFrame)
-		{
-			InitRenderData(renderer);
-			mFirstFrame = false;
-		}
+		
 
 		glm::vec2 screenSize = GetScreenSize();
 

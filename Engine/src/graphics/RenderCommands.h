@@ -22,6 +22,9 @@ namespace gold
 		UpdateIndexBuffer,
 		DestroyIndexBuffer,
 
+		CreateShader, //e
+		DestroyShader,
+
 		CreateTexture2D,
 		CreateTexture3D,
 		CreateCubemap,
@@ -33,6 +36,8 @@ namespace gold
 		DrawMesh,			//e
 		DrawMeshInstanced,
 		DispatchCompute,
+
+		AddRenderPass, //e
 
 		END,
 	};

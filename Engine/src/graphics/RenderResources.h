@@ -5,26 +5,29 @@
 
 namespace gold
 {
-	class RenderResources
+	class RenderResources 
 	{
 	private:
-		const static uint32_t kInvalidHandle = std::numeric_limits<uint32_t>::max();
-
-		u32 mNextClientVertex;
+		
+		u32 mNextClientVertex = 1;
 		std::unordered_map<graphics::VertexBufferHandle, graphics::VertexBufferHandle> mVertexBuffers;
 
-		u32 mNextClientIndex;
+		u32 mNextClientIndex = 1;
 		std::unordered_map<graphics::IndexBufferHandle, graphics::IndexBufferHandle> mIndexBuffers;
 
-		u32 mNextUniformBuffer;
+		u32 mNextShader = 1;
+		std::unordered_map<graphics::ShaderHandle, graphics::ShaderHandle> mShaders;
+
+		u32 mNextUniformBuffer = 1;
 		std::unordered_map<graphics::UniformBufferHandle, graphics::UniformBuffer> mUniformBuffers;
 
-		u32 mNextShaderBuffer;
+		u32 mNextShaderBuffer = 1;
 		std::unordered_map<graphics::ShaderBufferHandle, graphics::StorageBuffer> mShaderBuffers;
 
+		
 	public:
 
-		graphics::VertexBufferHandle createVertexBuffer()
+		graphics::VertexBufferHandle CreateVertexBuffer()
 		{
 			mVertexBuffers[{mNextClientVertex}] = { 0 };
 			
@@ -33,11 +36,19 @@ namespace gold
 			return { (mNextClientVertex - 1) };
 		}
 
-		graphics::IndexBufferHandle createIndexBuffer()
+		graphics::IndexBufferHandle CreateIndexBuffer()
 		{
 			mIndexBuffers[{mNextClientIndex}] = { 0 };
 			mNextClientIndex++;
 			return { (mNextClientIndex - 1) };
+		}
+
+		graphics::ShaderHandle CreateShader()
+		{
+			mShaders[{mNextShader}] = { 0 };
+			mNextShader++;
+
+			return { (mNextShader - 1) };
 		}
 
 		graphics::UniformBufferHandle CreateUniformBuffer(u32 size)
@@ -54,18 +65,32 @@ namespace gold
 			return { (mNextShaderBuffer - 1) };
 		}
 
-		// returns "server side" mapping from "client side" 
-		graphics::VertexBufferHandle get(graphics::VertexBufferHandle clientHandle)
+		graphics::VertexBufferHandle& get(graphics::VertexBufferHandle clientHandle)
 		{
 			DEBUG_ASSERT(mVertexBuffers.find(clientHandle) != mVertexBuffers.end(), "");
 			return mVertexBuffers[clientHandle];
 		}
+		
+		///////////////////////////////////////////////////
+		// returns "server side" mapping from "client side"
+		/////////////////////////////////////////////////// 
 
-		// returns "server side" mapping from "client side" 
-		graphics::IndexBufferHandle get(graphics::IndexBufferHandle clientHandle)
+		graphics::IndexBufferHandle& get(graphics::IndexBufferHandle clientHandle)
 		{
 			DEBUG_ASSERT(mIndexBuffers.find(clientHandle) != mIndexBuffers.end(), "");
 			return mIndexBuffers[clientHandle];
+		}
+
+		graphics::UniformBuffer& get(graphics::UniformBufferHandle clientHandle)
+		{
+			DEBUG_ASSERT(mUniformBuffers.find(clientHandle) != mUniformBuffers.end(), "");
+			return mUniformBuffers[clientHandle];
+		}
+
+		graphics::StorageBuffer& get(graphics::ShaderBufferHandle clientHandle)
+		{
+			DEBUG_ASSERT(mShaderBuffers.find(clientHandle) != mShaderBuffers.end(), "");
+			return mShaderBuffers[clientHandle];
 		}
 	};
 }

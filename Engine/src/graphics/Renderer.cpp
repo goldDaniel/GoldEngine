@@ -72,9 +72,9 @@ static void GLErrorCallback(GLenum source, GLenum type, GLuint id, GLenum severi
 	std::cout << str << std::assoc_legendrel;
 }
 
-uint8_t* UniformBuffer::Map()
+u8* UniformBuffer::Map()
 {
-	return static_cast<uint8_t*>(glMapNamedBuffer(mID.idx, GL_WRITE_ONLY));
+	return static_cast<u8*>(glMapNamedBuffer(mID.idx, GL_WRITE_ONLY));
 }
 
 void UniformBuffer::Unmap()
@@ -82,9 +82,9 @@ void UniformBuffer::Unmap()
 	glUnmapNamedBuffer(mID.idx);
 }
 
-uint8_t* StorageBuffer::Map()
+u8* StorageBuffer::Map()
 {
-	return static_cast<uint8_t*>(glMapNamedBuffer(mID.idx, GL_WRITE_ONLY));
+	return static_cast<u8*>(glMapNamedBuffer(mID.idx, GL_WRITE_ONLY));
 }
 
 void StorageBuffer::Unmap()
@@ -432,7 +432,7 @@ static u32 CreateGLBuffer(const void* data, u64 size, BufferUsage usage)
 	// NOTE (danielg): some drivers don't zero out buffer memory on creation
 	if (!data)
 	{
-		uint8_t* ptr = (uint8_t*)glMapNamedBuffer(handle, GL_WRITE_ONLY);
+		u8* ptr = (u8*)glMapNamedBuffer(handle, GL_WRITE_ONLY);
 		memset(ptr, 0, size);
 		glUnmapNamedBuffer(handle);
 	}
@@ -948,12 +948,12 @@ void Renderer::EndFrame()
 		return a.mState.mShader.idx < b.mState.mShader.idx;
 	});
 
-	u8 passIndex = std::numeric_limits<uint8_t>::max();
+	u8 passIndex = std::numeric_limits<u8>::max();
 	for (auto& draw : drawCalls) 
 	{
 		if (draw.mState.mRenderPass != passIndex)
 		{
-			if (passIndex != std::numeric_limits<uint8_t>::max())
+			if (passIndex != std::numeric_limits<u8>::max())
 			{
 				glPopDebugGroup();
 			}
@@ -1001,7 +1001,7 @@ void Renderer::EndFrame()
 		}
 	}
 	
-	if (passIndex != std::numeric_limits<uint8_t>::max())
+	if (passIndex != std::numeric_limits<u8>::max())
 	{
 		glPopDebugGroup();
 	}
@@ -1042,13 +1042,13 @@ void Renderer::EndFrame()
 	SDL_GL_SwapWindow(sdlWindow);
 }
 
-uint8_t Renderer::AddRenderPass(const RenderPass& desc)
+u8 Renderer::AddRenderPass(const RenderPass& desc)
 {
 	renderPasses.push_back(desc);
-	return static_cast<uint8_t>(renderPasses.size() - 1);
+	return static_cast<u8>(renderPasses.size() - 1);
 }
 
-uint8_t Renderer::AddRenderPass(const char* name, FrameBuffer target, ClearColor color, ClearDepth depth)
+u8 Renderer::AddRenderPass(const char* name, FrameBuffer target, ClearColor color, ClearDepth depth)
 {
 	RenderPass pass{};
 	pass.mName = name;
@@ -1059,7 +1059,7 @@ uint8_t Renderer::AddRenderPass(const char* name, FrameBuffer target, ClearColor
 	return AddRenderPass(pass);
 }
 
-uint8_t Renderer::AddRenderPass(const char* name, ClearColor color, ClearDepth depth)
+u8 Renderer::AddRenderPass(const char* name, ClearColor color, ClearDepth depth)
 {
 	FrameBuffer framebufffer{};
 	return AddRenderPass(name, framebufffer, color, depth);
@@ -1210,7 +1210,7 @@ TextureHandle Renderer::CreateCubemap(const CubemapDescription& desc)
 	return { texture };
 }
 
-void Renderer::TextureReadback(const TextureHandle handle, uint8_t* buffer, u32 size)
+void Renderer::TextureReadback(const TextureHandle handle, u8* buffer, u32 size)
 {
 	const auto& desc = textureDescriptions[handle];
 
@@ -1830,7 +1830,7 @@ void Renderer::DestroyMesh(const MeshHandle mesh)
 void Renderer::DrawMesh(MeshHandle mesh, const RenderState& state, std::function<void(RenderState&)> preAction)
 {
 	DEBUG_ASSERT(buildingFrame, "Cannot submit draw if a frame is not in flight");
-	DEBUG_ASSERT(state.mRenderPass != std::numeric_limits<uint8_t>::max(), "Invalid render pass");
+	DEBUG_ASSERT(state.mRenderPass != std::numeric_limits<u8>::max(), "Invalid render pass");
 	DEBUG_ASSERT(state.mShader.idx, "invalid shader!");
 
 	DrawCall draw;
@@ -1846,7 +1846,7 @@ void Renderer::DrawMesh(MeshHandle mesh, const RenderState& state, std::function
 void Renderer::DrawMeshInstanced(MeshHandle mesh, const RenderState& state, VertexBufferHandle data, u32 instanceCount, std::function<void(RenderState&)> preAction)
 {
 	DEBUG_ASSERT(buildingFrame, "Cannot submit draw if a frame is not in flight");
-	DEBUG_ASSERT(state.mRenderPass != std::numeric_limits<uint8_t>::max(), "Invalid render pass");
+	DEBUG_ASSERT(state.mRenderPass != std::numeric_limits<u8>::max(), "Invalid render pass");
 	DEBUG_ASSERT(state.mShader.idx, "invalid shader!");
 
 	if (!instanceCount) return;
@@ -1865,7 +1865,7 @@ void Renderer::DrawMeshInstanced(MeshHandle mesh, const RenderState& state, Vert
 void Renderer::DispatchCompute(const RenderState& state, u16 groupsX, u16 groupsY, u16 groupsZ, std::function<void(RenderState&)> preAction)
 {
 	DEBUG_ASSERT(buildingFrame, "Cannot submit draw if a frame is not in flight");
-	DEBUG_ASSERT(state.mRenderPass != std::numeric_limits<uint8_t>::max(), "Invalid render pass");
+	DEBUG_ASSERT(state.mRenderPass != std::numeric_limits<u8>::max(), "Invalid render pass");
 	DEBUG_ASSERT(state.mShader.idx, "invalid shader!");
 
 	DrawCall draw;

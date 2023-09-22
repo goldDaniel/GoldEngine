@@ -18,9 +18,9 @@ namespace graphics
 
 		void SetBackBufferSize(int w, int h);
 
-		uint8_t AddRenderPass(const RenderPass& description);
-		uint8_t AddRenderPass(const char* name, ClearColor clearColor = ClearColor::NO, ClearDepth clearDepth = ClearDepth::NO);	
-		uint8_t AddRenderPass(const char* name, FrameBuffer target, ClearColor clearColor = ClearColor::NO, ClearDepth clearDepth = ClearDepth::NO);
+		u8 AddRenderPass(const RenderPass& description);
+		u8 AddRenderPass(const char* name, ClearColor clearColor = ClearColor::NO, ClearDepth clearDepth = ClearDepth::NO);	
+		u8 AddRenderPass(const char* name, FrameBuffer target, ClearColor clearColor = ClearColor::NO, ClearDepth clearDepth = ClearDepth::NO);
 
 		// Uniform blocks ////////////////////////////////
 		template<typename T>
@@ -125,12 +125,12 @@ namespace graphics
 		template<typename T>
 		void TextureReadback(const TextureHandle handle, std::vector<T>& readbackBuffer)
 		{
-			TextureReadback(handle, (uint8_t*)(&readbackBuffer[0]), static_cast<uint32_t>(sizeof(T) * readbackBuffer.size()));
+			TextureReadback(handle, (u8*)(&readbackBuffer[0]), static_cast<uint32_t>(sizeof(T) * readbackBuffer.size()));
 		}
 
-		void TextureReadback(const TextureHandle handle, uint8_t* buffer, uint32_t size);
+		void TextureReadback(const TextureHandle handle, u8* buffer, uint32_t size);
 
-		// framebuffers /////////////////////////////////////
+		// frame buffers /////////////////////////////////////
 		FrameBuffer CreateFramebuffer(const TextureDescription2D& description, FramebufferAttachment attachment);
 		FrameBuffer CreateFramebuffer(const FrameBufferDescription& description);
 		void DestroyFramebuffer(FrameBuffer buffer);
