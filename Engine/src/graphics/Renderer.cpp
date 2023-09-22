@@ -74,22 +74,22 @@ static void GLErrorCallback(GLenum source, GLenum type, GLuint id, GLenum severi
 
 uint8_t* UniformBuffer::Map()
 {
-	return static_cast<uint8_t*>(glMapNamedBuffer(mID, GL_WRITE_ONLY));
+	return static_cast<uint8_t*>(glMapNamedBuffer(mID.idx, GL_WRITE_ONLY));
 }
 
 void UniformBuffer::Unmap()
 {
-	glUnmapNamedBuffer(mID);
+	glUnmapNamedBuffer(mID.idx);
 }
 
 uint8_t* StorageBuffer::Map()
 {
-	return static_cast<uint8_t*>(glMapNamedBuffer(mID, GL_WRITE_ONLY));
+	return static_cast<uint8_t*>(glMapNamedBuffer(mID.idx, GL_WRITE_ONLY));
 }
 
 void StorageBuffer::Unmap()
 {
-	glUnmapNamedBuffer(mID);
+	glUnmapNamedBuffer(mID.idx);
 }
 
 
@@ -162,6 +162,9 @@ static SDL_Window* sdlWindow;
 static SDL_GLContext glContext;
 
 static StateCache stateCache;
+
+static std::unordered_map<UniformBufferHandle, UniformBuffer> uniformBuffers;
+static std::unordered_map<ShaderBufferHandle, StorageBuffer> shaderBuffers;
 
 static std::unordered_map<MeshHandle, Mesh> meshes;
 
@@ -403,8 +406,7 @@ static auto FormatToInternalGL(TextureFormat format)
 };
 
 
-template<typename T>
-static T CreateGLBuffer(const void* data, u64 size, BufferUsage usage)
+static u32 CreateGLBuffer(const void* data, u64 size, BufferUsage usage)
 {
 	DEBUG_ASSERT(size < std::numeric_limits<u32>::max(), "Invalid buffer size!");
 
@@ -422,7 +424,7 @@ static T CreateGLBuffer(const void* data, u64 size, BufferUsage usage)
 	};
 
 
-	T handle = 0;
+	u32 handle = 0;
 	glCreateBuffers(1, &handle);
 	glNamedBufferData(handle, size, data, bufferUsageGL(usage));
 
@@ -589,11 +591,13 @@ void Renderer::EndFrame()
 
 			for (u64 j = 0; j < state.mNumUniformBlocks; ++j)
 			{
-				UniformBuffer binding = state.mUniformBlocks[j].mBinding;
+				UniformBufferHandle binding = state.mUniformBlocks[j].mBinding;
+				const UniformBuffer& buffer = uniformBuffers[binding];
+
 				u32 nameHash = state.mUniformBlocks[j].mNameHash;
-				if (nameHash == state.mShader->mUniformBlocks[i] && binding.mSize > 0)
+				if (nameHash == state.mShader->mUniformBlocks[i] && buffer.mSize > 0)
 				{
-					glBindBufferRange(GL_UNIFORM_BUFFER, static_cast<GLuint>(i), binding.mID, 0, binding.mSize);
+					glBindBufferRange(GL_UNIFORM_BUFFER, static_cast<GLuint>(i), binding.idx, 0, buffer.mSize);
 					foundBinding = true;
 					break;		
 				}
@@ -612,11 +616,14 @@ void Renderer::EndFrame()
 
 			for (u64 j = 0; j < state.mNumStorageBlocks; ++j)
 			{
-				StorageBuffer binding = state.mStorageBlocks[j].mBinding;
+				ShaderBufferHandle binding = state.mStorageBlocks[j].mBinding;
+				const StorageBuffer& buffer = shaderBuffers[binding];
+
+
 				u32 nameHash = state.mStorageBlocks[j].mNameHash;
-				if (nameHash == state.mShader->mStorageBlocks[i] && binding.mSize > 0)
+				if (nameHash == state.mShader->mStorageBlocks[i] && buffer.mSize > 0)
 				{
-					glBindBufferRange(GL_SHADER_STORAGE_BUFFER, static_cast<GLuint>(i), binding.mID, 0, binding.mSize);
+					glBindBufferRange(GL_SHADER_STORAGE_BUFFER, static_cast<GLuint>(i), binding.idx, 0, buffer.mSize);
 					foundBinding = true;
 					break;
 				}
@@ -637,7 +644,7 @@ void Renderer::EndFrame()
 				if (nameHash == state.mShader->mTextures[i])
 				{
 					TextureHandle handle = state.mTextures[j].mHandle;
-					glBindTextureUnit(static_cast<GLuint>(i), handle);
+					glBindTextureUnit(static_cast<GLuint>(i), handle.idx);
 
 					foundTexture = true;
 					break;
@@ -694,7 +701,7 @@ void Renderer::EndFrame()
 							DEBUG_ASSERT(false, "Invalid access type");
 						}
 
-						glBindImageTexture(static_cast<GLuint>(i), handle, 0, GL_TRUE, 0, access, format);
+						glBindImageTexture(static_cast<GLuint>(i), handle.idx, 0, GL_TRUE, 0, access, format);
 						foundTexture = true;
 						break;
 					}
@@ -868,7 +875,7 @@ void Renderer::EndFrame()
 		}
 		
 
-		if (mesh.mIndices)
+		if (mesh.mIndices.idx)
 		{
 			GLenum indexFormat = mesh.mIndexFormat == IndexFormat::U16 ? GL_UNSIGNED_SHORT : GL_UNSIGNED_INT;
 			glDrawElementsBaseVertex(primitive, mesh.mIndexCount, indexFormat, 0, static_cast<GLint>(mesh.mIndexStart));
@@ -891,9 +898,9 @@ void Renderer::EndFrame()
 		}
 		
 		//note (Danielg): draw instanced (ONLY SUPPORTS MATRICES)
-		if (draw.mInstanceData)
+		if (draw.mInstanceData.idx)
 		{
-			glBindBuffer(GL_ARRAY_BUFFER, draw.mInstanceData);
+			glBindBuffer(GL_ARRAY_BUFFER, draw.mInstanceData.idx);
 			for (int i = 0; i < 4; ++i)
 			{
 				GLuint loc = VERTEX_ATTR_MODEL_TO_WORLD_COL0 + i;
@@ -908,7 +915,7 @@ void Renderer::EndFrame()
 			}
 		}
 
-		if (mesh.mIndices)
+		if (mesh.mIndices.idx)
 		{
 			glDrawElementsInstanced(primitive, mesh.mIndexCount, GL_UNSIGNED_INT, 0, static_cast<GLsizei>(draw.mInstanceCount));
 		}
@@ -1002,26 +1009,26 @@ void Renderer::EndFrame()
 		switch (del.mType)
 		{
 		case DeleteCommand::Type::VertexBuffer:
-			glDeleteBuffers(1, &del.mVertexBuffer);
+			glDeleteBuffers(1, &del.mVertexBuffer.idx);
 			break;
 		case DeleteCommand::Type::IndexBuffer:
-			glDeleteBuffers(1, &del.mIndexBuffer);
+			glDeleteBuffers(1, &del.mIndexBuffer.idx);
 			break;
 		case DeleteCommand::Type::Texture:
-			glDeleteTextures(1, &del.mTexture);
+			glDeleteTextures(1, &del.mTexture.idx);
 			break;
 		case DeleteCommand::Type::Mesh:
 			Mesh& mesh = meshes[del.mMesh];
-			if (mesh.mPositions)	glDeleteBuffers(1, &mesh.mPositions);
-			if (mesh.mNormals)		glDeleteBuffers(1, &mesh.mNormals);
-			if (mesh.mTexCoords0)	glDeleteBuffers(1, &mesh.mTexCoords0);
-			if (mesh.mTexCoords1)	glDeleteBuffers(1, &mesh.mTexCoords1);
-			if (mesh.mColors)		glDeleteBuffers(1, &mesh.mColors);
-			if (mesh.mJoints)		glDeleteBuffers(1, &mesh.mJoints);
-			if (mesh.mWeights)		glDeleteBuffers(1, &mesh.mWeights);
-			if (mesh.mIndices)		glDeleteBuffers(1, &mesh.mIndices);
+			if (mesh.mPositions.idx)	glDeleteBuffers(1, &mesh.mPositions.idx);
+			if (mesh.mNormals.idx)		glDeleteBuffers(1, &mesh.mNormals.idx);
+			if (mesh.mTexCoords0.idx)	glDeleteBuffers(1, &mesh.mTexCoords0.idx);
+			if (mesh.mTexCoords1.idx)	glDeleteBuffers(1, &mesh.mTexCoords1.idx);
+			if (mesh.mColors.idx)		glDeleteBuffers(1, &mesh.mColors.idx);
+			if (mesh.mJoints.idx)		glDeleteBuffers(1, &mesh.mJoints.idx);
+			if (mesh.mWeights.idx)		glDeleteBuffers(1, &mesh.mWeights.idx);
+			if (mesh.mIndices.idx)		glDeleteBuffers(1, &mesh.mIndices.idx);
 
-			MeshHandle handle = mesh.mID;
+			MeshHandle handle = { mesh.mID };
 			glDeleteVertexArrays(1, &mesh.mID);
 			meshes.erase(handle);
 			break;
@@ -1055,59 +1062,51 @@ uint8_t Renderer::AddRenderPass(const char* name, ClearColor color, ClearDepth d
 	return AddRenderPass(name, framebufffer, color, depth);
 }
 
-StorageBuffer Renderer::CreateStorageBlock(const void* data, u32 size)
+ShaderBufferHandle Renderer::CreateStorageBlock(const void* data, u32 size)
 {
 	StorageBuffer result;
 
-	result.mID = CreateGLBuffer<u32>(data, size, BufferUsage::DYNAMIC);
-	result.mSize = size;
+	ShaderBufferHandle handle = { CreateGLBuffer(data, size, BufferUsage::DYNAMIC) };
+	shaderBuffers[handle] = { handle, size };
 
-	return result;
+	return handle;
 }
 
-UniformBuffer Renderer::CreateUniformBlock(const void* data, u32 size)
+UniformBufferHandle Renderer::CreateUniformBlock(const void* data, u32 size)
 {
 	DEBUG_ASSERT(size < static_cast<u32>(maxUBOSize), "Size larger than max UBO size!");
 
-	UniformBuffer result;
+	UniformBufferHandle handle = { CreateGLBuffer(data, size, BufferUsage::DYNAMIC) };
+	uniformBuffers[handle] = { handle, size };
 
-	result.mID = CreateGLBuffer<u32>(data, size, BufferUsage::DYNAMIC);
-	result.mSize = size;
-
-	return result;
+	return handle;
 }
 
-void Renderer::UpdateStorageBlock(const void* data, u32 size, StorageBuffer& binding)
+void Renderer::UpdateStorageBlock(const void* data, u32 size, ShaderBufferHandle& binding)
 {
-	DEBUG_ASSERT(size <= binding.mSize, "Size is larger than storage block size!");
-	UpdateGLBuffer(binding.mID, data, 0, size);
+	//DEBUG_ASSERT(size <= binding.mSize, "Size is larger than storage block size!");
+	UpdateGLBuffer(binding.idx, data, 0, size);
 }
 
-void Renderer::UpdateUniformBlock(const void* data, u32 size, UniformBuffer& binding)
+void Renderer::UpdateUniformBlock(const void* data, u32 size, u32 offset, UniformBufferHandle& binding)
 {
-	DEBUG_ASSERT(size <= binding.mSize, "Size is larger than uniform block size!");
-	UpdateGLBuffer(binding.mID, data, 0, size);
-}
-
-void Renderer::UpdateUniformBlock(const void* data, u32 size, u32 offset, UniformBuffer& binding)
-{
-	DEBUG_ASSERT(size <= binding.mSize, "Size is larger than storage block size!");
-	UpdateGLBuffer(binding.mID, data, offset, size);
+	//DEBUG_ASSERT(size <= binding.mSize, "Size is larger than storage block size!");
+	UpdateGLBuffer(binding.idx, data, offset, size);
 }
 
 VertexBufferHandle Renderer::CreateVertexBuffer(const void* data, u32 size, BufferUsage usage)
 {
-	return CreateGLBuffer<VertexBufferHandle>(data, size, usage);	
+	return { CreateGLBuffer(data, size, usage) };
 }
 
 void Renderer::UpdateVertexBuffer(VertexBufferHandle handle, const void* data, u32 size)
 {
-	UpdateGLBuffer(handle, data, 0, size);
+	UpdateGLBuffer(handle.idx, data, 0, size);
 }
 
 void Renderer::UpdateIndexBuffer(IndexBufferHandle handle, const void* data, u32 size)
 {
-	UpdateGLBuffer(handle, data, 0, size);
+	UpdateGLBuffer(handle.idx, data, 0, size);
 }
 
 void Renderer::DestroyVertexBuffer(VertexBufferHandle handle)
@@ -1122,7 +1121,7 @@ void Renderer::DestroyVertexBuffer(VertexBufferHandle handle)
 
 IndexBufferHandle Renderer::CreateIndexBuffer(const void* data, u32 size, BufferUsage usage)
 {
-	return CreateGLBuffer<IndexBufferHandle>(data, size, usage);
+	return { CreateGLBuffer(data, size, usage) };
 }
 
 void Renderer::DestroyIndexBuffer(IndexBufferHandle handle)
@@ -1203,9 +1202,9 @@ TextureHandle Renderer::CreateCubemap(const CubemapDescription& desc)
 	d.mType = TextureType::Cubemap;
 	d.descCubemap = desc;
 
-	textureDescriptions[texture] = std::move(d);
+	textureDescriptions[{texture}] = std::move(d);
 
-	return texture;
+	return { texture };
 }
 
 void Renderer::TextureReadback(const TextureHandle handle, uint8_t* buffer, u32 size)
@@ -1227,7 +1226,7 @@ void Renderer::TextureReadback(const TextureHandle handle, uint8_t* buffer, u32 
 		break;
 	}
 
-	glGetTextureImage(handle, 0, channels, type, size, buffer);
+	glGetTextureImage(handle.idx, 0, channels, type, size, buffer);
 }
 
 TextureHandle Renderer::CreateTexture2D(const TextureDescription2D& desc)
@@ -1274,15 +1273,15 @@ TextureHandle Renderer::CreateTexture2D(const TextureDescription2D& desc)
 	TextureDesc d;
 	d.mType = TextureType::Texture2D;
 	d.desc2D = desc;
-	textureDescriptions[texture] = std::move(d);
+	textureDescriptions[{texture}] = std::move(d);
 	
-	return texture;
+	return { texture };
 }
 
 void Renderer::DestroyTexture(TextureHandle handle)
 {
 	textureDescriptions.erase(handle);
-	glDeleteTextures(1, &handle);
+	glDeleteTextures(1, &handle.idx);
 }
 
 TextureHandle Renderer::CreateTexture3D(const TextureDescription3D& desc)
@@ -1300,7 +1299,7 @@ TextureHandle Renderer::CreateTexture3D(const TextureDescription3D& desc)
 	GLenum internal = FormatToInternalGL(desc.mFormat);
 
 	TextureHandle texture;
-	glCreateTextures(GL_TEXTURE_3D, 1, &texture);
+	glCreateTextures(GL_TEXTURE_3D, 1, &texture.idx);
 
 	int mipmapLevels = 1;
 	if (desc.mMipmaps)
@@ -1309,26 +1308,26 @@ TextureHandle Renderer::CreateTexture3D(const TextureDescription3D& desc)
 		mipmapLevels = 1 + static_cast<int>(glm::floor(log));
 	}
 
-	glTextureStorage3D(texture, mipmapLevels, internal, desc.mWidth, desc.mHeight, desc.mDepth);
+	glTextureStorage3D(texture.idx, mipmapLevels, internal, desc.mWidth, desc.mHeight, desc.mDepth);
 	for (u32 i = 0; i < desc.mData.size(); ++i)
 	{
-		glTextureSubImage3D(texture, 0, 0, 0, i, desc.mWidth, desc.mHeight, desc.mDepth, channels, type, desc.mData[i]);
+		glTextureSubImage3D(texture.idx, 0, 0, 0, i, desc.mWidth, desc.mHeight, desc.mDepth, channels, type, desc.mData[i]);
 	}
 	
 
 	if (desc.mMipmaps)
 	{
-		glGenerateTextureMipmap(texture);
+		glGenerateTextureMipmap(texture.idx);
 	}
 
-	glTextureParameteri(texture, GL_TEXTURE_WRAP_S, WrapToGL(desc.mWrap));
-	glTextureParameteri(texture, GL_TEXTURE_WRAP_T, WrapToGL(desc.mWrap));
-	glTextureParameteri(texture, GL_TEXTURE_WRAP_R, WrapToGL(desc.mWrap));
-	glTextureParameteri(texture, GL_TEXTURE_MIN_FILTER, min);
-	glTextureParameteri(texture, GL_TEXTURE_MAG_FILTER, mag);
+	glTextureParameteri(texture.idx, GL_TEXTURE_WRAP_S, WrapToGL(desc.mWrap));
+	glTextureParameteri(texture.idx, GL_TEXTURE_WRAP_T, WrapToGL(desc.mWrap));
+	glTextureParameteri(texture.idx, GL_TEXTURE_WRAP_R, WrapToGL(desc.mWrap));
+	glTextureParameteri(texture.idx, GL_TEXTURE_MIN_FILTER, min);
+	glTextureParameteri(texture.idx, GL_TEXTURE_MAG_FILTER, mag);
 	if (desc.mWrap == TextureWrap::BORDER)
 	{
-		glTextureParameterfv(texture, GL_TEXTURE_BORDER_COLOR, &desc.mBorderColor[0]);
+		glTextureParameterfv(texture.idx, GL_TEXTURE_BORDER_COLOR, &desc.mBorderColor[0]);
 	}
 
 	TextureDesc d;
@@ -1373,7 +1372,7 @@ FrameBuffer Renderer::CreateFramebuffer(const FrameBufferDescription& desc)
 		GLenum attachment = attachmentToGL(desc.mTextures[i].mAttachment);
 		TextureHandle texture = CreateTexture2D(texConfig);
 
-		glFramebufferTexture2D(GL_FRAMEBUFFER, attachment, GL_TEXTURE_2D, texture, 0);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, attachment, GL_TEXTURE_2D, texture.idx, 0);
 
 		result.mWidth  = texConfig.mWidth;
 		result.mHeight = texConfig.mHeight;
@@ -1410,7 +1409,7 @@ void Renderer::DestroyFramebuffer(FrameBuffer buffer)
 	glDeleteFramebuffers(1, &buffer.mHandle);
 	for (const auto& tex : buffer.mTextures)
 	{
-		if (tex)
+		if (tex.idx)
 		{
 			DestroyTexture(tex);
 		}
@@ -1671,7 +1670,7 @@ MeshHandle Renderer::CreateMesh(const MeshDescription& desc)
 	switch (desc.mPrimitiveType)
 	{
 	case PrimitiveType::TRIANGLES:
-		if (!desc.mIndices) DEBUG_ASSERT(desc.mVertexCount % 3 == 0, "Invalid vertex count!");
+		if (!desc.mIndices.idx) DEBUG_ASSERT(desc.mVertexCount % 3 == 0, "Invalid vertex count!");
 		break;
 	case PrimitiveType::TRIANGLE_STRIP:
 		DEBUG_ASSERT(desc.mVertexCount >= 3, "Invalid vertex count!");
@@ -1679,11 +1678,11 @@ MeshHandle Renderer::CreateMesh(const MeshDescription& desc)
 	case PrimitiveType::POINTS:
 		break; //no constraints 
 	case PrimitiveType::LINES:
-		if (!desc.mIndices) DEBUG_ASSERT(desc.mVertexCount % 2 == 0, "Invalid vertex count!");
+		if (!desc.mIndices.idx) DEBUG_ASSERT(desc.mVertexCount % 2 == 0, "Invalid vertex count!");
 		break;
 	}
 
-	DEBUG_ASSERT(desc.mInterlacedBuffer || desc.handles.mPositions, "Must have position buffer!");
+	DEBUG_ASSERT(desc.mInterlacedBuffer.idx || desc.handles.mPositions.idx, "Must have position buffer!");
 
 	GLuint vao;
 	glGenVertexArrays(1, &vao);
@@ -1691,47 +1690,47 @@ MeshHandle Renderer::CreateMesh(const MeshDescription& desc)
 
 	// vertex buffers
 	// TODO (danielg): Use DSA when creating vertex arrays
-	if (!desc.mInterlacedBuffer)
+	if (!desc.mInterlacedBuffer.idx)
 	{
-		if (desc.handles.mPositions)
+		if (desc.handles.mPositions.idx)
 		{
-			glBindBuffer(GL_ARRAY_BUFFER, desc.handles.mPositions);
+			glBindBuffer(GL_ARRAY_BUFFER, desc.handles.mPositions.idx);
 			vertexAttribConfig(VERTEX_ATTR_POSITION, desc.mPositionFormat);
 		}
 
-		if (desc.handles.mNormals)
+		if (desc.handles.mNormals.idx)
 		{
-			glBindBuffer(GL_ARRAY_BUFFER, desc.handles.mNormals);
+			glBindBuffer(GL_ARRAY_BUFFER, desc.handles.mNormals.idx);
 			vertexAttribConfig(VERTEX_ATTR_NORMAL, desc.mNormalsFormat);
 		}
 
-		if (desc.handles.mTexCoords0)
+		if (desc.handles.mTexCoords0.idx)
 		{
-			glBindBuffer(GL_ARRAY_BUFFER, desc.handles.mTexCoords0);
+			glBindBuffer(GL_ARRAY_BUFFER, desc.handles.mTexCoords0.idx);
 			vertexAttribConfig(VERTEX_ATTR_TEX_COORD0, desc.mTexCoord0Format);
 		}
 
-		if (desc.handles.mTexCoords1)
+		if (desc.handles.mTexCoords1.idx)
 		{
-			glBindBuffer(GL_ARRAY_BUFFER, desc.handles.mTexCoords1);
+			glBindBuffer(GL_ARRAY_BUFFER, desc.handles.mTexCoords1.idx);
 			vertexAttribConfig(VERTEX_ATTR_TEX_COORD1, desc.mTexCoord1Format);
 		}
 
-		if (desc.handles.mColors)
+		if (desc.handles.mColors.idx)
 		{
-			glBindBuffer(GL_ARRAY_BUFFER, desc.handles.mColors);
+			glBindBuffer(GL_ARRAY_BUFFER, desc.handles.mColors.idx);
 			vertexAttribConfig(VERTEX_ATTR_COLOR, desc.mColorsFormat);
 		}
 
-		if (desc.handles.mJoints)
+		if (desc.handles.mJoints.idx)
 		{
-			glBindBuffer(GL_ARRAY_BUFFER, desc.handles.mJoints);
+			glBindBuffer(GL_ARRAY_BUFFER, desc.handles.mJoints.idx);
 			vertexAttribConfig(VERTEX_ATTR_JOINTS, desc.mJointsFormat);
 		}
 
-		if (desc.handles.mWeights)
+		if (desc.handles.mWeights.idx)
 		{
-			glBindBuffer(GL_ARRAY_BUFFER, desc.handles.mWeights);
+			glBindBuffer(GL_ARRAY_BUFFER, desc.handles.mWeights.idx);
 			vertexAttribConfig(VERTEX_ATTR_WEIGHTS, desc.mWeightsFormat);
 		}
 	}
@@ -1739,7 +1738,7 @@ MeshHandle Renderer::CreateMesh(const MeshDescription& desc)
 	{
 		// interlaced vertex buffer
 		DEBUG_ASSERT(desc.mStride, "Interlaced buffer must have stride!");
-		glBindBuffer(GL_ARRAY_BUFFER, desc.mInterlacedBuffer);
+		glBindBuffer(GL_ARRAY_BUFFER, desc.mInterlacedBuffer.idx);
 
 		constexpr u32 NO_OFFSET = std::numeric_limits<u32>::max();
 
@@ -1780,15 +1779,15 @@ MeshHandle Renderer::CreateMesh(const MeshDescription& desc)
 	}
 
 	// index buffer 
-	if (desc.mIndices)
+	if (desc.mIndices.idx)
 	{
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, desc.mIndices);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, desc.mIndices.idx);
 	}
 
 	glBindVertexArray(0);
 
 	
-	Mesh& mesh = meshes[vao];
+	Mesh& mesh = meshes[{vao}];
 
 	mesh.mVertexCount	= desc.mVertexCount;
 	mesh.mPrimitiveType = desc.mPrimitiveType;
@@ -1798,7 +1797,7 @@ MeshHandle Renderer::CreateMesh(const MeshDescription& desc)
 	mesh.mIndexFormat	= desc.mIndicesFormat;
 	mesh.mID			= vao;
 
-	if (desc.mInterlacedBuffer)
+	if (desc.mInterlacedBuffer.idx)
 	{
 		mesh.mPositions = desc.mInterlacedBuffer;
 	}
@@ -1813,7 +1812,7 @@ MeshHandle Renderer::CreateMesh(const MeshDescription& desc)
 		mesh.mWeights		= desc.handles.mWeights;
 	}
 
-	return mesh.mID;
+	return { mesh.mID };
 }
 
 void Renderer::DestroyMesh(const MeshHandle mesh)

@@ -7,7 +7,7 @@ namespace gold
 	class LinearAllocator : public Allocator
 	{
 	private:
-		void* mCurrentAddress;
+		void* mCurrentAddress = nullptr;
 
 	public:
 

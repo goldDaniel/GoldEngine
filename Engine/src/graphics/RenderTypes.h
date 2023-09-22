@@ -4,18 +4,30 @@
 #include "core/Util.h"
 #include "Texture.h"
 
-namespace graphics
-{
-
 #define G_RENDER_HANDLE(name) \
-	typedef uint32_t name;
+	namespace graphics { \
+		struct name { \
+			uint32_t idx; \
+			bool operator==(const name &other) const { return idx == other.idx; } \
+		}; \
+	} \
+	template <> struct std::hash<graphics::##name> {  \
+		uint64_t operator()(const graphics::##name& data) const noexcept { \
+			return std::hash<uint32_t>{}(data.idx); \
+		} \
+	};
 
-	G_RENDER_HANDLE(VertexBufferHandle);
-	G_RENDER_HANDLE(IndexBufferHandle);
-	G_RENDER_HANDLE(TextureHandle);
-	G_RENDER_HANDLE(MeshHandle);
+G_RENDER_HANDLE(VertexBufferHandle);
+G_RENDER_HANDLE(IndexBufferHandle);
+G_RENDER_HANDLE(UniformBufferHandle);
+G_RENDER_HANDLE(ShaderBufferHandle);
+G_RENDER_HANDLE(TextureHandle);
+G_RENDER_HANDLE(MeshHandle);
+
 #undef G_RENDER_HANDLE
 
+namespace graphics
+{
 	enum class OutputSlot
 	{
 		Color0 = 0, // albedo
@@ -353,7 +365,7 @@ namespace graphics
 
 	struct UniformBuffer
 	{
-		uint32_t mID{ 0 };
+		UniformBufferHandle mID{ 0 };
 		uint32_t mSize{ 0 };
 
 		uint8_t* Map();
@@ -362,7 +374,7 @@ namespace graphics
 
 	struct StorageBuffer
 	{
-		uint32_t mID{ 0 };
+		ShaderBufferHandle mID{ 0 };
 		uint32_t mSize{ 0 };
 
 		uint8_t* Map();
@@ -424,28 +436,28 @@ namespace graphics
 
 		struct UniformBlock
 		{
-			uint32_t mNameHash;
-			UniformBuffer mBinding;
+			uint32_t mNameHash{};
+			UniformBufferHandle mBinding{};
 		};
 
 		struct StorageBlock
 		{
-			uint32_t mNameHash;
-			StorageBuffer mBinding;
+			uint32_t mNameHash{};
+			ShaderBufferHandle mBinding{};
 		};
 
 		struct Texture
 		{
-			uint32_t mNameHash;
-			TextureHandle mHandle;
+			uint32_t mNameHash{};
+			TextureHandle mHandle{};
 		};
 
 		struct Image
 		{
-			uint32_t mNameHash;
-			TextureHandle mHandle;
-			bool read;
-			bool write;
+			uint32_t mNameHash{};
+			TextureHandle mHandle{};
+			bool read{};
+			bool write{};
 		};
 
 		std::array<UniformBlock, 12> mUniformBlocks{};
@@ -477,7 +489,7 @@ namespace graphics
 		bool mWireFrame = false;
 
 
-		void SetUniformBlock(const std::string& name, UniformBuffer binding)
+		void SetUniformBlock(const std::string& name, UniformBufferHandle binding)
 		{
 			// These constants much match
 			DEBUG_ASSERT(mUniformBlocks.size() == mShader->mUniformBlocks.size(), "Uniform block constant size mismatch!");
@@ -503,7 +515,7 @@ namespace graphics
 			mNumUniformBlocks++;
 		}
 
-		void SetStorageBlock(const std::string& name, StorageBuffer binding)
+		void SetStorageBlock(const std::string& name, ShaderBufferHandle binding)
 		{
 			// These constants much match
 			DEBUG_ASSERT(mStorageBlocks.size() == mShader->mStorageBlocks.size(), "Storage block constant size mismatch!");

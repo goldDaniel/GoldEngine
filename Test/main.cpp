@@ -6,7 +6,7 @@
 class TestApp : public gold::Application
 {
 private:
-	graphics::UniformBuffer mView{};
+	graphics::UniformBufferHandle mView{};
 	graphics::Shader mShader{};
 
 	graphics::MeshHandle mMesh{};
@@ -109,7 +109,7 @@ protected:
 		graphics::RenderState state;
 		state.mRenderPass = pass;
 		state.mShader = &mShader;
-		state.SetUniformBlock("View_UBO", mView);
+		state.SetUniformBlock("View_UBO", { mView });
 
 		renderer.DrawMesh(mMesh, state);
 
