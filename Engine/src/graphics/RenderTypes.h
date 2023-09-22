@@ -164,12 +164,12 @@ namespace graphics
 
 	struct Mesh
 	{
-		uint32_t  mID{};
+		u32  mID{};
 		
-		uint32_t mVertexCount{};
-		uint32_t mIndexCount{};
+		u32 mVertexCount{};
+		u32 mIndexCount{};
 
-		uint32_t mIndexStart{};
+		u32 mIndexStart{};
 
 		PrimitiveType mPrimitiveType{};
 
@@ -201,19 +201,19 @@ namespace graphics
 
 		struct Offsets
 		{
-			uint32_t mPositionOffset = std::numeric_limits<uint32_t>::max();
-			uint32_t mNormalsOffset = std::numeric_limits<uint32_t>::max();
-			uint32_t mTexCoord0Offset = std::numeric_limits<uint32_t>::max();
-			uint32_t mTexCoord1Offset = std::numeric_limits<uint32_t>::max();
-			uint32_t mColorsOffset = std::numeric_limits<uint32_t>::max();
-			uint32_t mJointsOffset = std::numeric_limits<uint32_t>::max();
-			uint32_t mWeightsOffset = std::numeric_limits<uint32_t>::max();
+			u32 mPositionOffset = std::numeric_limits<u32>::max();
+			u32 mNormalsOffset = std::numeric_limits<u32>::max();
+			u32 mTexCoord0Offset = std::numeric_limits<u32>::max();
+			u32 mTexCoord1Offset = std::numeric_limits<u32>::max();
+			u32 mColorsOffset = std::numeric_limits<u32>::max();
+			u32 mJointsOffset = std::numeric_limits<u32>::max();
+			u32 mWeightsOffset = std::numeric_limits<u32>::max();
 		};
 
 
 		// for interlaced vertex buffers
 		VertexBufferHandle mInterlacedBuffer{};
-		uint32_t mStride = 0;
+		u32 mStride = 0;
 
 		union
 		{
@@ -222,9 +222,9 @@ namespace graphics
 		};
 
 		IndexBufferHandle mIndices{};
-		uint32_t mVertexCount = 0;
-		uint32_t mIndexCount = 0;
-		uint32_t mIndexStart = 0;
+		u32 mVertexCount = 0;
+		u32 mIndexCount = 0;
+		u32 mIndexStart = 0;
 
 		PrimitiveType mPrimitiveType = PrimitiveType::TRIANGLES;
 
@@ -244,13 +244,13 @@ namespace graphics
 
 	struct TextureDescription2D
 	{
-		uint32_t mNameHash = 0;
+		u32 mNameHash = 0;
 
-		uint32_t mWidth = 0;
-		uint32_t mHeight = 0;
+		u32 mWidth = 0;
+		u32 mHeight = 0;
 
 		const void* mData = nullptr;
-		uint32_t mDataSize = 0;
+		u32 mDataSize = 0;
 
 		TextureFormat mFormat = TextureFormat::INVALID;
 		TextureWrap mWrap = TextureWrap::REPEAT;
@@ -266,13 +266,13 @@ namespace graphics
 
 	struct TextureDescription3D
 	{
-		uint32_t mWidth = 0;
-		uint32_t mHeight = 0;
-		uint32_t mDepth = 0;
+		u32 mWidth = 0;
+		u32 mHeight = 0;
+		u32 mDepth = 0;
 
 		//NOTE (danielg): all slices must have same dataSize, width, and height
 		std::vector<const void*> mData;
-		uint32_t mDataSize = 0;
+		u32 mDataSize = 0;
 
 		TextureFormat mFormat = TextureFormat::INVALID;
 		TextureWrap mWrap = TextureWrap::REPEAT;
@@ -290,10 +290,10 @@ namespace graphics
 	{
 		//NOTE (danielg): all faces must have same dataSize, width, and height
 		std::unordered_map<CubemapFace, const void*> mData;
-		uint32_t mDataSize = 0;
+		u32 mDataSize = 0;
 
-		uint32_t mWidth = 0;
-		uint32_t mHeight = 0;
+		u32 mWidth = 0;
+		u32 mHeight = 0;
 
 		TextureFormat mFormat = TextureFormat::INVALID;
 		TextureWrap mWrap = TextureWrap::CLAMP;
@@ -310,16 +310,16 @@ namespace graphics
 		// tessellation params
 		bool mTesselation = false;
 
-		std::array<uint32_t, 12>  mUniformBlocks; // 12 is the GL defined minimum allowed
-		std::array<uint32_t, 8>  mStorageBlocks; // 8 is the GL defined minimum allowed 
-		std::array<uint32_t, 16>  mTextures;
-		std::array<uint32_t, 16>  mImages;
+		std::array<u32, 12>  mUniformBlocks; // 12 is the GL defined minimum allowed
+		std::array<u32, 8>  mStorageBlocks; // 8 is the GL defined minimum allowed 
+		std::array<u32, 16>  mTextures;
+		std::array<u32, 16>  mImages;
 	};
 
 	struct UniformBuffer
 	{
 		UniformBufferHandle mID{ 0 };
-		uint32_t mSize{ 0 };
+		u32 mSize{ 0 };
 
 		u8* Map();
 		void Unmap();
@@ -328,7 +328,7 @@ namespace graphics
 	struct StorageBuffer
 	{
 		ShaderBufferHandle mID{ 0 };
-		uint32_t mSize{ 0 };
+		u32 mSize{ 0 };
 
 		u8* Map();
 		void Unmap();
@@ -336,11 +336,11 @@ namespace graphics
 
 	struct FrameBuffer
 	{
-		uint32_t mHandle = 0;
+		u32 mHandle = 0;
 		std::array<TextureHandle, static_cast<u64>(OutputSlot::Count)> mTextures;
 
-		uint32_t mWidth = 0;
-		uint32_t mHeight = 0;
+		u32 mWidth = 0;
+		u32 mHeight = 0;
 	};
 
 	struct FrameBufferDescription
@@ -389,25 +389,25 @@ namespace graphics
 
 		struct UniformBlock
 		{
-			uint32_t mNameHash{};
+			u32 mNameHash{};
 			UniformBufferHandle mBinding{};
 		};
 
 		struct StorageBlock
 		{
-			uint32_t mNameHash{};
+			u32 mNameHash{};
 			ShaderBufferHandle mBinding{};
 		};
 
 		struct Texture
 		{
-			uint32_t mNameHash{};
+			u32 mNameHash{};
 			TextureHandle mHandle{};
 		};
 
 		struct Image
 		{
-			uint32_t mNameHash{};
+			u32 mNameHash{};
 			TextureHandle mHandle{};
 			bool read{};
 			bool write{};
