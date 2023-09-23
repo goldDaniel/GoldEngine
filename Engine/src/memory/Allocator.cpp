@@ -19,5 +19,7 @@ void gold::Allocator::Free()
 {
 	free(mMemory);
 	mMemory = nullptr;
+	mNumAllocations = 0;
+	mUsed = 0;
 	mSize = 0;
 }

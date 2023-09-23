@@ -20,6 +20,7 @@ namespace gold
 		u64 GetUsedMemory() const { return mUsed; }
 		u64 GetNumAllocations() const { return mNumAllocations; }
 
+		// use if Allocator owns the memory block
 		void Free();
 
 	protected:
