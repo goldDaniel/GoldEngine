@@ -18,6 +18,11 @@ namespace gold
 
 		}
 
+		bool HasData() const
+		{
+			return mOffset <= mSize;
+		}
+
 		void Reset()
 		{
 			mOffset = 0;

@@ -19,6 +19,11 @@ namespace gold
 
 		}
 
+		BinaryReader ToReader()
+		{
+			return BinaryReader(mMemory, mOffset);
+		}
+
 		void Reset()
 		{
 			mOffset = 0;

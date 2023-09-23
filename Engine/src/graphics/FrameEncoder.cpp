@@ -38,7 +38,7 @@ void FrameEncoder::End()
 BinaryReader FrameEncoder::GetReader()
 {
 	DEBUG_ASSERT(!mRecording, "Cannot read frame if encoding!");
-	return BinaryReader(mMemory, kSize);
+	return mWriter.ToReader();
 }
 
 u8 FrameEncoder::AddRenderPass(const graphics::RenderPass& pass)
@@ -66,8 +66,8 @@ u8 FrameEncoder::AddRenderPass(const graphics::RenderPass& pass)
 	u8 clearColorBit = 1 << 0;
 	u8 clearDepthBit = 1 << 1;
 
-	u8 clearBits =	pass.mClearColor ? clearColorBit : 0 |
-					pass.mClearDepth ? clearDepthBit : 0;
+	u8 clearBits =	(pass.mClearColor ? clearColorBit : 0) |
+					(pass.mClearDepth ? clearDepthBit : 0);
 	mWriter.Write(clearBits);
 	
 	mWriter.Write(pass.mColor); 
@@ -128,7 +128,7 @@ UniformBufferHandle FrameEncoder::CreateUniformBuffer(const void* data, u64 size
 	UniformBufferHandle clientHandle = mResources.CreateUniformBuffer(size);
 
 	mWriter.Write(RenderCommand::CreateUniformBuffer);
-	mWriter.Write(clientHandle.idx);
+	mWriter.Write(clientHandle);
 	mWriter.Write(size);
 	mWriter.Write(data, size);
 
@@ -142,7 +142,7 @@ ShaderBufferHandle FrameEncoder::CreateShaderBuffer(const void* data, u64 size)
 	ShaderBufferHandle clientHandle = mResources.CreateShaderBuffer(size);
 
 	mWriter.Write(RenderCommand::CreateShaderBuffer);
-	mWriter.Write(clientHandle.idx);
+	mWriter.Write(clientHandle);
 	mWriter.Write(size);
 	mWriter.Write(data, size);
 
@@ -155,6 +155,8 @@ ShaderHandle FrameEncoder::CreateShader(const char* vertSrc, const char* fragSrc
 	mWriter.Write(RenderCommand::CreateShader);
 
 	ShaderHandle clientHandle = mResources.CreateShader();
+
+	mWriter.Write(clientHandle);
 
 	u64 vertLen = strlen(vertSrc) + 1;
 	u64 fragLen = strlen(fragSrc) + 1;
@@ -180,7 +182,7 @@ void FrameEncoder::DrawMesh(const MeshHandle handle, const RenderState& state)
 	DEBUG_ASSERT(mRecording, "");
 
 	mWriter.Write(RenderCommand::DrawMesh);
-	mWriter.Write(handle.idx);
+	mWriter.Write(handle);
 	
 	// uniform buffers
 	mWriter.Write(state.mUniformBlocks);
@@ -188,7 +190,7 @@ void FrameEncoder::DrawMesh(const MeshHandle handle, const RenderState& state)
 	{
 		const RenderState::UniformBlock& buffer = state.mUniformBlocks[i];
 		mWriter.Write(buffer.mNameHash);
-		mWriter.Write(buffer.mBinding.idx);
+		mWriter.Write(buffer.mBinding);
 	}
 
 	// Shader buffers
@@ -197,7 +199,7 @@ void FrameEncoder::DrawMesh(const MeshHandle handle, const RenderState& state)
 	{
 		const RenderState::StorageBlock& buffer = state.mStorageBlocks[i];
 		mWriter.Write(buffer.mNameHash);
-		mWriter.Write(buffer.mBinding.idx);
+		mWriter.Write(buffer.mBinding);
 	}
 
 	// Textures
@@ -206,7 +208,7 @@ void FrameEncoder::DrawMesh(const MeshHandle handle, const RenderState& state)
 	{
 		const RenderState::Texture& texture = state.mTextures[i];
 		mWriter.Write(texture.mNameHash);
-		mWriter.Write(texture.mHandle.idx);
+		mWriter.Write(texture.mHandle);
 	}
 
 	// Images
@@ -215,7 +217,7 @@ void FrameEncoder::DrawMesh(const MeshHandle handle, const RenderState& state)
 	{
 		const RenderState::Image& image = state.mImages[i];
 		mWriter.Write(image.mNameHash);
-		mWriter.Write(image.mHandle.idx);
+		mWriter.Write(image.mHandle);
 
 		u8 readBit  = image.read  ? 1 << 0 : 0;
 		u8 writeBit = image.write ? 1 << 1 : 0;
@@ -228,7 +230,7 @@ void FrameEncoder::DrawMesh(const MeshHandle handle, const RenderState& state)
 	mWriter.Write(state.mRenderPass);
 
 	// shader handle
-	mWriter.Write(state.mShader.idx);
+	mWriter.Write(state.mShader);
 
 	// Viewport
 	mWriter.Write(state.mViewport.x);
@@ -252,10 +254,10 @@ void FrameEncoder::DrawMesh(const MeshHandle handle, const RenderState& state)
 	u8 alphaBlendBit = 1 << 2;
 	u8 wireframeBit  = 1 << 3;
 	
-	u8 toggles =	state.mDepthWriteEnabled ? depthWriteBit : 0 |
-					state.mColorWriteEnabled ? colorWriteBit : 0 |
-					state.mAlphaBlendEnabled ? alphaBlendBit : 0 |
-					state.mWireFrame		 ? wireframeBit  : 0;
+	u8 toggles =	(state.mDepthWriteEnabled ? depthWriteBit : 0) |
+					(state.mColorWriteEnabled ? colorWriteBit : 0) |
+					(state.mAlphaBlendEnabled ? alphaBlendBit : 0) |
+					(state.mWireFrame		 ? wireframeBit  : 0);
 	
 	mWriter.Write(toggles);
 }

@@ -6,19 +6,19 @@ namespace gold
 {
 	enum struct RenderCommand : u8
 	{
-		CreateUniformBuffer = 0, //e
+		CreateUniformBuffer = 0, //e, d
 		UpdateUniformBuffer,
 		DestroyUniformBuffer,
 
-		CreateShaderBuffer, //e
+		CreateShaderBuffer, //e, d
 		UpdateShaderBuffer,
 		DestroyShaderBuffer,
 
-		CreateVertexBuffer,	//e
+		CreateVertexBuffer,	//e, d
 		UpdateVertexBuffer,
 		DestroyVertexBuffer,
 
-		CreateIndexBuffer,	//e
+		CreateIndexBuffer,	//e, d
 		UpdateIndexBuffer,
 		DestroyIndexBuffer,
 
@@ -39,6 +39,6 @@ namespace gold
 
 		AddRenderPass, //e
 
-		END,
+		END, //e, d
 	};
 }

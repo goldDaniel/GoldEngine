@@ -29,12 +29,13 @@ namespace gold
 	public:
 		virtual graphics::VertexBufferHandle& get(graphics::VertexBufferHandle clientHandle) = 0;
 
-
 		virtual graphics::IndexBufferHandle& get(graphics::IndexBufferHandle clientHandle) = 0;
 
-		virtual graphics::UniformBuffer& get(graphics::UniformBufferHandle clientHandle) = 0;
+		virtual graphics::UniformBufferHandle& get(graphics::UniformBufferHandle clientHandle) = 0;
 
-		virtual graphics::StorageBuffer& get(graphics::ShaderBufferHandle clientHandle) = 0;
+		virtual graphics::ShaderBufferHandle& get(graphics::ShaderBufferHandle clientHandle) = 0;
+
+		virtual graphics::ShaderHandle& get(graphics::ShaderHandle clientHandle) = 0;
 	};
 
 	class RenderResources : public ClientResources, public ServerResources
@@ -51,10 +52,10 @@ namespace gold
 		std::unordered_map<graphics::ShaderHandle, graphics::ShaderHandle> mShaders;
 
 		u32 mNextUniformBuffer = 1;
-		std::unordered_map<graphics::UniformBufferHandle, graphics::UniformBuffer> mUniformBuffers;
+		std::unordered_map<graphics::UniformBufferHandle, graphics::UniformBufferHandle> mUniformBuffers;
 
 		u32 mNextShaderBuffer = 1;
-		std::unordered_map<graphics::ShaderBufferHandle, graphics::StorageBuffer> mShaderBuffers;
+		std::unordered_map<graphics::ShaderBufferHandle, graphics::ShaderBufferHandle> mShaderBuffers;
 
 		
 	public:
@@ -85,14 +86,14 @@ namespace gold
 
 		graphics::UniformBufferHandle CreateUniformBuffer(u32 size) override
 		{
-			mUniformBuffers[{mNextUniformBuffer}] = { 0, size };
+			mUniformBuffers[{mNextUniformBuffer}] = { 0 };
 			mNextUniformBuffer++;
 			return { (mNextUniformBuffer - 1) };
 		}
 
 		graphics::ShaderBufferHandle CreateShaderBuffer(u32 size) override
 		{
-			mShaderBuffers[{mNextShaderBuffer}] = { 0, size };
+			mShaderBuffers[{mNextShaderBuffer}] = { 0 };
 			mNextShaderBuffer++;
 			return { (mNextShaderBuffer - 1) };
 		}
@@ -109,16 +110,22 @@ namespace gold
 			return mIndexBuffers[clientHandle];
 		}
 
-		graphics::UniformBuffer& get(graphics::UniformBufferHandle clientHandle) override
+		graphics::UniformBufferHandle& get(graphics::UniformBufferHandle clientHandle) override
 		{
 			DEBUG_ASSERT(mUniformBuffers.find(clientHandle) != mUniformBuffers.end(), "");
 			return mUniformBuffers[clientHandle];
 		}
 
-		graphics::StorageBuffer& get(graphics::ShaderBufferHandle clientHandle) override
+		graphics::ShaderBufferHandle& get(graphics::ShaderBufferHandle clientHandle) override
 		{
 			DEBUG_ASSERT(mShaderBuffers.find(clientHandle) != mShaderBuffers.end(), "");
 			return mShaderBuffers[clientHandle];
+		}
+
+		graphics::ShaderHandle& get(graphics::ShaderHandle clientHandle) override
+		{
+			DEBUG_ASSERT(mShaders.find(clientHandle) != mShaders.end(), "");
+			return mShaders[clientHandle];
 		}
 	};
 }
