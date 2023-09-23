@@ -99,7 +99,6 @@ protected:
 			mFirstFrame = false;
 		}
 
-		// TODO (danielg): updates not supported yet
 		glm::vec2 screenSize = GetScreenSize();
 
 		glm::mat4 mvp = glm::perspective(glm::radians(65.f), screenSize.x / screenSize.y, 1.f, 100.f);
