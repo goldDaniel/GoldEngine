@@ -94,6 +94,5 @@ namespace gold
 	protected:
 		virtual void Init() = 0;
 		virtual void Update(float delta, gold::FrameEncoder& encoder) = 0;
-		virtual void Render(gold::ServerResources& resources, graphics::Renderer& renderer, BinaryReader& reader, LinearAllocator& frameAllocator) = 0;
 	};
 }

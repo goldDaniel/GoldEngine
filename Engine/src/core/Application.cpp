@@ -1,7 +1,10 @@
 #include "Application.h"
 
 #include "memory/LinearAllocator.h"
+#include "graphics/FrameDecoder.h"
 #include "graphics/FrameEncoder.h"
+#include "graphics/RenderCommands.h"
+
 
 using namespace gold;
 
@@ -14,9 +17,9 @@ void Application::Run()
 	mEncoders.Get() = std::make_unique<FrameEncoder>(mRenderResources);
 	mEncoders.Swap();
 	mEncoders.Get() = std::make_unique<FrameEncoder>(mRenderResources);
+
 	u64 size = 128 * 1024 * 1024;
 	mFrameAllocator = std::make_unique<LinearAllocator>(malloc(size), size);
-	
 
 	mUpdateThread = std::thread([this]()
 	{
@@ -81,7 +84,17 @@ void Application::RenderThread()
 
 		if (mReadEncoder)
 		{
-			Render(mRenderResources, *mRenderer, mReadEncoder->GetReader(), *mFrameAllocator);
+			BinaryReader reader = mReadEncoder->GetReader();
+			mRenderer->BeginFrame();
+
+			while (reader.HasData())
+			{
+				gold::RenderCommand command = reader.Read<gold::RenderCommand>();
+				gold::FrameDecoder::Decode(*mRenderer, *mFrameAllocator, mRenderResources, reader, command);
+				if (command == gold::RenderCommand::END) break;
+			}
+			mRenderer->EndFrame();
+
 			mReadEncoder = nullptr;
 		}
 
