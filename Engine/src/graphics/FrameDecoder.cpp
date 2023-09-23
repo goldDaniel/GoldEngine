@@ -32,16 +32,23 @@ void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, S
 		serverHandle = renderer.CreateUniformBlock(data, size);
 		break;
 	}
-	/*case RenderCommand::UpdateUniformBuffer:
+	case RenderCommand::UpdateUniformBuffer:
 	{
-		DEBUG_ASSERT(false, "Not implemented!");
+		UniformBufferHandle serverHandle = resources.get(reader.Read<UniformBufferHandle>());
+		u32 size = reader.Read<u32>();
+		u8* data = (u8*)frameAllocator.Allocate(size);
+		reader.Read(data, size);
+		u32 offset = reader.Read<u32>();
+		
+		renderer.UpdateUniformBlock(data, size, offset, serverHandle);
+
 		break;
 	}
 	case RenderCommand::DestroyUniformBuffer:
 	{
 		DEBUG_ASSERT(false, "Not implemented!");
 		break;
-	}*/
+	}
 
 	// Shader Buffers
 	case RenderCommand::CreateShaderBuffer:
@@ -56,7 +63,7 @@ void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, S
 		serverHandle = renderer.CreateStorageBlock(data, size);
 		break;
 	}
-	/*case RenderCommand::UpdateShaderBuffer:
+	case RenderCommand::UpdateShaderBuffer:
 	{
 		DEBUG_ASSERT(false, "Not implemented!");
 		break;
@@ -65,7 +72,7 @@ void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, S
 	{
 		DEBUG_ASSERT(false, "Not implemented!");
 		break;
-	}*/
+	}
 
 	// Vertex Buffers
 	case RenderCommand::CreateVertexBuffer:
@@ -80,7 +87,7 @@ void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, S
 		serverHandle = renderer.CreateVertexBuffer(data, size);
 		break;
 	}
-	/*case RenderCommand::UpdateVertexBuffer:
+	case RenderCommand::UpdateVertexBuffer:
 	{
 		DEBUG_ASSERT(false, "Not implemented!");
 		break;
@@ -89,7 +96,7 @@ void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, S
 	{
 		DEBUG_ASSERT(false, "Not implemented!");
 		break;
-	}*/
+	}
 
 	// Index Buffers
 	case RenderCommand::CreateIndexBuffer:
@@ -104,7 +111,7 @@ void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, S
 		serverHandle = renderer.CreateIndexBuffer(data, size);
 		break;
 	}
-	/*case RenderCommand::UpdateIndexBuffer:
+	case RenderCommand::UpdateIndexBuffer:
 	{
 		DEBUG_ASSERT(false, "Not implemented!");
 		break;
@@ -113,7 +120,7 @@ void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, S
 	{
 		DEBUG_ASSERT(false, "Not implemented!");
 		break;
-	}*/
+	}
 
 	// Shaders
 	case RenderCommand::CreateShader:
@@ -131,45 +138,45 @@ void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, S
 		resources.get(clientHandle) = renderer.CreateShader(vertSrc, fragSrc);
 		break;
 	}
-	//case RenderCommand::DestroyShader:
-	//{
-	//	DEBUG_ASSERT(false, "Not implemented!");
-	//	break;
-	//}
+	case RenderCommand::DestroyShader:
+	{
+		DEBUG_ASSERT(false, "Not implemented!");
+		break;
+	}
 
-	//// Textures
-	//case RenderCommand::CreateTexture2D:
-	//{
-	//	DEBUG_ASSERT(false, "Not implemented!");
-	//	break;
-	//}
-	//case RenderCommand::CreateTexture3D:
-	//{
-	//	DEBUG_ASSERT(false, "Not implemented!");
-	//	break;
-	//}
-	//case RenderCommand::CreateCubemap:
-	//{
-	//	DEBUG_ASSERT(false, "Not implemented!");
-	//	break;
-	//}
-	//case RenderCommand::DestroyTexture:
-	//{
-	//	DEBUG_ASSERT(false, "Not implemented!");
-	//	break;
-	//}
+	// Textures
+	case RenderCommand::CreateTexture2D:
+	{
+		DEBUG_ASSERT(false, "Not implemented!");
+		break;
+	}
+	case RenderCommand::CreateTexture3D:
+	{
+		DEBUG_ASSERT(false, "Not implemented!");
+		break;
+	}
+	case RenderCommand::CreateCubemap:
+	{
+		DEBUG_ASSERT(false, "Not implemented!");
+		break;
+	}
+	case RenderCommand::DestroyTexture:
+	{
+		DEBUG_ASSERT(false, "Not implemented!");
+		break;
+	}
 
-	//// Frame Buffers
-	//case RenderCommand::CreateFrameBuffer:
-	//{
-	//	DEBUG_ASSERT(false, "Not implemented!");
-	//	break;
-	//}
-	//case RenderCommand::DestroyFrameBuffer:
-	//{
-	//	DEBUG_ASSERT(false, "Not implemented!");
-	//	break;
-	//}
+	// Frame Buffers
+	case RenderCommand::CreateFrameBuffer:
+	{
+		DEBUG_ASSERT(false, "Not implemented!");
+		break;
+	}
+	case RenderCommand::DestroyFrameBuffer:
+	{
+		DEBUG_ASSERT(false, "Not implemented!");
+		break;
+	}
 
 	case RenderCommand::CreateMesh:
 	{
@@ -317,7 +324,7 @@ void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, S
 
 		break;
 	}
-	/*case RenderCommand::DrawMeshInstanced:
+	case RenderCommand::DrawMeshInstanced:
 	{
 		DEBUG_ASSERT(false, "Not implemented!");
 		break;
@@ -326,7 +333,7 @@ void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, S
 	{
 		DEBUG_ASSERT(false, "Not implemented!");
 		break;
-	}*/
+	}
 
 	// Render Pass
 	case RenderCommand::AddRenderPass:

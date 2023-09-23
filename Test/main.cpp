@@ -100,14 +100,11 @@ protected:
 		}
 
 		// TODO (danielg): updates not supported yet
-		//glm::vec2 screenSize = GetScreenSize();
+		glm::vec2 screenSize = GetScreenSize();
 
-		//glm::mat4 mvp = glm::perspective(glm::radians(65.f), screenSize.x / screenSize.y, 1.f, 100.f);
-		//mvp *= glm::lookAt(glm::vec3{ 0, 0, 5 }, glm::vec3{ 0,0,0 }, glm::vec3{ 0,1,0 });
-		//renderer.UpdateUniformBlock(mvp, mView);
-
-		/*renderer.SetBackBufferSize((int)screenSize.x, (int)screenSize.y);
-		renderer.BeginFrame();*/
+		glm::mat4 mvp = glm::perspective(glm::radians(65.f), screenSize.x / screenSize.y, 1.f, 100.f);
+		mvp *= glm::lookAt(glm::vec3{ 0, 0, 5 }, glm::vec3{ 0,0,0 }, glm::vec3{ 0,1,0 });
+		encoder.UpdateUniformBuffer(mView, &mvp, sizeof(glm::mat4));
 
 		uint8_t pass = encoder.AddRenderPass("Default", graphics::ClearColor::YES, graphics::ClearDepth::YES);
 		graphics::RenderState state;
@@ -119,28 +116,6 @@ protected:
 
 		encoder.End();
 	}
-
-	//virtual void Render(gold::ServerResources& resources, graphics::Renderer& renderer, gold::BinaryReader& reader, gold::LinearAllocator& frameAllocator) override
-	//{
-	//	/*glm::vec2 screenSize = GetScreenSize();
-
-	//	glm::mat4 mvp = glm::perspective(glm::radians(65.f), screenSize.x / screenSize.y, 1.f, 100.f);
-	//	mvp *= glm::lookAt(glm::vec3{ 0, 0, 5 }, glm::vec3{ 0,0,0 }, glm::vec3{ 0,1,0 });
-	//	renderer.UpdateUniformBlock(mvp, mView);
-
-	//	renderer.SetBackBufferSize((int)screenSize.x, (int)screenSize.y);
-	//	renderer.BeginFrame();
-
-	//	uint8_t pass = renderer.AddRenderPass("Default", graphics::ClearColor::YES, graphics::ClearDepth::YES);
-	//	graphics::RenderState state;
-	//	state.mRenderPass = pass;
-	//	state.mShader = mShader;
-	//	state.SetUniformBlock("View_UBO", { mView });
-
-	//	renderer.DrawMesh(mMesh, state);
-
-	//	renderer.EndFrame();*/
-	//}
 };
 
 

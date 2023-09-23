@@ -46,6 +46,7 @@ namespace gold
 		graphics::VertexBufferHandle CreateVertexBuffer(const void* data, u32 size);
 
 		graphics::UniformBufferHandle CreateUniformBuffer(const void* data, u32 size);
+		void UpdateUniformBuffer(graphics::UniformBufferHandle clientHandle, const void* data, u32 size, u32 offset = 0);
 
 		graphics::ShaderBufferHandle CreateShaderBuffer(const void* data, u32 size);
 

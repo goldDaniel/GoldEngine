@@ -86,6 +86,7 @@ void Application::RenderThread()
 		{
 			BinaryReader reader = mReadEncoder->GetReader();
 			mRenderer->BeginFrame();
+			mRenderer->SetBackBufferSize((int)mConfig.windowWidth, (int)mConfig.windowHeight);
 
 			while (reader.HasData())
 			{

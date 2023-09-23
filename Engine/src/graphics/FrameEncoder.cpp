@@ -135,6 +135,17 @@ UniformBufferHandle FrameEncoder::CreateUniformBuffer(const void* data, u32 size
 	return clientHandle;
 }
 
+void FrameEncoder::UpdateUniformBuffer(UniformBufferHandle clientHandle, const void* data, u32 size, u32 offset)
+{
+	DEBUG_ASSERT(mRecording, "");
+
+	mWriter.Write(RenderCommand::UpdateUniformBuffer);
+	mWriter.Write(clientHandle);
+	mWriter.Write(size);
+	mWriter.Write(data, size);
+	mWriter.Write(offset);
+}
+
 ShaderBufferHandle FrameEncoder::CreateShaderBuffer(const void* data, u32 size)
 {
 	DEBUG_ASSERT(mRecording, "");
