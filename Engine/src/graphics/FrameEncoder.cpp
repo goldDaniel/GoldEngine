@@ -48,13 +48,13 @@ u8 FrameEncoder::AddRenderPass(const graphics::RenderPass& pass)
 	mWriter.Write(RenderCommand::AddRenderPass);
 
 	// name
-	u64 size = strlen(pass.mName) + 1;
+	u32 size = strlen(pass.mName) + 1;
 	mWriter.Write(size);
 	mWriter.Write(pass.mName, size);
 
 	// framebuffer
 	mWriter.Write(pass.mTarget.mHandle); // client handle
-	for (u64 i = 0; i < static_cast<u64>(OutputSlot::Count); ++i)
+	for (u32 i = 0; i < static_cast<u32>(OutputSlot::Count); ++i)
 	{
 		mWriter.Write(pass.mTarget.mTextures[i]); // client handles
 	}
@@ -93,7 +93,7 @@ u8 FrameEncoder::AddRenderPass(const char* name, ClearColor color, ClearDepth de
 	return AddRenderPass(name, framebufffer, color, depth);
 }
 
-IndexBufferHandle FrameEncoder::CreateIndexBuffer(const void* data, u64 size)
+IndexBufferHandle FrameEncoder::CreateIndexBuffer(const void* data, u32 size)
 {
 	DEBUG_ASSERT(mRecording, "");
 
@@ -107,7 +107,7 @@ IndexBufferHandle FrameEncoder::CreateIndexBuffer(const void* data, u64 size)
 	return clientHandle;
 }
 
-VertexBufferHandle FrameEncoder::CreateVertexBuffer(const void* data, u64 size)
+VertexBufferHandle FrameEncoder::CreateVertexBuffer(const void* data, u32 size)
 {
 	DEBUG_ASSERT(mRecording, "");
 
@@ -121,7 +121,7 @@ VertexBufferHandle FrameEncoder::CreateVertexBuffer(const void* data, u64 size)
 	return clientHandle;
 }
 
-UniformBufferHandle FrameEncoder::CreateUniformBuffer(const void* data, u64 size)
+UniformBufferHandle FrameEncoder::CreateUniformBuffer(const void* data, u32 size)
 {
 	DEBUG_ASSERT(mRecording, "");
 
@@ -135,7 +135,7 @@ UniformBufferHandle FrameEncoder::CreateUniformBuffer(const void* data, u64 size
 	return clientHandle;
 }
 
-ShaderBufferHandle FrameEncoder::CreateShaderBuffer(const void* data, u64 size)
+ShaderBufferHandle FrameEncoder::CreateShaderBuffer(const void* data, u32 size)
 {
 	DEBUG_ASSERT(mRecording, "");
 
@@ -158,8 +158,8 @@ ShaderHandle FrameEncoder::CreateShader(const char* vertSrc, const char* fragSrc
 
 	mWriter.Write(clientHandle);
 
-	u64 vertLen = strlen(vertSrc) + 1;
-	u64 fragLen = strlen(fragSrc) + 1;
+	u32 vertLen = strlen(vertSrc) + 1;
+	u32 fragLen = strlen(fragSrc) + 1;
 
 	// vert
 	mWriter.Write(vertLen);
@@ -174,7 +174,58 @@ ShaderHandle FrameEncoder::CreateShader(const char* vertSrc, const char* fragSrc
 
 MeshHandle FrameEncoder::CreateMesh(const MeshDescription& desc)
 {
-	return {0};
+	DEBUG_ASSERT(mRecording, "");
+
+	mWriter.Write(RenderCommand::CreateMesh);
+
+	MeshHandle clientHandle = mResources.CreateMesh();
+
+	mWriter.Write(clientHandle);
+
+	mWriter.Write(desc.mInterlacedBuffer);
+	mWriter.Write(desc.mStride);
+
+	// Interlaced, write out offsets
+	if (desc.mInterlacedBuffer.idx)
+	{
+		mWriter.Write(desc.offsets.mPositionOffset);
+		mWriter.Write(desc.offsets.mNormalsOffset);
+		mWriter.Write(desc.offsets.mTexCoord0Offset);
+		mWriter.Write(desc.offsets.mTexCoord1Offset);
+		mWriter.Write(desc.offsets.mColorsOffset);
+		mWriter.Write(desc.offsets.mJointsOffset);
+		mWriter.Write(desc.offsets.mWeightsOffset);
+	}
+	else
+	{
+		// not interlaced, write out handles
+		mWriter.Write(desc.handles.mPositions);
+		mWriter.Write(desc.handles.mNormals);
+		mWriter.Write(desc.handles.mTexCoords0);
+		mWriter.Write(desc.handles.mTexCoords1);
+		mWriter.Write(desc.handles.mColors);
+		mWriter.Write(desc.handles.mJoints);
+		mWriter.Write(desc.handles.mWeights);
+	}
+
+	mWriter.Write(desc.mIndices);
+	mWriter.Write(desc.mVertexCount);
+	mWriter.Write(desc.mIndexCount);
+	mWriter.Write(desc.mIndexStart);
+
+	mWriter.Write(desc.mPrimitiveType);
+
+	mWriter.Write(desc.mPositionFormat);
+	mWriter.Write(desc.mNormalsFormat);
+	mWriter.Write(desc.mTexCoord0Format);
+	mWriter.Write(desc.mTexCoord1Format);
+	mWriter.Write(desc.mColorsFormat);
+	mWriter.Write(desc.mJointsFormat);
+	mWriter.Write(desc.mWeightsFormat);
+
+	mWriter.Write(desc.mIndicesFormat);
+
+	return clientHandle;
 }
 
 void FrameEncoder::DrawMesh(const MeshHandle handle, const RenderState& state)
@@ -185,7 +236,7 @@ void FrameEncoder::DrawMesh(const MeshHandle handle, const RenderState& state)
 	mWriter.Write(handle);
 	
 	// uniform buffers
-	mWriter.Write(state.mUniformBlocks);
+	mWriter.Write(state.mNumUniformBlocks);
 	for (u8 i = 0; i < state.mNumUniformBlocks; ++i)
 	{
 		const RenderState::UniformBlock& buffer = state.mUniformBlocks[i];

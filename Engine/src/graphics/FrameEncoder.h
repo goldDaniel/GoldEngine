@@ -3,7 +3,6 @@
 #include "core/Core.h"
 
 #include "memory/BinaryWriter.h"
-#include "memory/BinaryReader.h"
 
 #include "RenderTypes.h"
 #include "RenderResources.h"
@@ -23,10 +22,14 @@ namespace gold
 		// TODO (danielg): Move this somewhere else? it needs to be reset every frame
 		u8 mNextPass{};
 
+		bool mReadReady{};
+
 	public:
 		FrameEncoder(ClientResources& resources);
 
 		~FrameEncoder();
+
+		bool ReadyForRead() const { return !mRecording && mWriter.GetOffset() > 0; };
 
 		void Begin();
 
@@ -38,13 +41,13 @@ namespace gold
 		u8 AddRenderPass(const char* name, graphics::FrameBuffer target, graphics::ClearColor color, graphics::ClearDepth depth);
 		u8 AddRenderPass(const char* name, graphics::ClearColor color, graphics::ClearDepth depth);
 
-		graphics::IndexBufferHandle CreateIndexBuffer(const void* data, u64 size);
+		graphics::IndexBufferHandle CreateIndexBuffer(const void* data, u32 size);
 
-		graphics::VertexBufferHandle CreateVertexBuffer(const void* data, u64 size);
+		graphics::VertexBufferHandle CreateVertexBuffer(const void* data, u32 size);
 
-		graphics::UniformBufferHandle CreateUniformBuffer(const void* data, u64 size);
+		graphics::UniformBufferHandle CreateUniformBuffer(const void* data, u32 size);
 
-		graphics::ShaderBufferHandle CreateShaderBuffer(const void* data, u64 size);
+		graphics::ShaderBufferHandle CreateShaderBuffer(const void* data, u32 size);
 
 		graphics::ShaderHandle CreateShader(const char* vertSrc, const char* fragSrc);
 

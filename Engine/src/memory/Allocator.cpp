@@ -14,3 +14,10 @@ gold::Allocator::~Allocator()
 	mMemory = nullptr;
 	mSize = 0;
 }
+
+void gold::Allocator::Free()
+{
+	free(mMemory);
+	mMemory = nullptr;
+	mSize = 0;
+}

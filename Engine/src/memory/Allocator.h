@@ -20,6 +20,8 @@ namespace gold
 		u64 GetUsedMemory() const { return mUsed; }
 		u64 GetNumAllocations() const { return mNumAllocations; }
 
+		void Free();
+
 	protected:
 
 		void* mMemory;

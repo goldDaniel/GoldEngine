@@ -1,6 +1,8 @@
 
 #include "core/Core.h"
 
+#include "memory/BinaryReader.h"
+
 namespace gold
 {
 	class BinaryWriter
@@ -21,8 +23,10 @@ namespace gold
 
 		BinaryReader ToReader()
 		{
-			return BinaryReader(mMemory, mOffset);
+			return BinaryReader(mMemory, mSize);
 		}
+
+		u64 GetOffset() const { return mOffset; }
 
 		void Reset()
 		{

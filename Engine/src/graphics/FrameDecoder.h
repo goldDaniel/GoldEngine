@@ -15,11 +15,11 @@ namespace gold
 		static constexpr u64 size = 1024 * 1024 * 128;
 		u8* mMemory;
 
-		RenderResources& mResources;
+		ClientResources& mResources;
 		BinaryWriter mWriter;
 
 	public:
-		FrameEncoder(RenderResources& resources);
+		FrameEncoder(ClientResources& resources);
 
 		~FrameEncoder();
 
@@ -27,13 +27,15 @@ namespace gold
 
 		void End();
 
-		graphics::IndexBufferHandle CreateIndexBuffer(const void* data, u64 size);
+		graphics::IndexBufferHandle CreateIndexBuffer(const void* data, u32 size);
 
-		graphics::VertexBufferHandle CreateVertexBuffer(const void* data, u64 size);
+		graphics::VertexBufferHandle CreateVertexBuffer(const void* data, u32 size);
 
-		graphics::UniformBufferHandle CreateUniformBuffer(const void* data, u64 size);
+		graphics::UniformBufferHandle CreateUniformBuffer(const void* data, u32 size);
 
-		graphics::ShaderBufferHandle CreateShaderBuffer(const void* data, u64 size);
+		graphics::ShaderBufferHandle CreateShaderBuffer(const void* data, u32 size);
+
+		void CreateMesh(const graphics::MeshDescription& desc);
 
 		void DrawMesh(const graphics::MeshHandle mesh, const graphics::RenderState& state);
 	};

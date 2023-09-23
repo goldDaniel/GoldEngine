@@ -8,6 +8,7 @@ LinearAllocator::LinearAllocator(void* start, u64 size)
 	, mCurrentAddress(start) 
 { 
 	DEBUG_ASSERT(size > 0, "size must be greater than 0");
+	memset(mMemory, 0, mSize);
 }
 
 LinearAllocator::~LinearAllocator() 
@@ -42,6 +43,7 @@ void LinearAllocator::Deallocate(void* p)
 
 void LinearAllocator::Reset()
 {
+	memset(mMemory, 0, mUsed);
 	mNumAllocations = 0;
 	mUsed = 0;
 	mCurrentAddress = mMemory;

@@ -39,6 +39,8 @@ namespace gold
 			memcpy(&result, address, size);
 
 			mOffset += size;
+
+			return result;
 		}
 
 		void Read(u8* data, u64 size)

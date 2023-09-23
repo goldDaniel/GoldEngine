@@ -69,7 +69,7 @@ static void GLErrorCallback(GLenum source, GLenum type, GLuint id, GLenum severi
 
 	auto str = "Frame: " + std::to_string(currentFrame) + ": " + srcStr + ", " + typeStr + ", " + sevStr + ", " + std::to_string(id) + ": " + message;
 
-	std::cout << str << std::assoc_legendrel;
+	std::cout << str << std::endl;
 }
 
 u8* UniformBuffer::Map()

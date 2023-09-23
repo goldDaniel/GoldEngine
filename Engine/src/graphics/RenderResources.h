@@ -17,6 +17,10 @@ namespace gold
 		virtual graphics::UniformBufferHandle CreateUniformBuffer(u32 size) = 0;
 
 		virtual graphics::ShaderBufferHandle CreateShaderBuffer(u32 size) = 0;
+
+		virtual graphics::MeshHandle CreateMesh() = 0;
+
+		virtual graphics::TextureHandle CreateTexture() = 0;
 	};
 
 
@@ -36,6 +40,10 @@ namespace gold
 		virtual graphics::ShaderBufferHandle& get(graphics::ShaderBufferHandle clientHandle) = 0;
 
 		virtual graphics::ShaderHandle& get(graphics::ShaderHandle clientHandle) = 0;
+
+		virtual graphics::MeshHandle& get(graphics::MeshHandle clientHandle) = 0;
+
+		virtual graphics::TextureHandle& get(graphics::TextureHandle clientHandle) = 0;
 	};
 
 	class RenderResources : public ClientResources, public ServerResources
@@ -57,6 +65,11 @@ namespace gold
 		u32 mNextShaderBuffer = 1;
 		std::unordered_map<graphics::ShaderBufferHandle, graphics::ShaderBufferHandle> mShaderBuffers;
 
+		u32 mNextMesh = 1;
+		std::unordered_map<graphics::MeshHandle, graphics::MeshHandle> mMeshes;
+
+		u32 mNextTexture = 1;
+		std::unordered_map<graphics::TextureHandle, graphics::TextureHandle> mTextures;
 		
 	public:
 
@@ -98,6 +111,20 @@ namespace gold
 			return { (mNextShaderBuffer - 1) };
 		}
 
+		graphics::MeshHandle CreateMesh() override
+		{
+			mMeshes[{mNextMesh}] = { 0 };
+			mNextMesh++;
+			return { (mNextMesh - 1) };
+		}
+
+		graphics::TextureHandle CreateTexture() override
+		{
+			mTextures[{mNextTexture}] = { 0 };
+			mNextTexture++;
+			return { (mNextTexture - 1) };
+		}
+
 		graphics::VertexBufferHandle& get(graphics::VertexBufferHandle clientHandle) override
 		{
 			DEBUG_ASSERT(mVertexBuffers.find(clientHandle) != mVertexBuffers.end(), "");
@@ -126,6 +153,18 @@ namespace gold
 		{
 			DEBUG_ASSERT(mShaders.find(clientHandle) != mShaders.end(), "");
 			return mShaders[clientHandle];
+		}
+
+		graphics::MeshHandle& get(graphics::MeshHandle clientHandle) override
+		{
+			DEBUG_ASSERT(mMeshes.find(clientHandle) != mMeshes.end(), "");
+			return mMeshes[clientHandle];
+		}
+
+		graphics::TextureHandle& get(graphics::TextureHandle clientHandle) override
+		{
+			DEBUG_ASSERT(mTextures.find(clientHandle) != mTextures.end(), "");
+			return mTextures[clientHandle];
 		}
 	};
 }

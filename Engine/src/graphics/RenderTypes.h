@@ -201,13 +201,13 @@ namespace graphics
 
 		struct Offsets
 		{
-			u32 mPositionOffset = std::numeric_limits<u32>::max();
-			u32 mNormalsOffset = std::numeric_limits<u32>::max();
-			u32 mTexCoord0Offset = std::numeric_limits<u32>::max();
-			u32 mTexCoord1Offset = std::numeric_limits<u32>::max();
-			u32 mColorsOffset = std::numeric_limits<u32>::max();
-			u32 mJointsOffset = std::numeric_limits<u32>::max();
-			u32 mWeightsOffset = std::numeric_limits<u32>::max();
+			u32 mPositionOffset		= std::numeric_limits<u32>::max();
+			u32 mNormalsOffset		= std::numeric_limits<u32>::max();
+			u32 mTexCoord0Offset	= std::numeric_limits<u32>::max();
+			u32 mTexCoord1Offset	= std::numeric_limits<u32>::max();
+			u32 mColorsOffset		= std::numeric_limits<u32>::max();
+			u32 mJointsOffset		= std::numeric_limits<u32>::max();
+			u32 mWeightsOffset		= std::numeric_limits<u32>::max();
 		};
 
 
@@ -337,7 +337,7 @@ namespace graphics
 	struct FrameBuffer
 	{
 		u32 mHandle = 0;
-		std::array<TextureHandle, static_cast<u64>(OutputSlot::Count)> mTextures;
+		std::array<TextureHandle, static_cast<u64>(OutputSlot::Count)> mTextures{0};
 
 		u32 mWidth = 0;
 		u32 mHeight = 0;
@@ -414,16 +414,16 @@ namespace graphics
 		};
 
 		std::array<UniformBlock, 12> mUniformBlocks{};
-		u64 mNumUniformBlocks = 0;
+		u32 mNumUniformBlocks = 0;
 
 		std::array<StorageBlock, 8> mStorageBlocks{};
-		u64 mNumStorageBlocks = 0;
+		u32 mNumStorageBlocks = 0;
 
 		std::array<Texture, 16> mTextures{};
-		u64 mNumTextures = 0;
+		u32 mNumTextures = 0;
 
 		std::array<Image, 16> mImages{};
-		u64 mNumImages = 0;
+		u32 mNumImages = 0;
 
 		u8 mRenderPass = std::numeric_limits<u8>::max();
 		ShaderHandle mShader{};

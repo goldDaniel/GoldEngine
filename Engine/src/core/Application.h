@@ -3,12 +3,21 @@
 #include "Core.h"
 #include "platform/Platform.h"
 #include "graphics/Renderer.h"
+#include "graphics/RenderResources.h"
+
+#include "memory/DoubleBuffered.h"
 
 #include <thread>
 #include <condition_variable>
 
 namespace gold
 {
+	class LinearAllocator;
+	class FrameEncoder;
+	class BinaryReader;
+	class RenderResources;
+	class ServerResources;
+
 	struct ApplicationConfig
 	{
 		std::string title;
@@ -23,25 +32,37 @@ namespace gold
 	class Application
 	{
 	private:
-		std::unique_ptr<Platform> mPlatform = nullptr;
-		std::unique_ptr<graphics::Renderer> mRenderer = nullptr;
+		std::unique_ptr<Platform> mPlatform;
+		std::unique_ptr<graphics::Renderer> mRenderer;
 
-		std::thread mRenderThread;
+
+		gold::RenderResources mRenderResources;
+		std::unique_ptr<gold::LinearAllocator> mFrameAllocator;
+
+		gold::DoubleBuffered<std::unique_ptr<gold::FrameEncoder>> mEncoders;
+
+		gold::FrameEncoder* mReadEncoder = nullptr;
+
+		std::thread mUpdateThread;
+
+		bool mCanRender = false;
 		std::mutex mRenderMutex;
 		std::condition_variable mRenderCond;
-		//RenderCommands commands;
 
+		bool mCanUpdate = true;
+		std::mutex mUpdateMutex;
+		std::condition_variable mUpdateCond;
 
 		f32 mTime;
 		f32 mAccumulator;
 
+		
 		bool mRunning;
 
 		void RenderThread();
 
 	protected:
 		ApplicationConfig mConfig;
-
 
 	public:
 		Application(ApplicationConfig&& config);
@@ -72,7 +93,7 @@ namespace gold
 
 	protected:
 		virtual void Init() = 0;
-		virtual void Update(float delta) = 0;
-		virtual void Render(graphics::Renderer& renderer) = 0;
+		virtual void Update(float delta, gold::FrameEncoder& encoder) = 0;
+		virtual void Render(gold::ServerResources& resources, graphics::Renderer& renderer, BinaryReader& reader, LinearAllocator& frameAllocator) = 0;
 	};
 }

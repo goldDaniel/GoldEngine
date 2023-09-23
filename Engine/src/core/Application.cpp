@@ -1,5 +1,8 @@
 #include "Application.h"
 
+#include "memory/LinearAllocator.h"
+#include "graphics/FrameEncoder.h"
+
 using namespace gold;
 
 void Application::Run()
@@ -7,30 +10,57 @@ void Application::Run()
 	Init();
 
 	mRunning = true;
-	mRenderThread = std::move(std::thread(&Application::RenderThread, this));
+	
+	mEncoders.Get() = std::make_unique<FrameEncoder>(mRenderResources);
+	mEncoders.Swap();
+	mEncoders.Get() = std::make_unique<FrameEncoder>(mRenderResources);
+	u64 size = 128 * 1024 * 1024;
+	mFrameAllocator = std::make_unique<LinearAllocator>(malloc(size), size);
+	
 
-	uint32_t prevTime = mPlatform->GetElapsedTimeMS();
-	float step = 1.0f / 30.f;
-
-	while (mRunning)
+	mUpdateThread = std::thread([this]()
 	{
-		std::scoped_lock(mRenderMutex);
+		float step = 1.0f / 30.f;
+		uint32_t prevTime = mPlatform->GetElapsedTimeMS();
+		while (mRunning)
+		{
+			uint32_t currTime = mPlatform->GetElapsedTimeMS();
+			float frameTime = static_cast<float>(currTime - prevTime) / 1000.f;
+			prevTime = currTime;
 
-		uint32_t currTime = mPlatform->GetElapsedTimeMS();
-		float frameTime = static_cast<float>(currTime - prevTime) / 1000.f;
-		prevTime = currTime;
+			mAccumulator += frameTime;
 
-		mAccumulator += frameTime;
+			
+			std::unique_lock lock(mUpdateMutex);
+			mUpdateCond.wait(lock, [this] {return mCanUpdate; });
+			
+			if (!mRunning) break;
 
-		mPlatform->PlatformEvents(*this);
-		if (!mRunning) break;
+			Update(frameTime, *mEncoders.Get());
+			mTime += frameTime;
+			
+			mCanUpdate = false;
 
-		Update(frameTime);
-		mTime += frameTime;
+			// signal render
+			{
+				std::unique_lock lock(mRenderMutex);
+				mReadEncoder = mEncoders.Get().get();
+				mEncoders.Swap();
+				mCanRender = true;
+				mRenderCond.notify_one();
+			}
+		}
+	});
 
+	RenderThread();
 
-		mRenderCond.notify_one();
+	// assures we dont wait on a condition that wont get signaled
+	{
+		std::unique_lock lock(mUpdateMutex);
+		mCanUpdate = true;
+		mUpdateCond.notify_one();
 	}
+	mUpdateThread.join();
 }
 
 void Application::RenderThread()
@@ -40,12 +70,28 @@ void Application::RenderThread()
 
 	while (mRunning)
 	{
-		std::unique_lock<std::mutex> lock(mRenderMutex);
-		mRenderCond.wait(lock, [] { return true; });
+		mPlatform->PlatformEvents(*this);
+		if (!mRunning) break;
 
-		Render(*mRenderer);
+		// wait for update	
+		std::unique_lock lock(mRenderMutex);
+		mRenderCond.wait(lock, [this] {return mCanRender; });
 
-		lock.unlock();
+		mFrameAllocator->Reset();
+
+		if (mReadEncoder)
+		{
+			Render(mRenderResources, *mRenderer, mReadEncoder->GetReader(), *mFrameAllocator);
+			mReadEncoder = nullptr;
+		}
+
+		mCanRender = false;
+
+		{
+			std::unique_lock lock(mUpdateMutex);
+			mCanUpdate = true;
+			mUpdateCond.notify_one();
+		}
 	}
 }
 
@@ -60,8 +106,8 @@ Application::Application(ApplicationConfig&& config)
 
 Application::~Application()
 {
+	mFrameAllocator->Free();
 	mRunning = false;
-	mRenderThread.join();
 }
  
 void Application::StartApplication(std::unique_ptr<Platform> platform)
