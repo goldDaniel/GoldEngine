@@ -46,8 +46,6 @@ namespace gold
 		std::condition_variable mSwapCond;
 
 		f32 mTime;
-		f32 mAccumulator;
-
 		
 		bool mRunning;
 

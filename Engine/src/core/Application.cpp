@@ -41,17 +41,15 @@ void Application::Run()
 
 void Application::UpdateThread()
 {
-	float step = 1.0f / 30.f;
+	f32 step = 1.0f / 30.f;
 	uint32_t prevTime = mPlatform->GetElapsedTimeMS();
 	while (mRunning)
 	{
 		if (!mRunning) break;
 
 		uint32_t currTime = mPlatform->GetElapsedTimeMS();
-		float frameTime = static_cast<float>(currTime - prevTime) / 1000.f;
+		f32 frameTime = static_cast<float>(currTime - prevTime) / 1000.f;
 		prevTime = currTime;
-
-		mAccumulator += frameTime;
 
 		mEncoders.Get()->Begin();
 		Update(frameTime, *mEncoders.Get());
@@ -104,7 +102,6 @@ void Application::RenderThread()
 Application::Application(ApplicationConfig&& config)
 	: mConfig(std::move(config))
 	, mTime(0)
-	, mAccumulator(0)
 	, mRunning(false)
 {
 
