@@ -88,9 +88,9 @@ void Application::RenderThread()
 		}
 
 		BinaryReader reader = mReadEncoder->GetReader();
-		mRenderer->BeginFrame();
-		mRenderer->SetBackBufferSize((int)mConfig.windowWidth, (int)mConfig.windowHeight);
 
+		mRenderer->SetBackBufferSize((int)mConfig.windowWidth, (int)mConfig.windowHeight);
+		mRenderer->BeginFrame();
 		while (reader.HasData())
 		{
 			gold::RenderCommand command = reader.Read<gold::RenderCommand>();
