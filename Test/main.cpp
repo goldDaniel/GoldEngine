@@ -1,12 +1,8 @@
 #include "core/Core.h"
 #include "core/Application.h"
 
-#include "memory/LinearAllocator.h"
-
 #include "graphics/Vertex.h"
 #include "graphics/FrameEncoder.h"
-#include "graphics/FrameDecoder.h"
-#include "graphics/RenderCommands.h"
 
 class TestApp : public gold::Application
 {

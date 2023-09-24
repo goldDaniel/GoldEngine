@@ -23,7 +23,7 @@ namespace gold
 
 		BinaryReader ToReader()
 		{
-			return BinaryReader(mMemory, mSize);
+			return BinaryReader(mMemory, mOffset);
 		}
 
 		u64 GetOffset() const { return mOffset; }

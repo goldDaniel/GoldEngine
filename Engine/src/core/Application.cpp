@@ -5,7 +5,6 @@
 #include "graphics/FrameEncoder.h"
 #include "graphics/RenderCommands.h"
 
-
 using namespace gold;
 
 void Application::Run()
@@ -13,60 +12,60 @@ void Application::Run()
 	Init();
 
 	mRunning = true;
-	
+
 	mEncoders.Get() = std::make_unique<FrameEncoder>(mRenderResources);
 	mEncoders.Swap();
 	mEncoders.Get() = std::make_unique<FrameEncoder>(mRenderResources);
 
+	// virtual command buffer size
 	u64 size = 128 * 1024 * 1024;
 	mFrameAllocator = std::make_unique<LinearAllocator>(malloc(size), size);
 
-	mUpdateThread = std::thread([this]()
+	std::thread updateThread = std::thread(&Application::UpdateThread, this);
+	std::thread renderThread = std::thread(&Application::RenderThread, this);
+
+	while (mRunning)
 	{
-		float step = 1.0f / 30.f;
-		uint32_t prevTime = mPlatform->GetElapsedTimeMS();
-		while (mRunning)
-		{
-			uint32_t currTime = mPlatform->GetElapsedTimeMS();
-			float frameTime = static_cast<float>(currTime - prevTime) / 1000.f;
-			prevTime = currTime;
-
-			mAccumulator += frameTime;
-
-			
-			std::unique_lock lock(mUpdateMutex);
-			mUpdateCond.wait(lock, [this] {return mCanUpdate; });
-			
-			if (!mRunning) break;
-
-			mEncoders.Get()->Begin();
-			Update(frameTime, *mEncoders.Get());
-			mEncoders.Get()->End();
-
-			mTime += frameTime;
-			
-			mCanUpdate = false;
-
-			// signal render
-			{
-				std::unique_lock lock(mRenderMutex);
-				mReadEncoder = mEncoders.Get().get();
-				mEncoders.Swap();
-				mCanRender = true;
-				mRenderCond.notify_one();
-			}
-		}
-	});
-
-	RenderThread();
-
-	// assures we dont wait on a condition that wont get signaled
-	{
-		std::unique_lock lock(mUpdateMutex);
-		mCanUpdate = true;
-		mUpdateCond.notify_one();
+		mPlatform->PlatformEvents(*this);
 	}
-	mUpdateThread.join();
+
+	// assures we don't wait on a condition that wont get signaled
+	{
+		std::unique_lock lock(mSwapMutex);
+		mSwapCond.notify_all();
+	}
+	
+	updateThread.join();
+	renderThread.join();
+}
+
+void Application::UpdateThread()
+{
+	float step = 1.0f / 30.f;
+	uint32_t prevTime = mPlatform->GetElapsedTimeMS();
+	while (mRunning)
+	{
+		if (!mRunning) break;
+
+		uint32_t currTime = mPlatform->GetElapsedTimeMS();
+		float frameTime = static_cast<float>(currTime - prevTime) / 1000.f;
+		prevTime = currTime;
+
+		mAccumulator += frameTime;
+
+		mEncoders.Get()->Begin();
+		Update(frameTime, *mEncoders.Get());
+		mEncoders.Get()->End();
+
+		mTime += frameTime;
+
+		{
+			std::unique_lock lock(mSwapMutex);
+			mUpdateComplete = true;
+			mSwapCond.notify_one();
+			mSwapCond.wait(lock, [this] { return !mUpdateComplete || !mRunning; });
+		}
+	}
 }
 
 void Application::RenderThread()
@@ -76,39 +75,29 @@ void Application::RenderThread()
 
 	while (mRunning)
 	{
-		mPlatform->PlatformEvents(*this);
-		if (!mRunning) break;
-
-		// wait for update	
-		std::unique_lock lock(mRenderMutex);
-		mRenderCond.wait(lock, [this] {return mCanRender; });
-
 		mFrameAllocator->Reset();
 
-		if (mReadEncoder)
+		gold::FrameEncoder* mReadEncoder = nullptr;
 		{
-			BinaryReader reader = mReadEncoder->GetReader();
-			mRenderer->BeginFrame();
-			mRenderer->SetBackBufferSize((int)mConfig.windowWidth, (int)mConfig.windowHeight);
-
-			while (reader.HasData())
-			{
-				gold::RenderCommand command = reader.Read<gold::RenderCommand>();
-				gold::FrameDecoder::Decode(*mRenderer, *mFrameAllocator, mRenderResources, reader, command);
-				if (command == gold::RenderCommand::END) break;
-			}
-			mRenderer->EndFrame();
-
-			mReadEncoder = nullptr;
+			std::unique_lock lock(mSwapMutex);
+			mSwapCond.wait(lock, [this] { return mUpdateComplete || !mRunning; });
+			mUpdateComplete = false;
+			mReadEncoder = mEncoders.Get().get();
+			mEncoders.Swap();
+			mSwapCond.notify_one();
 		}
 
-		mCanRender = false;
+		BinaryReader reader = mReadEncoder->GetReader();
+		mRenderer->BeginFrame();
+		mRenderer->SetBackBufferSize((int)mConfig.windowWidth, (int)mConfig.windowHeight);
 
+		while (reader.HasData())
 		{
-			std::unique_lock lock(mUpdateMutex);
-			mCanUpdate = true;
-			mUpdateCond.notify_one();
+			gold::RenderCommand command = reader.Read<gold::RenderCommand>();
+			gold::FrameDecoder::Decode(*mRenderer, *mFrameAllocator, mRenderResources, reader, command);
+			if (command == gold::RenderCommand::END) break;
 		}
+		mRenderer->EndFrame();
 	}
 }
 

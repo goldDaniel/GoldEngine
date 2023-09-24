@@ -41,17 +41,9 @@ namespace gold
 
 		gold::DoubleBuffered<std::unique_ptr<gold::FrameEncoder>> mEncoders;
 
-		gold::FrameEncoder* mReadEncoder = nullptr;
-
-		std::thread mUpdateThread;
-
-		bool mCanRender = false;
-		std::mutex mRenderMutex;
-		std::condition_variable mRenderCond;
-
-		bool mCanUpdate = true;
-		std::mutex mUpdateMutex;
-		std::condition_variable mUpdateCond;
+		bool mUpdateComplete = false;
+		std::mutex mSwapMutex;
+		std::condition_variable mSwapCond;
 
 		f32 mTime;
 		f32 mAccumulator;
@@ -59,6 +51,7 @@ namespace gold
 		
 		bool mRunning;
 
+		void UpdateThread();
 		void RenderThread();
 
 	protected:
