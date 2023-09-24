@@ -45,8 +45,6 @@ void Application::UpdateThread()
 	uint32_t prevTime = mPlatform->GetElapsedTimeMS();
 	while (mRunning)
 	{
-		if (!mRunning) break;
-
 		uint32_t currTime = mPlatform->GetElapsedTimeMS();
 		f32 frameTime = static_cast<float>(currTime - prevTime) / 1000.f;
 		prevTime = currTime;
@@ -79,11 +77,12 @@ void Application::RenderThread()
 		{
 			std::unique_lock lock(mSwapMutex);
 			mSwapCond.wait(lock, [this] { return mUpdateComplete || !mRunning; });
-			mUpdateComplete = false;
 			mReadEncoder = mEncoders.Get().get();
 			mEncoders.Swap();
+			mUpdateComplete = false;
 			mSwapCond.notify_one();
 		}
+		if (!mRunning) break;
 
 		BinaryReader reader = mReadEncoder->GetReader();
 
