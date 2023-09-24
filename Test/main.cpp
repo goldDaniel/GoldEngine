@@ -91,8 +91,6 @@ protected:
 
 	virtual void Update(float delta, gold::FrameEncoder& encoder) override
 	{
-		encoder.Begin();
-
 		if (mFirstFrame)
 		{
 			InitRenderData(encoder);
@@ -100,8 +98,8 @@ protected:
 		}
 
 		glm::vec2 screenSize = GetScreenSize();
-
 		glm::mat4 mvp = glm::perspective(glm::radians(65.f), screenSize.x / screenSize.y, 1.f, 100.f);
+
 		mvp *= glm::lookAt(glm::vec3{ 0, 0, 5 }, glm::vec3{ 0,0,0 }, glm::vec3{ 0,1,0 });
 		encoder.UpdateUniformBuffer(mView, &mvp, sizeof(glm::mat4));
 
@@ -112,8 +110,6 @@ protected:
 		state.SetUniformBlock("View_UBO", { mView });
 
 		encoder.DrawMesh(mMesh, state);
-
-		encoder.End();
 	}
 };
 

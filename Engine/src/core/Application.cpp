@@ -39,7 +39,10 @@ void Application::Run()
 			
 			if (!mRunning) break;
 
+			mEncoders.Get()->Begin();
 			Update(frameTime, *mEncoders.Get());
+			mEncoders.Get()->End();
+
 			mTime += frameTime;
 			
 			mCanUpdate = false;
