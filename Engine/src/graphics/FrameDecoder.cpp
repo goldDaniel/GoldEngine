@@ -39,14 +39,13 @@ void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, S
 		}
 		case RenderCommand::UpdateUniformBuffer:
 		{
-			preDrawActions.push_back([&]()
+			UniformBufferHandle serverHandle = resources.get(reader.Read<UniformBufferHandle>());
+			u32 size = reader.Read<u32>();
+			u8* const data = (u8*)frameAllocator.Allocate(size);
+			reader.Read(data, size);
+			u32 offset = reader.Read<u32>();
+			preDrawActions.push_back([&renderer, data, size, offset, serverHandle]()
 			{
-				UniformBufferHandle serverHandle = resources.get(reader.Read<UniformBufferHandle>());
-				u32 size = reader.Read<u32>();
-				u8* data = (u8*)frameAllocator.Allocate(size);
-				reader.Read(data, size);
-				u32 offset = reader.Read<u32>();
-
 				renderer.UpdateUniformBlock(data, size, offset, serverHandle);
 			});
 

@@ -1085,13 +1085,13 @@ UniformBufferHandle Renderer::CreateUniformBlock(const void* data, u32 size)
 	return handle;
 }
 
-void Renderer::UpdateStorageBlock(const void* data, u32 size, ShaderBufferHandle& binding)
+void Renderer::UpdateStorageBlock(const void* data, u32 size, ShaderBufferHandle binding)
 {
 	//DEBUG_ASSERT(size <= binding.mSize, "Size is larger than storage block size!");
 	UpdateGLBuffer(binding.idx, data, 0, size);
 }
 
-void Renderer::UpdateUniformBlock(const void* data, u32 size, u32 offset, UniformBufferHandle& binding)
+void Renderer::UpdateUniformBlock(const void* data, u32 size, u32 offset, UniformBufferHandle binding)
 {
 	//DEBUG_ASSERT(size <= binding.mSize, "Size is larger than storage block size!");
 	UpdateGLBuffer(binding.idx, data, offset, size);

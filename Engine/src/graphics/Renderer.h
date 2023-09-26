@@ -37,21 +37,21 @@ namespace graphics
 
 
 		template<typename T>
-		void UpdateUniformBlock(const std::vector<T>& data, UniformBufferHandle& binding)
+		void UpdateUniformBlock(const std::vector<T>& data, UniformBufferHandle binding)
 		{
 			UpdateUniformBlock(&data[0], data.size() * sizeof(T), binding);
 		}
 		template<typename T>
-		void UpdateUniformBlock(const T& data, UniformBufferHandle& binding)
+		void UpdateUniformBlock(const T& data, UniformBufferHandle binding)
 		{
 			UpdateUniformBlock(&data, sizeof(T), binding);
 		}
-		void UpdateUniformBlock(const void* data, uint32_t size, UniformBufferHandle& binding)
+		void UpdateUniformBlock(const void* data, uint32_t size, UniformBufferHandle binding)
 		{
 			UpdateUniformBlock(data, size, 0, binding);
 		}
 
-		void UpdateUniformBlock(const void* data, uint32_t size, uint32_t offset, UniformBufferHandle& binding);
+		void UpdateUniformBlock(const void* data, uint32_t size, uint32_t offset, UniformBufferHandle binding);
 
 
 		// Shader Storage Blocks ////////////////////
@@ -68,16 +68,16 @@ namespace graphics
 		ShaderBufferHandle CreateStorageBlock(const void* data, uint32_t size);
 
 		template<typename T>
-		void UpdateStorageBlock(const std::vector<T>& data, ShaderBufferHandle& binding)
+		void UpdateStorageBlock(const std::vector<T>& data, ShaderBufferHandle binding)
 		{
 			UpdateStorageBlock(&data[0], data.size() * sizeof(T), binding);
 		}
 		template<typename T>
-		void UpdateStorageBlock(const T& data, ShaderBufferHandle& binding)
+		void UpdateStorageBlock(const T& data, ShaderBufferHandle binding)
 		{
 			UpdateStorageBlock(&data, sizeof(T), binding);
 		}
-		void UpdateStorageBlock(const void* data, uint32_t size, ShaderBufferHandle& binding);
+		void UpdateStorageBlock(const void* data, uint32_t size, ShaderBufferHandle binding);
 
 
 		// vertex buffers //////////////////////////
