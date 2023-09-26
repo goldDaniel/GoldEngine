@@ -104,7 +104,7 @@ struct DrawCall
 	MeshHandle mMesh{};
 	u32 mInstanceCount = 0;
 	VertexBufferHandle mInstanceData = { 0 };
-	std::function<void(RenderState&)> mPreAction;
+	std::function<void()> mPreAction;
 };
 
 struct DeleteCommand
@@ -964,7 +964,7 @@ void Renderer::EndFrame()
 
 		if (draw.mPreAction)
 		{
-			draw.mPreAction(draw.mState); //sets per draw state if needed
+			draw.mPreAction(); 
 		}
 
 		setRenderState(draw.mState, draw.isCompute);
@@ -1827,7 +1827,7 @@ void Renderer::DestroyMesh(const MeshHandle mesh)
 	deletions.push_back(command);
 }
 
-void Renderer::DrawMesh(MeshHandle mesh, const RenderState& state, std::function<void(RenderState&)> preAction)
+void Renderer::DrawMesh(MeshHandle mesh, const RenderState& state, std::function<void()> preAction)
 {
 	DEBUG_ASSERT(buildingFrame, "Cannot submit draw if a frame is not in flight");
 	DEBUG_ASSERT(state.mRenderPass != std::numeric_limits<u8>::max(), "Invalid render pass");
@@ -1843,7 +1843,7 @@ void Renderer::DrawMesh(MeshHandle mesh, const RenderState& state, std::function
 	drawCalls.push_back(draw);
 }
 
-void Renderer::DrawMeshInstanced(MeshHandle mesh, const RenderState& state, VertexBufferHandle data, u32 instanceCount, std::function<void(RenderState&)> preAction)
+void Renderer::DrawMeshInstanced(MeshHandle mesh, const RenderState& state, VertexBufferHandle data, u32 instanceCount, std::function<void()> preAction)
 {
 	DEBUG_ASSERT(buildingFrame, "Cannot submit draw if a frame is not in flight");
 	DEBUG_ASSERT(state.mRenderPass != std::numeric_limits<u8>::max(), "Invalid render pass");
@@ -1862,7 +1862,7 @@ void Renderer::DrawMeshInstanced(MeshHandle mesh, const RenderState& state, Vert
 }
 
 
-void Renderer::DispatchCompute(const RenderState& state, u16 groupsX, u16 groupsY, u16 groupsZ, std::function<void(RenderState&)> preAction)
+void Renderer::DispatchCompute(const RenderState& state, u16 groupsX, u16 groupsY, u16 groupsZ, std::function<void()> preAction)
 {
 	DEBUG_ASSERT(buildingFrame, "Cannot submit draw if a frame is not in flight");
 	DEBUG_ASSERT(state.mRenderPass != std::numeric_limits<u8>::max(), "Invalid render pass");

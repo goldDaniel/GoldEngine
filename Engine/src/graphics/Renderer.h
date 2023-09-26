@@ -144,10 +144,10 @@ namespace graphics
 		MeshHandle CreateMesh(const MeshDescription& description);
 		void DestroyMesh(MeshHandle mesh);
 
-		void DrawMesh(MeshHandle mesh, const RenderState& state, std::function<void(RenderState&)> preAction = nullptr);
-		void DrawMeshInstanced(MeshHandle mesh, const RenderState& state, VertexBufferHandle instanceData, uint32_t instanceCount, std::function<void(RenderState&)> preAction = nullptr);
+		void DrawMesh(MeshHandle mesh, const RenderState& state, std::function<void()> preAction = nullptr);
+		void DrawMeshInstanced(MeshHandle mesh, const RenderState& state, VertexBufferHandle instanceData, uint32_t instanceCount, std::function<void()> preAction = nullptr);
 
-		void DispatchCompute(const RenderState& state, uint16_t localX, uint16_t localY, uint16_t localZ, std::function<void(RenderState&)> preAction = nullptr);
+		void DispatchCompute(const RenderState& state, uint16_t localX, uint16_t localY, uint16_t localZ, std::function<void()> preAction = nullptr);
 
 		void ClearBackBuffer();
 	};

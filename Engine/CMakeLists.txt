@@ -37,6 +37,9 @@ target_include_directories(Engine PRIVATE ${glad_include})
 #stb 
 target_include_directories(Engine PRIVATE "${PROJECT_SOURCE_DIR}/Dependencies/stb/")
 
+#entt
+target_include_directories(Engine PUBLIC "${PROJECT_SOURCE_DIR}/Dependencies/entt/single_include")
+
 foreach(_source IN ITEMS ${ENGINE_SOURCE_LIST})
     get_filename_component(_source_path "${_source}" PATH)
     string(REPLACE "${CMAKE_SOURCE_DIR}" "" _group_path "${_source_path}")

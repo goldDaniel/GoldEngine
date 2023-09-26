@@ -4,6 +4,10 @@
 #include "graphics/Vertex.h"
 #include "graphics/FrameEncoder.h"
 
+#include "scene/SceneGraph.h"
+
+#include "RenderSystem.h"
+
 class TestApp : public gold::Application
 {
 private:
@@ -14,7 +18,8 @@ private:
 	
 	bool mFirstFrame = true;
 
-	
+	scene::Scene mScene;
+	RenderSystem mRenderSystem;
 	
 public:
 	TestApp(gold::ApplicationConfig&& config)
@@ -82,6 +87,7 @@ protected:
 
 	virtual void Init() override
 	{
+
 	}
 
 
@@ -92,6 +98,8 @@ protected:
 			InitRenderData(encoder);
 			mFirstFrame = false;
 		}
+
+
 
 		glm::vec2 screenSize = GetScreenSize();
 		glm::mat4 mvp = glm::perspective(glm::radians(65.f), screenSize.x / screenSize.y, 1.f, 100.f);

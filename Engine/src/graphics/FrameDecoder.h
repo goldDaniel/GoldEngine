@@ -1,6 +1,5 @@
 #pragma once 
 
-#include "RenderCommands.h"
 
 namespace graphics
 {
@@ -17,6 +16,6 @@ namespace gold
 	{
 	
 	public:
-		static void Decode(graphics::Renderer& renderer, LinearAllocator& frameAllocator, ServerResources& resources, BinaryReader& reader, RenderCommand command);
+		static void Decode(graphics::Renderer& renderer, LinearAllocator& frameAllocator, ServerResources& resources, BinaryReader& reader);
 	};
 }

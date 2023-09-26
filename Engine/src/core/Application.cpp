@@ -71,8 +71,6 @@ void Application::RenderThread()
 
 	while (mRunning)
 	{
-		mFrameAllocator->Reset();
-
 		gold::FrameEncoder* mReadEncoder = nullptr;
 		{
 			std::unique_lock lock(mSwapMutex);
@@ -84,16 +82,12 @@ void Application::RenderThread()
 		}
 		if (!mRunning) break;
 
+		mFrameAllocator->Reset();
 		BinaryReader reader = mReadEncoder->GetReader();
 
 		mRenderer->SetBackBufferSize((int)mConfig.windowWidth, (int)mConfig.windowHeight);
 		mRenderer->BeginFrame();
-		while (reader.HasData())
-		{
-			gold::RenderCommand command = reader.Read<gold::RenderCommand>();
-			gold::FrameDecoder::Decode(*mRenderer, *mFrameAllocator, mRenderResources, reader, command);
-			if (command == gold::RenderCommand::END) break;
-		}
+		gold::FrameDecoder::Decode(*mRenderer, *mFrameAllocator, mRenderResources, reader);
 		mRenderer->EndFrame();
 	}
 }
