@@ -14,6 +14,14 @@ namespace gold
 		mutable std::mutex mMutex;
 
 	public:
+		DoubleBuffered() = default;
+
+		void Init(std::function<T()> initializer)
+		{
+			mBufffers[0] = initializer();
+			mBufffers[1] = initializer();
+		}
+
 		T& Get()			 { return mBufffers[(mIndex + 1) % 2]; }
 		const T& Get() const { return mBufffers[(mIndex + 1) % 2]; }
 

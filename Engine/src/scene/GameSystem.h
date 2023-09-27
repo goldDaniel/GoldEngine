@@ -9,4 +9,3 @@ namespace scene
 		virtual void Tick(class Scene& scene, float dt) = 0;
 	};
 }
-

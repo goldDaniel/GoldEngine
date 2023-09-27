@@ -11,13 +11,35 @@ using namespace gold;
 
 void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, ServerResources& resources, BinaryReader& reader)
 {
+	std::vector<std::function<void()>> preDrawActions;
+	bool complete = false;
+	
 	auto remap = [&resources](auto clientHandle)
 	{
 		return clientHandle.idx == 0 ? clientHandle : resources.get(clientHandle);
 	};
 
-	std::vector<std::function<void()>> preDrawActions;
-	bool complete = false;
+	auto generatePreDrawFunction = [&preDrawActions]()
+	{
+		std::function<void()> result = nullptr;
+
+		if (!preDrawActions.empty())
+		{
+			// NOTE (danielg):	copy is intentional, we need a copied list of the functions
+			//					as these calls are deferred
+			auto result = [preDrawActions]()
+			{
+				for (auto& action : preDrawActions)
+				{
+					action();
+				}
+			};
+			preDrawActions.clear();
+		}
+		
+		return result;
+	};
+	
 	while (reader.HasData() && !complete)
 	{
 		RenderCommand command = reader.Read<RenderCommand>();
@@ -330,54 +352,26 @@ void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, S
 			state.mAlphaBlendEnabled = (toggles & alphaBlendBit) > 0;
 			state.mWireFrame = (toggles & wireframeBit) > 0;
 
-			std::function<void()> preAction = nullptr;
-			if (!preDrawActions.empty())
-			{
-				preAction = [preDrawActions]()
-				{
-					for (auto& action : preDrawActions)
-					{
-						action();
-					}
-				};
-				preDrawActions.clear();
-			}
-
+			std::function<void()> preAction = generatePreDrawFunction();
 			renderer.DrawMesh(serverHandle, state, preAction);
 			break;
 		}
 		case RenderCommand::DrawMeshInstanced:
 		{
 			DEBUG_ASSERT(false, "Not implemented!");
-			/*std::function<void()> preAction = nullptr;
-			if (!preDrawActions.empty())
-			{
-				preAction = [preDrawActions]()
-					{
-						for (auto& action : preDrawActions)
-						{
-							action();
-						}
-					};
-				preDrawActions.clear();
+			/*
+				std::function<void()> preAction = generatePreDrawFunction();
+				renderer.DrawMeshInstanced(serverHandle, state, preAction);
 			}*/
 			break;
 		}
 		case RenderCommand::DispatchCompute:
 		{
 			DEBUG_ASSERT(false, "Not implemented!");
-			/*std::function<void()> preAction = nullptr;
-			if (!preDrawActions.empty())
-			{
-				preAction = [preDrawActions]()
-					{
-						for (auto& action : preDrawActions)
-						{
-							action();
-						}
-					};
-				preDrawActions.clear();
-			}*/
+			/*
+				std::function<void()> preAction = generatePreDrawFunction();
+				renderer.DispatchCompute(serverHandle, state, preAction);
+			*/
 			break;
 		}
 

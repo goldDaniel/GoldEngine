@@ -13,9 +13,7 @@ void Application::Run()
 
 	mRunning = true;
 
-	mEncoders.Get() = std::make_unique<FrameEncoder>(mRenderResources);
-	mEncoders.Swap();
-	mEncoders.Get() = std::make_unique<FrameEncoder>(mRenderResources);
+	mEncoders.Init([this]() { return std::make_unique<FrameEncoder>(mRenderResources); });
 
 	// virtual command buffer size
 	u64 size = 128 * 1024 * 1024;
@@ -75,9 +73,9 @@ void Application::RenderThread()
 		{
 			std::unique_lock lock(mSwapMutex);
 			mSwapCond.wait(lock, [this] { return mUpdateComplete || !mRunning; });
+			mUpdateComplete = false;
 			mReadEncoder = mEncoders.Get().get();
 			mEncoders.Swap();
-			mUpdateComplete = false;
 			mSwapCond.notify_one();
 		}
 		if (!mRunning) break;
