@@ -27,7 +27,7 @@ void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, S
 		{
 			// NOTE (danielg):	copy is intentional, we need a copied list of the functions
 			//					as these calls are deferred
-			auto result = [preDrawActions]()
+			result = [preDrawActions]()
 			{
 				for (auto& action : preDrawActions)
 				{

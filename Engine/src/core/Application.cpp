@@ -20,21 +20,19 @@ void Application::Run()
 	mFrameAllocator = std::make_unique<LinearAllocator>(malloc(size), size);
 
 	std::thread updateThread = std::thread(&Application::UpdateThread, this);
-	std::thread renderThread = std::thread(&Application::RenderThread, this);
-
-	while (mRunning)
-	{
-		mPlatform->PlatformEvents(*this);
-	}
+	//std::thread renderThread = std::thread(&Application::RenderThread, this);
 
 	// assures we don't wait on a condition that wont get signaled
+
+	RenderThread();
+
 	{
 		std::unique_lock lock(mSwapMutex);
 		mSwapCond.notify_all();
 	}
 	
 	updateThread.join();
-	renderThread.join();
+	//renderThread.join();
 }
 
 void Application::UpdateThread()
@@ -52,7 +50,6 @@ void Application::UpdateThread()
 		mEncoders.Get()->End();
 
 		mTime += frameTime;
-
 		{
 			std::unique_lock lock(mSwapMutex);
 			mUpdateComplete = true;
@@ -73,6 +70,8 @@ void Application::RenderThread()
 		{
 			std::unique_lock lock(mSwapMutex);
 			mSwapCond.wait(lock, [this] { return mUpdateComplete || !mRunning; });
+			
+			mPlatform->PlatformEvents(*this);
 			mUpdateComplete = false;
 			mReadEncoder = mEncoders.Get().get();
 			mEncoders.Swap();
@@ -83,6 +82,7 @@ void Application::RenderThread()
 		mFrameAllocator->Reset();
 		BinaryReader reader = mReadEncoder->GetReader();
 
+		
 		mRenderer->SetBackBufferSize((int)mConfig.windowWidth, (int)mConfig.windowHeight);
 		mRenderer->BeginFrame();
 		gold::FrameDecoder::Decode(*mRenderer, *mFrameAllocator, mRenderResources, reader);
