@@ -5,9 +5,9 @@
 using namespace graphics;
 using namespace gold;
 
-FrameEncoder::FrameEncoder(ClientResources& resources)
-	: mMemory(static_cast<u8*>(malloc(kSize)))
-	, mWriter(mMemory, kSize)
+FrameEncoder::FrameEncoder(ClientResources& resources, u64 virtualCommandListSize)
+	: mMemory(static_cast<u8*>(malloc(virtualCommandListSize)))
+	, mWriter(mMemory, virtualCommandListSize)
 	, mResources(resources)
 	, mNextPass(0)
 {

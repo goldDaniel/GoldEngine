@@ -13,7 +13,6 @@ namespace gold
 	{
 	private:
 		bool mRecording = false;
-		static constexpr u64 kSize = 1024 * 1024 * 128;
 		u8* mMemory;
 
 		ClientResources& mResources;
@@ -22,10 +21,8 @@ namespace gold
 		// TODO (danielg): Move this somewhere else? it needs to be reset every frame
 		u8 mNextPass{};
 
-		bool mReadReady{};
-
 	public:
-		FrameEncoder(ClientResources& resources);
+		FrameEncoder(ClientResources& resources, u64 virtualCommandListSize);
 
 		~FrameEncoder();
 

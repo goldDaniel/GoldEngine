@@ -4,6 +4,7 @@
 #include "SceneGraph.h"
 
 #include "graphics/Renderer.h"
+#include "graphics/Material.h"
 
 
 struct ChildrenComponent

@@ -13,10 +13,12 @@ void Application::Run()
 
 	mRunning = true;
 
-	mEncoders.Init([this]() { return std::make_unique<FrameEncoder>(mRenderResources); });
-
 	// virtual command buffer size
-	u64 size = 128 * 1024 * 1024;
+	u64 size = 8 * 1024 * 1024;
+	mEncoders.Init([this, size]() { return std::make_unique<FrameEncoder>(mRenderResources, size); });
+
+	// frame allocator size 
+	size = 4 * 1024 * 1024;
 	mFrameAllocator = std::make_unique<LinearAllocator>(malloc(size), size);
 
 	std::thread updateThread = std::thread(&Application::UpdateThread, this);
