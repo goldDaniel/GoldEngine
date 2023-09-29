@@ -92,6 +92,8 @@ void Application::RenderThread()
 		mRenderer->SetBackBufferSize((int)mConfig.windowWidth, (int)mConfig.windowHeight);
 		mRenderer->BeginFrame();
 		gold::FrameDecoder::Decode(*mRenderer, *mFrameAllocator, mRenderResources, reader);
+		
+		mUI.OnImguiRender();
 		mRenderer->EndFrame();
 	}
 
@@ -114,8 +116,6 @@ Application::~Application()
  
 void Application::StartApplication(std::unique_ptr<Platform> platform)
 {
-	Logging::Init();
-
 	mPlatform = std::move(platform);
 	mPlatform->InitializeWindow(mConfig);
 }

@@ -10,6 +10,8 @@ namespace graphics
 	class Renderer
 	{
 	public:
+		~Renderer();
+
 		void Init(void* windowHandle);
 		void Destroy();
 

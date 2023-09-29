@@ -7,6 +7,9 @@
 #include <iostream>
 #include <algorithm>
 
+#include <platform/thirdparty/imgui_impl_opengl3.h>
+#include <platform/thirdparty/imgui_impl_sdl2.h>
+
 using namespace graphics;
 
 static const GLuint VERTEX_ATTR_POSITION = 0;
@@ -451,6 +454,15 @@ void Renderer::SetBackBufferSize(int w, int h)
 	backBufferSize = { w, h };
 }
 
+Renderer::~Renderer()
+{
+	ImGui_ImplOpenGL3_Shutdown();
+	ImGui_ImplSDL2_Shutdown();
+	ImGui::DestroyContext();
+
+	SDL_GL_DeleteContext(glContext);
+}
+
 void Renderer::Init(void* window)
 {
 	G_ENGINE_INFO("Renderer Initializing...");
@@ -474,6 +486,9 @@ void Renderer::Init(void* window)
 		SDL_Log("Failed to initialize the OpenGL context.");
 		exit(1);
 	}
+
+	ImGui_ImplSDL2_InitForOpenGL(sdlWindow, glContext);
+	ImGui_ImplOpenGL3_Init("#version 330");
 	
 	G_ENGINE_WARN("OpenGL Loaded:");
 	G_ENGINE_TRACE("Vendor: {}", (const char*)glGetString(GL_VENDOR));
@@ -550,6 +565,10 @@ void Renderer::BeginFrame()
 {
 	DEBUG_ASSERT(!buildingFrame, "Cannot start new frame when one is in flight!");
 	buildingFrame = true;
+	
+	ImGui_ImplOpenGL3_NewFrame();
+	ImGui_ImplSDL2_NewFrame(sdlWindow);
+	ImGui::NewFrame();
 
 	drawCalls.clear();
 	renderPasses.clear();
@@ -1053,6 +1072,9 @@ void Renderer::EndFrame()
 	}
 
 	currentFrame++;
+
+	ImGui::Render();
+	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 	SDL_GL_SwapWindow(sdlWindow);
 }
 

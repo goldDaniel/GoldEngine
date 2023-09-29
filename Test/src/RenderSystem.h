@@ -13,7 +13,11 @@ private:
 
 	graphics::MeshHandle mMesh{};
 	
+	graphics::FrameBuffer mTarget{};
+
 	glm::vec2 mScreenSize{};
+
+
 
 	bool mFirstFrame = true;
 
@@ -94,6 +98,11 @@ public:
 		mEncoder = frameEncoder;
 	}
 
+	void SetRenderTarget(graphics::FrameBuffer target)
+	{
+		mTarget = target;
+	}
+
 	virtual void Tick(scene::Scene& scene, float dt) override
 	{
 		if (mFirstFrame)
@@ -107,7 +116,7 @@ public:
 		mvp *= glm::lookAt(glm::vec3{ 0, 0, 5 }, glm::vec3{ 0,0,0 }, glm::vec3{ 0,1,0 });
 		mEncoder->UpdateUniformBuffer(mView, &mvp, sizeof(glm::mat4));
 
-		uint8_t pass = mEncoder->AddRenderPass("Default", graphics::ClearColor::YES, graphics::ClearDepth::YES);
+		uint8_t pass = mEncoder->AddRenderPass("Default", mTarget, graphics::ClearColor::YES, graphics::ClearDepth::YES);
 		graphics::RenderState state;
 		state.mRenderPass = pass;
 		state.mShader = mShader;

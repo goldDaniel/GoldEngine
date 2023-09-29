@@ -6,6 +6,9 @@
 
 #include "scene/SceneGraph.h"
 
+#include "ui/LogWindow.h"
+#include "ui/ViewportWindow.h"
+
 #include "RenderSystem.h"
 
 class TestApp : public gold::Application
@@ -14,6 +17,10 @@ private:
 	scene::Scene mScene;
 	RenderSystem mRenderSystem;
 	
+	graphics::FrameBuffer mGameBuffer;
+	
+	bool mFirstFrame = true;
+
 public:
 	TestApp(gold::ApplicationConfig&& config)
 		: gold::Application(std::move(config))
@@ -23,14 +30,20 @@ public:
 protected:
 
 	virtual void Init() override
-	{
-
+	{	
+		AddEditorWindow(std::make_unique<LogWindow>());
 	}
 
 	virtual void Update(float delta, gold::FrameEncoder& encoder) override
 	{
+		if (mFirstFrame)
+		{
+			mFirstFrame = false;
+		}
+
 		mRenderSystem.SetScreenSize(GetScreenSize());
 		mRenderSystem.SetEncoder(&encoder);
+		//mRenderSystem.SetRenderTarget(mGameBuffer);
 		mRenderSystem.Tick(mScene, delta);
 	}
 };

@@ -7,6 +7,8 @@
 
 #include "memory/DoubleBuffered.h"
 
+#include "ui/EditorUI.h"
+
 #include <thread>
 #include <condition_variable>
 
@@ -32,17 +34,19 @@ namespace gold
 	{
 	private:
 		std::unique_ptr<Platform> mPlatform;
-		std::unique_ptr<graphics::Renderer> mRenderer;
-
+		
 
 		gold::RenderResources mRenderResources;
-		std::unique_ptr<gold::LinearAllocator> mFrameAllocator;
+		std::unique_ptr<graphics::Renderer> mRenderer;
 
+		std::unique_ptr<gold::LinearAllocator> mFrameAllocator;
 		gold::DoubleBuffered<std::unique_ptr<gold::FrameEncoder>> mEncoders;
 
 		bool mUpdateComplete = false;
 		std::mutex mSwapMutex;
 		std::condition_variable mSwapCond;
+
+		EditorUI mUI;
 
 		f32 mTime;
 		
@@ -66,6 +70,12 @@ namespace gold
 		float GetTime() const;
 
 		const std::vector<std::string>& GetCommandArgs() const;
+
+		template<typename T>
+		void AddEditorWindow(std::unique_ptr<T>&& window)
+		{
+			mUI.AddEditorWindow(std::move(window));
+		}
 
 		void SetScreenSize(int w, int h) 
 		{ 

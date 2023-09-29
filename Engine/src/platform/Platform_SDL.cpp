@@ -14,6 +14,9 @@ static_assert(false && "Known Platform for SDL backend!");
 #include <SDL.h>
 #include <filesystem>
 
+#include <imgui.h>
+#include "thirdparty/imgui_impl_sdl2.h"
+
 using namespace gold;
 
 static void SetWorkingDirectory(const std::string& pathOffset)
@@ -26,12 +29,12 @@ static void SetWorkingDirectory(const std::string& pathOffset)
 
 	if (!SetCurrentDirectory(pathAsString.c_str()))
 	{
-		G_ENGINE_ERROR("Failed to set data directory to: {}", pathAsString);
+		G_ENGINE_ERROR("Failed to set data directory to: {}", pathAsString.c_str());
 		DEBUG_ASSERT(false, "Failed to set data directory");
 	}
 	else
 	{
-		G_ENGINE_INFO("Working directory set to: {}", pathAsString);
+		G_ENGINE_INFO("Working directory set to: {}", pathAsString.c_str());
 	}
 #elif defined (__linux__)
 	G_ENGINE_ERROR("Failed to set data directory to: {}", desiredDir);
@@ -43,7 +46,7 @@ static void SetWorkingDirectory(const std::string& pathOffset)
 
 Platform_SDL::Platform_SDL(std::vector<std::string>&& commandArgs)
 	: Platform(std::move(commandArgs))
-{
+{	
 	const std::string dataRedirectKey = "DataFolderRedirect=";
 
 	for (const std::string& arg : GetCommandArgs())
@@ -72,6 +75,12 @@ void Platform_SDL::InitializeWindow(const ApplicationConfig& config)
 		exit(1);
 	}
 
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGui::StyleColorsDark();
+
+	ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+
 	mWindow = SDL_CreateWindow(config.title.c_str(), SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED, config.windowWidth, config.windowHeight, SDL_WINDOW_SHOWN | SDL_WINDOW_OPENGL);
 	SDL_SetWindowResizable(mWindow, (SDL_bool)true);
 
@@ -91,10 +100,14 @@ void Platform_SDL::PlatformEvents(Application& app)
 	SDL_Event event;
 	while (SDL_PollEvent(&event))
 	{
+		auto& io = ImGui::GetIO();
+		ImGui_ImplSDL2_ProcessEvent(&event);
+
 		switch (event.type)
 		{
 		case SDL_QUIT:
 		{
+			G_ENGINE_WARN("Engine shutdown requested.");
 			app.Shutdown();
 			break;
 		}

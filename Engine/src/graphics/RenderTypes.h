@@ -351,7 +351,12 @@ namespace graphics
 			FramebufferAttachment mAttachment{};
 		};
 
-		std::array<FrameBufferTexture, static_cast<u64>(OutputSlot::Count)> mTextures;
+		std::array<FrameBufferTexture, static_cast<u64>(OutputSlot::Count)> mTextures = {};
+
+		inline void Put(OutputSlot slot, TextureDescription2D desc)
+		{
+			mTextures[static_cast<size_t>(slot)] = { desc, static_cast<FramebufferAttachment>(slot) };
+		}
 	};
 
 	struct RenderPass

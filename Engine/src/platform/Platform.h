@@ -17,6 +17,7 @@ namespace gold
 		Platform(std::vector<std::string>&& commandArgs)
 			: mCommandArgs(std::move(commandArgs))
 		{
+			Logging::Init();
 		}
 
 		virtual ~Platform() {}
