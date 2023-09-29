@@ -57,4 +57,5 @@ struct LightComponent
 struct RenderComponent
 {
 	graphics::MeshHandle mesh{};
+	graphics::MaterialHandle material{};
 };

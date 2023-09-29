@@ -16,16 +16,15 @@ namespace gold
 	class FrameEncoder;
 	class BinaryReader;
 	class RenderResources;
-	class ServerResources;
-
+	
 	struct ApplicationConfig
 	{
 		std::string title;
 
-		u32 windowWidth;
-		u32 windowHeight;
+		u32 windowWidth{};
+		u32 windowHeight{};
 
-		bool maximized;
+		bool maximized{};
 	};
 
 
