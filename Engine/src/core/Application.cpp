@@ -22,23 +22,23 @@ void Application::Run()
 	mFrameAllocator = std::make_unique<LinearAllocator>(malloc(size), size);
 
 	std::thread updateThread = std::thread(&Application::UpdateThread, this);
-	//std::thread renderThread = std::thread(&Application::RenderThread, this);
+
+	RenderThread(); 
 
 	// assures we don't wait on a condition that wont get signaled
-
-	RenderThread();
-
 	{
 		std::unique_lock lock(mSwapMutex);
 		mSwapCond.notify_all();
 	}
 	
 	updateThread.join();
-	//renderThread.join();
+	G_ENGINE_INFO("Threads terminated, shutting down.");
 }
 
 void Application::UpdateThread()
 {
+	G_ENGINE_WARN("Update thread starting...");
+
 	f32 step = 1.0f / 30.f;
 	uint32_t prevTime = mPlatform->GetElapsedTimeMS();
 	while (mRunning)
@@ -59,10 +59,14 @@ void Application::UpdateThread()
 			mSwapCond.wait(lock, [this] { return !mUpdateComplete || !mRunning; });
 		}
 	}
+
+	G_ENGINE_WARN("Update thread shutting down...");
 }
 
 void Application::RenderThread()
 {
+	G_ENGINE_WARN("Render thread starting...");
+
 	mRenderer = std::unique_ptr<graphics::Renderer>();
 	mRenderer->Init(mPlatform->GetWindowHandle());
 
@@ -90,6 +94,8 @@ void Application::RenderThread()
 		gold::FrameDecoder::Decode(*mRenderer, *mFrameAllocator, mRenderResources, reader);
 		mRenderer->EndFrame();
 	}
+
+	G_ENGINE_WARN("Render thread shutting down...");
 }
 
 Application::Application(ApplicationConfig&& config)
@@ -108,6 +114,8 @@ Application::~Application()
  
 void Application::StartApplication(std::unique_ptr<Platform> platform)
 {
+	Logging::Init();
+
 	mPlatform = std::move(platform);
 	mPlatform->InitializeWindow(mConfig);
 }

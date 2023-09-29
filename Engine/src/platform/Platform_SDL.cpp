@@ -26,13 +26,12 @@ static void SetWorkingDirectory(const std::string& pathOffset)
 
 	if (!SetCurrentDirectory(pathAsString.c_str()))
 	{
-		//G_ENGINE_ERROR("Failed to set data directory to: {}", pathAsString);
+		G_ENGINE_ERROR("Failed to set data directory to: {}", pathAsString);
 		DEBUG_ASSERT(false, "Failed to set data directory");
 	}
 	else
 	{
-		std::cout << "Working directory set to: " << pathAsString << std::endl;
-		//G_ENGINE_INFO("Working directory set to: {}", pathAsString);
+		G_ENGINE_INFO("Working directory set to: {}", pathAsString);
 	}
 #elif defined (__linux__)
 	G_ENGINE_ERROR("Failed to set data directory to: {}", desiredDir);

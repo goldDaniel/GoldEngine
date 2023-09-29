@@ -2,6 +2,7 @@
 
 #include "Asserts.h"
 #include "Types.h"
+#include "Logging.h"
 
 #include <array>
 #include <vector>

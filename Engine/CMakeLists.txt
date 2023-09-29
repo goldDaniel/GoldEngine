@@ -40,6 +40,10 @@ target_include_directories(Engine PRIVATE "${PROJECT_SOURCE_DIR}/Dependencies/st
 #entt
 target_include_directories(Engine PUBLIC "${PROJECT_SOURCE_DIR}/Dependencies/entt/single_include")
 
+#spdlog
+target_include_directories(Engine PUBLIC "${PROJECT_SOURCE_DIR}/dependencies/spdlog/include")
+
+
 foreach(_source IN ITEMS ${ENGINE_SOURCE_LIST})
     get_filename_component(_source_path "${_source}" PATH)
     string(REPLACE "${CMAKE_SOURCE_DIR}" "" _group_path "${_source_path}")

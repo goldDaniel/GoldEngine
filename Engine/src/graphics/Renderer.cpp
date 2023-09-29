@@ -453,6 +453,8 @@ void Renderer::SetBackBufferSize(int w, int h)
 
 void Renderer::Init(void* window)
 {
+	G_ENGINE_INFO("Renderer Initializing...");
+
 	sdlWindow = (SDL_Window*)window;
 
 	SDL_GL_SetAttribute(SDL_GL_ACCELERATED_VISUAL, 1);
@@ -472,6 +474,12 @@ void Renderer::Init(void* window)
 		SDL_Log("Failed to initialize the OpenGL context.");
 		exit(1);
 	}
+	
+	G_ENGINE_WARN("OpenGL Loaded:");
+	G_ENGINE_TRACE("Vendor: {}", (const char*)glGetString(GL_VENDOR));
+	G_ENGINE_TRACE("Renderer: {}", (const char*)glGetString(GL_RENDERER));
+	G_ENGINE_TRACE("Version: {}", (const char*)glGetString(GL_VERSION));
+
 
 
 	glEnable(GL_DEBUG_OUTPUT);
