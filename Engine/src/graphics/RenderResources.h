@@ -14,9 +14,9 @@ namespace gold
 
 		virtual graphics::ShaderHandle CreateShader() = 0;
 
-		virtual graphics::UniformBufferHandle CreateUniformBuffer(u32 size) = 0;
+		virtual graphics::UniformBufferHandle CreateUniformBuffer() = 0;
 
-		virtual graphics::ShaderBufferHandle CreateShaderBuffer(u32 size) = 0;
+		virtual graphics::ShaderBufferHandle CreateShaderBuffer() = 0;
 
 		virtual graphics::MeshHandle CreateMesh() = 0;
 
@@ -87,9 +87,9 @@ namespace gold
 
 		graphics::ShaderHandle CreateShader() override { return mShaders.Create(); }
 
-		graphics::UniformBufferHandle CreateUniformBuffer(u32 size) override { return mUniformBuffers.Create(); }
+		graphics::UniformBufferHandle CreateUniformBuffer() override { return mUniformBuffers.Create(); }
 
-		graphics::ShaderBufferHandle CreateShaderBuffer(u32 size) override { return mShaderBuffers.Create(); }
+		graphics::ShaderBufferHandle CreateShaderBuffer() override { return mShaderBuffers.Create(); }
 
 		graphics::MeshHandle CreateMesh() override { return mMeshs.Create(); }
 

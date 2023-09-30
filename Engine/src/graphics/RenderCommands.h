@@ -25,7 +25,7 @@ namespace gold
 		CreateShader, //e, d
 		DestroyShader,
 
-		CreateTexture2D,
+		CreateTexture2D, //e, 
 		CreateTexture3D,
 		CreateCubemap,
 		DestroyTexture,

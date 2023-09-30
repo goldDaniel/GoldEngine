@@ -131,7 +131,7 @@ UniformBufferHandle FrameEncoder::CreateUniformBuffer(const void* data, u32 size
 {
 	DEBUG_ASSERT(mRecording, "");
 
-	UniformBufferHandle clientHandle = mResources.CreateUniformBuffer(size);
+	UniformBufferHandle clientHandle = mResources.CreateUniformBuffer();
 
 	mWriter.Write(RenderCommand::CreateUniformBuffer);
 	mWriter.Write(clientHandle);
@@ -164,7 +164,7 @@ ShaderBufferHandle FrameEncoder::CreateShaderBuffer(const void* data, u32 size)
 {
 	DEBUG_ASSERT(mRecording, "");
 
-	ShaderBufferHandle clientHandle = mResources.CreateShaderBuffer(size);
+	ShaderBufferHandle clientHandle = mResources.CreateShaderBuffer();
 
 	mWriter.Write(RenderCommand::CreateShaderBuffer);
 	mWriter.Write(clientHandle);
@@ -258,6 +258,32 @@ MeshHandle FrameEncoder::CreateMesh(const MeshDescription& desc)
 	mWriter.Write(desc.mWeightsFormat);
 
 	mWriter.Write(desc.mIndicesFormat);
+
+	return clientHandle;
+}
+
+graphics::TextureHandle FrameEncoder::CreateTexture2D(const graphics::TextureDescription2D& desc)
+{
+	mWriter.Write(RenderCommand::CreateTexture2D);
+
+	graphics::TextureHandle clientHandle = mResources.CreateTexture();
+	mWriter.Write(clientHandle);
+
+	mWriter.Write(desc.mNameHash);
+	mWriter.Write(desc.mWidth);
+	mWriter.Write(desc.mHeight);
+	mWriter.Write(desc.mDataSize);
+	if (desc.mDataSize > 0)
+	{
+		mWriter.Write(desc.mData, desc.mDataSize);
+	}
+
+	mWriter.Write(desc.mFormat);
+	mWriter.Write(desc.mWrap);
+	mWriter.Write(desc.mFilter);
+
+	mWriter.Write(desc.mMipmaps);
+	mWriter.Write(desc.mBorderColor);
 
 	return clientHandle;
 }

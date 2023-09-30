@@ -53,6 +53,8 @@ namespace gold
 
 		graphics::MeshHandle CreateMesh(const graphics::MeshDescription& mesh);
 
+		graphics::TextureHandle CreateTexture2D(const graphics::TextureDescription2D& desc);
+
 		void DrawMesh(const graphics::MeshHandle mesh, const graphics::RenderState& state);
 	};
 }

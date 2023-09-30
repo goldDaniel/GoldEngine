@@ -93,7 +93,7 @@ void Application::RenderThread()
 		mRenderer->BeginFrame();
 		gold::FrameDecoder::Decode(*mRenderer, *mFrameAllocator, mRenderResources, reader);
 		
-		mUI.OnImguiRender();
+		//mUI.OnImguiRender();
 		mRenderer->EndFrame();
 	}
 

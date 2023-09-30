@@ -187,7 +187,27 @@ void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, S
 		// Textures
 		case RenderCommand::CreateTexture2D:
 		{
-			DEBUG_ASSERT(false, "Not implemented!");
+			TextureHandle clientHandle = reader.Read<TextureHandle>();
+			TextureHandle& serverHandle = resources.get(clientHandle);
+
+			TextureDescription2D desc;
+			desc.mNameHash = reader.Read<u32>();
+			desc.mWidth = reader.Read<u32>();
+			desc.mHeight = reader.Read<u32>();
+			desc.mDataSize = reader.Read<u32>();
+			if (desc.mDataSize > 0)
+			{
+				desc.mData = frameAllocator.Allocate(desc.mDataSize);
+				reader.Read((u8*)desc.mData, desc.mDataSize);
+			}
+			desc.mFormat = reader.Read<TextureFormat>();
+			desc.mWrap = reader.Read<TextureWrap>();
+			desc.mFilter = reader.Read<TextureFilter>();
+			desc.mMipmaps = reader.Read<bool>();
+			desc.mBorderColor = reader.Read<glm::vec4>();
+
+			serverHandle = renderer.CreateTexture2D(desc);
+
 			break;
 		}
 		case RenderCommand::CreateTexture3D:
@@ -284,7 +304,7 @@ void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, S
 			{
 				RenderState::UniformBlock& buffer = state.mUniformBlocks[i];
 				buffer.mNameHash = reader.Read<u32>();
-				buffer.mBinding = remap(reader.Read<UniformBufferHandle>());
+				buffer.mBinding = resources.get(reader.Read<UniformBufferHandle>());
 			}
 
 			// shader buffers
@@ -293,7 +313,7 @@ void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, S
 			{
 				RenderState::StorageBlock& buffer = state.mStorageBlocks[i];
 				buffer.mNameHash = reader.Read<u32>();
-				buffer.mBinding = remap(reader.Read<ShaderBufferHandle>());
+				buffer.mBinding = resources.get(reader.Read<ShaderBufferHandle>());
 			}
 
 			// Textures
@@ -302,7 +322,7 @@ void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, S
 			{
 				RenderState::Texture& texture = state.mTextures[i];
 				texture.mNameHash = reader.Read<u32>();
-				texture.mHandle = remap(reader.Read<TextureHandle>());
+				texture.mHandle = resources.get(reader.Read<TextureHandle>());
 			}
 
 			// Images
@@ -311,7 +331,7 @@ void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, S
 			{
 				RenderState::Image& image = state.mImages[i];
 				image.mNameHash = reader.Read<u32>();
-				image.mHandle = remap(reader.Read<TextureHandle>());
+				image.mHandle = resources.get(reader.Read<TextureHandle>());
 
 				// TODO (danielg): Also defined in the frame encoder. Move to shared location
 				u8 readBit = image.read ? 1 << 0 : 0;
