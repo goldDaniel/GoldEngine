@@ -44,7 +44,7 @@ target_include_directories(Engine PUBLIC "${PROJECT_SOURCE_DIR}/Dependencies/ent
 target_include_directories(Engine PUBLIC "${PROJECT_SOURCE_DIR}/dependencies/spdlog/include")
 
 #imgui
-file(GLOB_RECURSE IMGUI_SOURCE_LIST "${PROJECT_SOURCE_DIR}/dependencies/imgui/*.cpp")
+file(GLOB IMGUI_SOURCE_LIST "${PROJECT_SOURCE_DIR}/dependencies/imgui/*.cpp")
 target_include_directories(Engine PUBLIC "${PROJECT_SOURCE_DIR}/dependencies/imgui/")
 
 target_sources(Engine PRIVATE ${IMGUI_SOURCE_LIST})
