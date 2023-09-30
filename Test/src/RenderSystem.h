@@ -85,6 +85,7 @@ private:
 		{
 			graphics::Texture2D texture("textures/lava.png");
 			graphics::TextureDescription2D desc(texture, false);
+			desc.mFilter = graphics::TextureFilter::POINT;
 			mTexture = mEncoder->CreateTexture2D(desc);
 		}
 	}

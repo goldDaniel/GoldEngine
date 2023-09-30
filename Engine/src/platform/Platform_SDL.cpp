@@ -115,43 +115,47 @@ void Platform_SDL::PlatformEvents(Application& app)
 			app.Shutdown();
 			break;
 		}
+		case SDL_KEYDOWN:
+			if (!io.WantCaptureKeyboard)
+			{
+				Singletons::Get()->Resolve<Input>()->SetKeyState(static_cast<KeyCode>(event.key.keysym.sym), true);
+			}
+			break;
+		case SDL_KEYUP:
+			if (!io.WantCaptureKeyboard)
+			{
+				Singletons::Get()->Resolve<Input>()->SetKeyState(static_cast<KeyCode>(event.key.keysym.sym), false);
+			}
+			break;
+		case SDL_MOUSEMOTION:
+			if (!io.WantCaptureMouse)
+			{
+				int x;
+				int y;
+				SDL_GetMouseState(&x, &y);
+				Singletons::Get()->Resolve<Input>()->SetMousePosition(x, y);
+			}
+			break;
+
+		case SDL_MOUSEBUTTONDOWN:
+			if (!io.WantCaptureMouse)
+			{
+				Singletons::Get()->Resolve<Input>()->SetMouseState(static_cast<MouseButton>(event.button.button), true);
+			}
+			break;
+
+		case SDL_MOUSEBUTTONUP:
+			if (!io.WantCaptureMouse)
+			{
+				Singletons::Get()->Resolve<Input>()->SetMouseState(static_cast<MouseButton>(event.button.button), false);
+			}
+			break;
 		case SDL_WINDOWEVENT:
 			switch (event.window.event)
 			{
-			case SDL_KEYDOWN:
-				if (!io.WantCaptureKeyboard)
-				{
-					Singletons::Get()->Resolve<Input>()->SetKeyState(static_cast<KeyCode>(event.key.keysym.sym), true);
-				}
-				break;
-			case SDL_KEYUP:
-				if (!io.WantCaptureKeyboard)
-				{
-					Singletons::Get()->Resolve<Input>()->SetKeyState(static_cast<KeyCode>(event.key.keysym.sym), false);
-				}
-				break;
-			case SDL_MOUSEMOTION:
-				if (!io.WantCaptureMouse)
-				{
-					int x;
-					int y;
-					SDL_GetMouseState(&x, &y);
-					Singletons::Get()->Resolve<Input>()->SetMousePosition(x, y);
-				}
-				break;
-
-			case SDL_MOUSEBUTTONDOWN:
-				if (!io.WantCaptureMouse)
-				{
-					Singletons::Get()->Resolve<Input>()->SetMouseState(static_cast<MouseButton>(event.button.button), true);
-				}
-				break;
-
-			case SDL_MOUSEBUTTONUP:
-				if (!io.WantCaptureMouse)
-				{
-					Singletons::Get()->Resolve<Input>()->SetMouseState(static_cast<MouseButton>(event.button.button), false);
-				}
+			case SDL_WINDOWEVENT_SIZE_CHANGED:
+			case SDL_WINDOWEVENT_RESIZED:
+				app.SetScreenSize(event.window.data1, event.window.data2);
 				break;
 			}
 		}
