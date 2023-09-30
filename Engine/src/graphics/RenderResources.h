@@ -46,125 +46,69 @@ namespace gold
 		virtual graphics::TextureHandle& get(graphics::TextureHandle clientHandle) = 0;
 	};
 
+	template<typename T>
+	class ResourceMapper
+	{
+	private:
+		u32 mNextID = 1;
+		std::unordered_map<T, T> mBufferMap;
+	public:
+		T Create()
+		{
+			mBufferMap[{mNextID}] = { 0 };
+			return { mNextID++ };
+		}
+
+		T& Get(const T& clientHandle)
+		{
+			DEBUG_ASSERT(mBufferMap.find(clientHandle) != mBufferMap.end(), "");
+			return mBufferMap[clientHandle];
+		}
+	};
+
 	class RenderResources : public ClientResources, public ServerResources
 	{
 	private:
 		
-		u32 mNextClientVertex = 1;
-		std::unordered_map<graphics::VertexBufferHandle, graphics::VertexBufferHandle> mVertexBuffers;
-
-		u32 mNextClientIndex = 1;
-		std::unordered_map<graphics::IndexBufferHandle, graphics::IndexBufferHandle> mIndexBuffers;
-
-		u32 mNextShader = 1;
-		std::unordered_map<graphics::ShaderHandle, graphics::ShaderHandle> mShaders;
-
-		u32 mNextUniformBuffer = 1;
-		std::unordered_map<graphics::UniformBufferHandle, graphics::UniformBufferHandle> mUniformBuffers;
-
-		u32 mNextShaderBuffer = 1;
-		std::unordered_map<graphics::ShaderBufferHandle, graphics::ShaderBufferHandle> mShaderBuffers;
-
-		u32 mNextMesh = 1;
-		std::unordered_map<graphics::MeshHandle, graphics::MeshHandle> mMeshes;
-
-		u32 mNextTexture = 1;
-		std::unordered_map<graphics::TextureHandle, graphics::TextureHandle> mTextures;
+		ResourceMapper<graphics::VertexBufferHandle> mVertexBuffers;
+		ResourceMapper<graphics::IndexBufferHandle> mIndexBuffers;
+		ResourceMapper<graphics::ShaderHandle> mShaders;
+		ResourceMapper<graphics::UniformBufferHandle> mUniformBuffers;
+		ResourceMapper<graphics::ShaderBufferHandle> mShaderBuffers;
+		ResourceMapper<graphics::MeshHandle> mMeshs;
+		ResourceMapper<graphics::TextureHandle> mTextures;
 		
 	public:
 
-		graphics::VertexBufferHandle CreateVertexBuffer() override
-		{
-			mVertexBuffers[{mNextClientVertex}] = { 0 };
-			
-			mNextClientVertex++;
+		// Client Side
+		graphics::VertexBufferHandle CreateVertexBuffer() override { return mVertexBuffers.Create(); }
 
-			return { (mNextClientVertex - 1) };
-		}
+		graphics::IndexBufferHandle CreateIndexBuffer() override { return mIndexBuffers.Create(); }
 
-		graphics::IndexBufferHandle CreateIndexBuffer() override
-		{
-			mIndexBuffers[{mNextClientIndex}] = { 0 };
-			mNextClientIndex++;
-			return { (mNextClientIndex - 1) };
-		}
+		graphics::ShaderHandle CreateShader() override { return mShaders.Create(); }
 
-		graphics::ShaderHandle CreateShader() override
-		{
-			mShaders[{mNextShader}] = { 0 };
-			mNextShader++;
+		graphics::UniformBufferHandle CreateUniformBuffer(u32 size) override { return mUniformBuffers.Create(); }
 
-			return { (mNextShader - 1) };
-		}
+		graphics::ShaderBufferHandle CreateShaderBuffer(u32 size) override { return mShaderBuffers.Create(); }
 
-		graphics::UniformBufferHandle CreateUniformBuffer(u32 size) override
-		{
-			mUniformBuffers[{mNextUniformBuffer}] = { 0 };
-			mNextUniformBuffer++;
-			return { (mNextUniformBuffer - 1) };
-		}
+		graphics::MeshHandle CreateMesh() override { return mMeshs.Create(); }
 
-		graphics::ShaderBufferHandle CreateShaderBuffer(u32 size) override
-		{
-			mShaderBuffers[{mNextShaderBuffer}] = { 0 };
-			mNextShaderBuffer++;
-			return { (mNextShaderBuffer - 1) };
-		}
+		graphics::TextureHandle CreateTexture() override { return mTextures.Create(); }
 
-		graphics::MeshHandle CreateMesh() override
-		{
-			mMeshes[{mNextMesh}] = { 0 };
-			mNextMesh++;
-			return { (mNextMesh - 1) };
-		}
 
-		graphics::TextureHandle CreateTexture() override
-		{
-			mTextures[{mNextTexture}] = { 0 };
-			mNextTexture++;
-			return { (mNextTexture - 1) };
-		}
+		// Server Side
+		graphics::VertexBufferHandle& get(graphics::VertexBufferHandle clientHandle) override { return mVertexBuffers.Get(clientHandle); }
 
-		graphics::VertexBufferHandle& get(graphics::VertexBufferHandle clientHandle) override
-		{
-			DEBUG_ASSERT(mVertexBuffers.find(clientHandle) != mVertexBuffers.end(), "");
-			return mVertexBuffers[clientHandle];
-		}
+		graphics::IndexBufferHandle& get(graphics::IndexBufferHandle clientHandle) override { return mIndexBuffers.Get(clientHandle); }
 
-		graphics::IndexBufferHandle& get(graphics::IndexBufferHandle clientHandle) override
-		{
-			DEBUG_ASSERT(mIndexBuffers.find(clientHandle) != mIndexBuffers.end(), "");
-			return mIndexBuffers[clientHandle];
-		}
+		graphics::UniformBufferHandle& get(graphics::UniformBufferHandle clientHandle) override { return mUniformBuffers.Get(clientHandle); }
 
-		graphics::UniformBufferHandle& get(graphics::UniformBufferHandle clientHandle) override
-		{
-			DEBUG_ASSERT(mUniformBuffers.find(clientHandle) != mUniformBuffers.end(), "");
-			return mUniformBuffers[clientHandle];
-		}
+		graphics::ShaderBufferHandle& get(graphics::ShaderBufferHandle clientHandle) override { return mShaderBuffers.Get(clientHandle); }
 
-		graphics::ShaderBufferHandle& get(graphics::ShaderBufferHandle clientHandle) override
-		{
-			DEBUG_ASSERT(mShaderBuffers.find(clientHandle) != mShaderBuffers.end(), "");
-			return mShaderBuffers[clientHandle];
-		}
+		graphics::ShaderHandle& get(graphics::ShaderHandle clientHandle) override { return mShaders.Get(clientHandle); }
 
-		graphics::ShaderHandle& get(graphics::ShaderHandle clientHandle) override
-		{
-			DEBUG_ASSERT(mShaders.find(clientHandle) != mShaders.end(), "");
-			return mShaders[clientHandle];
-		}
+		graphics::MeshHandle& get(graphics::MeshHandle clientHandle) override { return mMeshs.Get(clientHandle); }
 
-		graphics::MeshHandle& get(graphics::MeshHandle clientHandle) override
-		{
-			DEBUG_ASSERT(mMeshes.find(clientHandle) != mMeshes.end(), "");
-			return mMeshes[clientHandle];
-		}
-
-		graphics::TextureHandle& get(graphics::TextureHandle clientHandle) override
-		{
-			DEBUG_ASSERT(mTextures.find(clientHandle) != mTextures.end(), "");
-			return mTextures[clientHandle];
-		}
+		graphics::TextureHandle& get(graphics::TextureHandle clientHandle) override { return mTextures.Get(clientHandle); }
 	};
 }

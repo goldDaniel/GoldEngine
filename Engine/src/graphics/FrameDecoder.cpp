@@ -75,7 +75,8 @@ void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, S
 		}
 		case RenderCommand::DestroyUniformBuffer:
 		{
-			DEBUG_ASSERT(false, "Not implemented!");
+			UniformBufferHandle serverHandle = resources.get(reader.Read<UniformBufferHandle>());
+			renderer.DestroyUniformBlock(serverHandle);
 			break;
 		}
 
@@ -94,8 +95,15 @@ void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, S
 		}
 		case RenderCommand::UpdateShaderBuffer:
 		{
-			DEBUG_ASSERT(false, "Not implemented!");
-			//preDrawActions.push_back([&]() {});
+			ShaderBufferHandle serverHandle = resources.get(reader.Read<ShaderBufferHandle>());
+			u32 size = reader.Read<u32>();
+			u8* const data = (u8*)frameAllocator.Allocate(size);
+			reader.Read(data, size);
+			u32 offset = reader.Read<u32>();
+			preDrawActions.push_back([&renderer, data, size, offset, serverHandle]()
+			{
+				renderer.UpdateStorageBlock(data, size, offset, serverHandle);
+			});
 			break;
 		}
 		case RenderCommand::DestroyShaderBuffer:

@@ -7,11 +7,11 @@ namespace gold
 	enum struct RenderCommand : u8
 	{
 		CreateUniformBuffer = 0, //e, d
-		UpdateUniformBuffer,
-		DestroyUniformBuffer,
+		UpdateUniformBuffer, //e, d
+		DestroyUniformBuffer, //e
 
 		CreateShaderBuffer, //e, d
-		UpdateShaderBuffer,
+		UpdateShaderBuffer, //e, d
 		DestroyShaderBuffer,
 
 		CreateVertexBuffer,	//e, d

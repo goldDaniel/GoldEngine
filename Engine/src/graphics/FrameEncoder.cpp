@@ -41,6 +41,8 @@ BinaryReader FrameEncoder::GetReader()
 	return mWriter.ToReader();
 }
 
+// Render pass ///////////////////////////////////
+
 u8 FrameEncoder::AddRenderPass(const graphics::RenderPass& pass)
 {
 	DEBUG_ASSERT(mRecording, "");
@@ -93,6 +95,8 @@ u8 FrameEncoder::AddRenderPass(const char* name, ClearColor color, ClearDepth de
 	return AddRenderPass(name, framebufffer, color, depth);
 }
 
+// Index Buffer //////////////////////////////////////////////
+
 IndexBufferHandle FrameEncoder::CreateIndexBuffer(const void* data, u32 size)
 {
 	DEBUG_ASSERT(mRecording, "");
@@ -121,6 +125,8 @@ VertexBufferHandle FrameEncoder::CreateVertexBuffer(const void* data, u32 size)
 	return clientHandle;
 }
 
+// Uniform Buffers ////////////////////////////////
+
 UniformBufferHandle FrameEncoder::CreateUniformBuffer(const void* data, u32 size)
 {
 	DEBUG_ASSERT(mRecording, "");
@@ -146,6 +152,14 @@ void FrameEncoder::UpdateUniformBuffer(UniformBufferHandle clientHandle, const v
 	mWriter.Write(offset);
 }
 
+void FrameEncoder::DestroyUniformBuffer(UniformBufferHandle clientHandle)
+{
+	mWriter.Write(RenderCommand::DestroyUniformBuffer);
+	mWriter.Write(clientHandle);
+}
+
+// Shader Buffers ///////////////////////////////////
+
 ShaderBufferHandle FrameEncoder::CreateShaderBuffer(const void* data, u32 size)
 {
 	DEBUG_ASSERT(mRecording, "");
@@ -158,6 +172,15 @@ ShaderBufferHandle FrameEncoder::CreateShaderBuffer(const void* data, u32 size)
 	mWriter.Write(data, size);
 
 	return clientHandle;
+}
+
+void FrameEncoder::UpdateShaderBuffer(graphics::ShaderBufferHandle clientHandle, const void* data, u32 size, u32 offset)
+{
+	mWriter.Write(RenderCommand::UpdateShaderBuffer);
+	mWriter.Write(clientHandle);
+	mWriter.Write(size);
+	mWriter.Write(data, size);
+	mWriter.Write(offset);
 }
 
 ShaderHandle FrameEncoder::CreateShader(const char* vertSrc, const char* fragSrc)

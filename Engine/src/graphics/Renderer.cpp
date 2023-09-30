@@ -120,6 +120,7 @@ struct DeleteCommand
 		IndexBuffer,
 		Texture,
 		Mesh,
+		UniformBuffer,
 	};
 
 	Type mType = Type::INVALID;
@@ -130,6 +131,7 @@ struct DeleteCommand
 		VertexBufferHandle mVertexBuffer;
 		IndexBufferHandle mIndexBuffer;
 		TextureHandle mTexture;
+		UniformBufferHandle mUniformBuffer;
 	};
 };
 
@@ -1050,6 +1052,9 @@ void Renderer::EndFrame()
 		case DeleteCommand::Type::IndexBuffer:
 			glDeleteBuffers(1, &del.mIndexBuffer.idx);
 			break;
+		case DeleteCommand::Type::UniformBuffer: 
+			glDeleteBuffers(1, &del.mUniformBuffer.idx);
+			break;
 		case DeleteCommand::Type::Texture:
 			glDeleteTextures(1, &del.mTexture.idx);
 			break;
@@ -1121,10 +1126,10 @@ UniformBufferHandle Renderer::CreateUniformBlock(const void* data, u32 size)
 	return handle;
 }
 
-void Renderer::UpdateStorageBlock(const void* data, u32 size, ShaderBufferHandle binding)
+void Renderer::UpdateStorageBlock(const void* data, u32 size, u32 offset, ShaderBufferHandle binding)
 {
 	//DEBUG_ASSERT(size <= binding.mSize, "Size is larger than storage block size!");
-	UpdateGLBuffer(binding.idx, data, 0, size);
+	UpdateGLBuffer(binding.idx, data, offset, size);
 }
 
 void Renderer::UpdateUniformBlock(const void* data, u32 size, u32 offset, UniformBufferHandle binding)
@@ -1132,6 +1137,16 @@ void Renderer::UpdateUniformBlock(const void* data, u32 size, u32 offset, Unifor
 	//DEBUG_ASSERT(size <= binding.mSize, "Size is larger than storage block size!");
 	UpdateGLBuffer(binding.idx, data, offset, size);
 }
+
+void graphics::Renderer::DestroyUniformBlock(UniformBufferHandle handle)
+{
+	DeleteCommand command{};
+	command.mType = DeleteCommand::Type::UniformBuffer;
+	command.mUniformBuffer = handle;
+
+	deletions.push_back(command);
+}
+
 
 VertexBufferHandle Renderer::CreateVertexBuffer(const void* data, u32 size, BufferUsage usage)
 {

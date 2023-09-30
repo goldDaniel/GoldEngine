@@ -44,8 +44,10 @@ namespace gold
 
 		graphics::UniformBufferHandle CreateUniformBuffer(const void* data, u32 size);
 		void UpdateUniformBuffer(graphics::UniformBufferHandle clientHandle, const void* data, u32 size, u32 offset = 0);
+		void DestroyUniformBuffer(graphics::UniformBufferHandle clientHandle);
 
 		graphics::ShaderBufferHandle CreateShaderBuffer(const void* data, u32 size);
+		void UpdateShaderBuffer(graphics::ShaderBufferHandle clientHandle, const void* data, u32 size, u32 offset = 0);
 
 		graphics::ShaderHandle CreateShader(const char* vertSrc, const char* fragSrc);
 
