@@ -1,6 +1,8 @@
 #pragma once 
 
 #include "core/Core.h"
+#include "core/Input.h"
+#include "core/Singletons.h"
 
 namespace gold
 {
@@ -18,6 +20,7 @@ namespace gold
 			: mCommandArgs(std::move(commandArgs))
 		{
 			Logging::Init();
+			Singletons::Get()->Register<Input>([]() { return std::make_shared<Input>(); });
 		}
 
 		virtual ~Platform() {}

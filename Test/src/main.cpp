@@ -36,10 +36,6 @@ protected:
 
 	virtual void Update(float delta, gold::FrameEncoder& encoder) override
 	{
-		if (mFirstFrame)
-		{
-			mFirstFrame = false;
-		}
 
 		mRenderSystem.SetScreenSize(GetScreenSize());
 		mRenderSystem.SetEncoder(&encoder);

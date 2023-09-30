@@ -10,12 +10,16 @@ static_assert(false && "Known Platform for SDL backend!");
 #endif
 
 #include "core/Application.h"
+#include "core/Singletons.h"
+#include "core/Input.h"
+#include "thirdparty/imgui_impl_sdl2.h"
 
 #include <SDL.h>
 #include <filesystem>
 
 #include <imgui.h>
-#include "thirdparty/imgui_impl_sdl2.h"
+
+
 
 using namespace gold;
 
@@ -107,19 +111,49 @@ void Platform_SDL::PlatformEvents(Application& app)
 		{
 		case SDL_QUIT:
 		{
-			G_ENGINE_WARN("Engine shutdown requested.");
+			G_ENGINE_WARN("Shutting Down.");
 			app.Shutdown();
 			break;
 		}
 		case SDL_WINDOWEVENT:
-		{
 			switch (event.window.event)
 			{
-			case SDL_WINDOWEVENT_SIZE_CHANGED:
-			case SDL_WINDOWEVENT_RESIZED:
-				app.SetScreenSize(event.window.data1, event.window.data2);
+			case SDL_KEYDOWN:
+				if (!io.WantCaptureKeyboard)
+				{
+					Singletons::Get()->Resolve<Input>()->SetKeyState(static_cast<KeyCode>(event.key.keysym.sym), true);
+				}
+				break;
+			case SDL_KEYUP:
+				if (!io.WantCaptureKeyboard)
+				{
+					Singletons::Get()->Resolve<Input>()->SetKeyState(static_cast<KeyCode>(event.key.keysym.sym), false);
+				}
+				break;
+			case SDL_MOUSEMOTION:
+				if (!io.WantCaptureMouse)
+				{
+					int x;
+					int y;
+					SDL_GetMouseState(&x, &y);
+					Singletons::Get()->Resolve<Input>()->SetMousePosition(x, y);
+				}
+				break;
+
+			case SDL_MOUSEBUTTONDOWN:
+				if (!io.WantCaptureMouse)
+				{
+					Singletons::Get()->Resolve<Input>()->SetMouseState(static_cast<MouseButton>(event.button.button), true);
+				}
+				break;
+
+			case SDL_MOUSEBUTTONUP:
+				if (!io.WantCaptureMouse)
+				{
+					Singletons::Get()->Resolve<Input>()->SetMouseState(static_cast<MouseButton>(event.button.button), false);
+				}
+				break;
 			}
-		}
 		}
 	}
 }
