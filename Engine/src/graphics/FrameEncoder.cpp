@@ -5,6 +5,25 @@
 using namespace graphics;
 using namespace gold;
 
+static void WriteCreateTexture2D(const TextureDescription2D& desc, BinaryWriter& writer)
+{
+	writer.Write(desc.mNameHash);
+	writer.Write(desc.mWidth);
+	writer.Write(desc.mHeight);
+	writer.Write(desc.mDataSize);
+	if (desc.mDataSize > 0)
+	{
+		writer.Write(desc.mData, desc.mDataSize);
+	}
+
+	writer.Write(desc.mFormat);
+	writer.Write(desc.mWrap);
+	writer.Write(desc.mFilter);
+	
+	writer.Write(desc.mMipmaps);
+	writer.Write(desc.mBorderColor);
+}
+
 FrameEncoder::FrameEncoder(ClientResources& resources, u64 virtualCommandListSize)
 	: mMemory(static_cast<u8*>(malloc(virtualCommandListSize)))
 	, mWriter(mMemory, virtualCommandListSize)
@@ -55,14 +74,7 @@ u8 FrameEncoder::AddRenderPass(const graphics::RenderPass& pass)
 	mWriter.Write(pass.mName, size);
 
 	// framebuffer
-	mWriter.Write(pass.mTarget.mHandle); // client handle
-	for (u32 i = 0; i < static_cast<u32>(OutputSlot::Count); ++i)
-	{
-		mWriter.Write(pass.mTarget.mTextures[i]); // client handles
-	}
-	mWriter.Write(pass.mTarget.mWidth);
-	mWriter.Write(pass.mTarget.mHeight);
-
+	mWriter.Write(pass.mTarget); // client handle
 
 	// clear color/depth
 	u8 clearColorBit = 1 << 0;
@@ -78,7 +90,7 @@ u8 FrameEncoder::AddRenderPass(const graphics::RenderPass& pass)
 	return mNextPass++;
 }
 
-u8 FrameEncoder::AddRenderPass(const char* name, FrameBuffer target, ClearColor color, ClearDepth depth)
+u8 FrameEncoder::AddRenderPass(const char* name, FrameBufferHandle target, ClearColor color, ClearDepth depth)
 {
 	RenderPass pass{};
 	pass.mName = name;
@@ -91,8 +103,8 @@ u8 FrameEncoder::AddRenderPass(const char* name, FrameBuffer target, ClearColor 
 
 u8 FrameEncoder::AddRenderPass(const char* name, ClearColor color, ClearDepth depth)
 {
-	FrameBuffer framebufffer{};
-	return AddRenderPass(name, framebufffer, color, depth);
+	FrameBufferHandle fb{};
+	return AddRenderPass(name, fb, color, depth);
 }
 
 // Index Buffer //////////////////////////////////////////////
@@ -269,21 +281,23 @@ graphics::TextureHandle FrameEncoder::CreateTexture2D(const graphics::TextureDes
 	graphics::TextureHandle clientHandle = mResources.CreateTexture();
 	mWriter.Write(clientHandle);
 
-	mWriter.Write(desc.mNameHash);
-	mWriter.Write(desc.mWidth);
-	mWriter.Write(desc.mHeight);
-	mWriter.Write(desc.mDataSize);
-	if (desc.mDataSize > 0)
+	WriteCreateTexture2D(desc, mWriter);
+
+	return clientHandle;
+}
+
+FrameBufferHandle FrameEncoder::CreateFrameBuffer(const FrameBufferDescription& desc)
+{
+	mWriter.Write(RenderCommand::CreateFrameBuffer);
+	FrameBufferHandle clientHandle = mResources.CreateFrameBuffer();
+	mWriter.Write(clientHandle);
+
+	u32 maxAttachments = static_cast<u32>(OutputSlot::Count);
+	for (u32 i = 0; i < maxAttachments; ++i)
 	{
-		mWriter.Write(desc.mData, desc.mDataSize);
+		WriteCreateTexture2D(desc.mTextures[i].mDescription, mWriter);
+		mWriter.Write(desc.mTextures[i].mAttachment);
 	}
-
-	mWriter.Write(desc.mFormat);
-	mWriter.Write(desc.mWrap);
-	mWriter.Write(desc.mFilter);
-
-	mWriter.Write(desc.mMipmaps);
-	mWriter.Write(desc.mBorderColor);
 
 	return clientHandle;
 }

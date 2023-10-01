@@ -18,6 +18,8 @@ namespace gold
 
 		virtual graphics::ShaderBufferHandle CreateShaderBuffer() = 0;
 
+		virtual graphics::FrameBufferHandle CreateFrameBuffer() = 0;
+
 		virtual graphics::MeshHandle CreateMesh() = 0;
 
 		virtual graphics::TextureHandle CreateTexture() = 0;
@@ -44,6 +46,8 @@ namespace gold
 		virtual graphics::MeshHandle& get(graphics::MeshHandle clientHandle) = 0;
 
 		virtual graphics::TextureHandle& get(graphics::TextureHandle clientHandle) = 0;
+
+		virtual graphics::FrameBufferHandle& get(graphics::FrameBufferHandle clientHandle) = 0;
 	};
 
 	template<typename T>
@@ -77,7 +81,8 @@ namespace gold
 		ResourceMapper<graphics::ShaderBufferHandle> mShaderBuffers;
 		ResourceMapper<graphics::MeshHandle> mMeshs;
 		ResourceMapper<graphics::TextureHandle> mTextures;
-		
+		ResourceMapper<graphics::FrameBufferHandle> mFrameBuffers;
+
 	public:
 
 		// Client Side
@@ -95,6 +100,8 @@ namespace gold
 
 		graphics::TextureHandle CreateTexture() override { return mTextures.Create(); }
 
+		graphics::FrameBufferHandle CreateFrameBuffer() override { return mFrameBuffers.Create();  }
+
 
 		// Server Side
 		graphics::VertexBufferHandle& get(graphics::VertexBufferHandle clientHandle) override { return mVertexBuffers.Get(clientHandle); }
@@ -110,5 +117,7 @@ namespace gold
 		graphics::MeshHandle& get(graphics::MeshHandle clientHandle) override { return mMeshs.Get(clientHandle); }
 
 		graphics::TextureHandle& get(graphics::TextureHandle clientHandle) override { return mTextures.Get(clientHandle); }
+
+		graphics::FrameBufferHandle& get(graphics::FrameBufferHandle clientHandle) override { return mFrameBuffers.Get(clientHandle); }
 	};
 }

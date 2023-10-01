@@ -9,6 +9,27 @@
 using namespace graphics;
 using namespace gold;
 
+static TextureDescription2D ReadCreateTexture2D(BinaryReader& reader, LinearAllocator& frameAllocator)
+{
+	TextureDescription2D desc;
+	desc.mNameHash = reader.Read<u32>();
+	desc.mWidth = reader.Read<u32>();
+	desc.mHeight = reader.Read<u32>();
+	desc.mDataSize = reader.Read<u32>();
+	if (desc.mDataSize > 0)
+	{
+		desc.mData = frameAllocator.Allocate(desc.mDataSize);
+		reader.Read((u8*)desc.mData, desc.mDataSize);
+	}
+	desc.mFormat = reader.Read<TextureFormat>();
+	desc.mWrap = reader.Read<TextureWrap>();
+	desc.mFilter = reader.Read<TextureFilter>();
+	desc.mMipmaps = reader.Read<bool>();
+	desc.mBorderColor = reader.Read<glm::vec4>();
+
+	return desc;
+}
+
 void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, ServerResources& resources, BinaryReader& reader)
 {
 	std::vector<std::function<void()>> preDrawActions;
@@ -190,22 +211,8 @@ void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, S
 			TextureHandle clientHandle = reader.Read<TextureHandle>();
 			TextureHandle& serverHandle = resources.get(clientHandle);
 
-			TextureDescription2D desc;
-			desc.mNameHash = reader.Read<u32>();
-			desc.mWidth = reader.Read<u32>();
-			desc.mHeight = reader.Read<u32>();
-			desc.mDataSize = reader.Read<u32>();
-			if (desc.mDataSize > 0)
-			{
-				desc.mData = frameAllocator.Allocate(desc.mDataSize);
-				reader.Read((u8*)desc.mData, desc.mDataSize);
-			}
-			desc.mFormat = reader.Read<TextureFormat>();
-			desc.mWrap = reader.Read<TextureWrap>();
-			desc.mFilter = reader.Read<TextureFilter>();
-			desc.mMipmaps = reader.Read<bool>();
-			desc.mBorderColor = reader.Read<glm::vec4>();
-
+			TextureDescription2D desc = ReadCreateTexture2D(reader, frameAllocator);
+			
 			serverHandle = renderer.CreateTexture2D(desc);
 
 			break;
@@ -229,7 +236,20 @@ void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, S
 		// Frame Buffers
 		case RenderCommand::CreateFrameBuffer:
 		{
-			DEBUG_ASSERT(false, "Not implemented!");
+			FrameBufferHandle clientHandle = reader.Read<FrameBufferHandle>();
+			FrameBufferHandle& serverHandle = resources.get(clientHandle);
+
+			FrameBufferDescription desc;
+
+			u32 maxAttachments = static_cast<u32>(OutputSlot::Count);
+			for (u32 i = 0; i < maxAttachments; ++i)
+			{
+				desc.mTextures[i].mDescription = ReadCreateTexture2D(reader, frameAllocator);
+				desc.mTextures[i].mAttachment = reader.Read<FramebufferAttachment>();
+			}
+
+			serverHandle = renderer.CreateFramebuffer(desc).mHandle;
+
 			break;
 		}
 		case RenderCommand::DestroyFrameBuffer:
@@ -412,17 +432,7 @@ void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, S
 			pass.mName = (char*)frameAllocator.Allocate(nameSize);
 			reader.Read((u8*)pass.mName, nameSize);
 
-
-			pass.mTarget.mHandle = reader.Read<u32>();
-			for (u32 i = 0; i < static_cast<u32>(OutputSlot::Count); ++i)
-			{
-				TextureHandle clientHandle = reader.Read<TextureHandle>();
-				TextureHandle serverHandle = remap(clientHandle);
-				pass.mTarget.mTextures[i] = serverHandle;
-			}
-
-			pass.mTarget.mWidth = reader.Read<u32>();
-			pass.mTarget.mHeight = reader.Read<u32>();
+			pass.mTarget = remap(reader.Read<FrameBufferHandle>());
 
 			// TODO (danielg): Also defined in the frame encoder. Move to shared location
 			// clear color/depth

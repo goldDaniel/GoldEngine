@@ -24,6 +24,7 @@ G_RENDER_HANDLE(ShaderBufferHandle);
 G_RENDER_HANDLE(TextureHandle);
 G_RENDER_HANDLE(MeshHandle);
 G_RENDER_HANDLE(ShaderHandle);
+G_RENDER_HANDLE(FrameBufferHandle);
 
 #undef G_RENDER_HANDLE
 
@@ -336,7 +337,7 @@ namespace graphics
 
 	struct FrameBuffer
 	{
-		u32 mHandle = 0;
+		FrameBufferHandle mHandle{ 0 };
 		std::array<TextureHandle, static_cast<u64>(OutputSlot::Count)> mTextures{0};
 
 		u32 mWidth = 0;
@@ -363,7 +364,7 @@ namespace graphics
 	{
 		const char* mName = nullptr;
 
-		FrameBuffer mTarget;
+		FrameBufferHandle mTarget{};
 
 		bool mClearColor = false;
 		glm::vec4 mColor{ 0,0,0,1 };

@@ -168,6 +168,11 @@ static SDL_GLContext glContext;
 
 static StateCache stateCache;
 
+
+static std::unordered_map<FrameBufferHandle, FrameBuffer> frameBuffers =
+{
+	{FrameBufferHandle{}, FrameBuffer{}}
+};
 static std::unordered_map<ShaderHandle, Shader> shaders;
 static std::unordered_map<UniformBufferHandle, UniformBuffer> uniformBuffers;
 static std::unordered_map<ShaderBufferHandle, StorageBuffer> shaderBuffers;
@@ -588,7 +593,7 @@ void Renderer::ClearBackBuffer()
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 	glClearColor(0, 0, 0, 1);
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, stateCache.prevFrameBuffer.mHandle);
+	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, stateCache.prevFrameBuffer.mHandle.idx);
 }
 
 void Renderer::EndFrame()
@@ -826,7 +831,7 @@ void Renderer::EndFrame()
 				 state.mViewport.width == 0 && state.mViewport.height == 0))
 			{
 				const auto& renderPass = renderPasses[state.mRenderPass];
-				const auto& frameBuffer = renderPass.mTarget;
+				const auto& frameBuffer = frameBuffers[renderPass.mTarget];
 
 				glViewport(0, 0, frameBuffer.mWidth, frameBuffer.mHeight);
 			}
@@ -843,11 +848,11 @@ void Renderer::EndFrame()
 	{
 		glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, -1, pass.mName);
 
-		const FrameBuffer& framebuffer = pass.mTarget;
+		const FrameBuffer& framebuffer = frameBuffers[pass.mTarget];
 
-		if (framebuffer.mHandle != stateCache.prevFrameBuffer.mHandle)
+		if (framebuffer.mHandle.idx != stateCache.prevFrameBuffer.mHandle.idx)
 		{
-			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer.mHandle);
+			glBindFramebuffer(GL_DRAW_FRAMEBUFFER, framebuffer.mHandle.idx);
 			stateCache.prevFrameBuffer.mHandle = framebuffer.mHandle;
 		}
 
@@ -858,7 +863,7 @@ void Renderer::EndFrame()
 		{
 			// FrameBufferHandle == 0 is the backbuffer
 			glm::ivec4 mViewport = { 0, 0, backBufferSize.x, backBufferSize.y };
-			if (framebuffer.mHandle)
+			if (framebuffer.mHandle.idx)
 			{
 				mViewport = {0, 0, framebuffer.mWidth, framebuffer.mHeight };
 			}
@@ -1089,7 +1094,7 @@ u8 Renderer::AddRenderPass(const RenderPass& desc)
 	return static_cast<u8>(renderPasses.size() - 1);
 }
 
-u8 Renderer::AddRenderPass(const char* name, FrameBuffer target, ClearColor color, ClearDepth depth)
+u8 Renderer::AddRenderPass(const char* name, FrameBufferHandle target, ClearColor color, ClearDepth depth)
 {
 	RenderPass pass{};
 	pass.mName = name;
@@ -1102,8 +1107,8 @@ u8 Renderer::AddRenderPass(const char* name, FrameBuffer target, ClearColor colo
 
 u8 Renderer::AddRenderPass(const char* name, ClearColor color, ClearDepth depth)
 {
-	FrameBuffer framebufffer{};
-	return AddRenderPass(name, framebufffer, color, depth);
+	FrameBufferHandle fb{};
+	return AddRenderPass(name, fb, color, depth);
 }
 
 ShaderBufferHandle Renderer::CreateStorageBlock(const void* data, u32 size)
@@ -1411,8 +1416,8 @@ FrameBuffer Renderer::CreateFramebuffer(const FrameBufferDescription& desc)
 	};
 
 	FrameBuffer result{};
-	glGenFramebuffers(1, &result.mHandle);
-	glBindFramebuffer(GL_FRAMEBUFFER, result.mHandle);
+	glGenFramebuffers(1, &result.mHandle.idx);
+	glBindFramebuffer(GL_FRAMEBUFFER, result.mHandle.idx);
 
 	std::array<GLenum, static_cast<u64>(OutputSlot::Count)> buffers;
 	for (u64 i = 0; i < desc.mTextures.size(); ++i)
@@ -1458,9 +1463,9 @@ FrameBuffer Renderer::CreateFramebuffer(const TextureDescription2D& desc, Frameb
 
 void Renderer::DestroyFramebuffer(FrameBuffer buffer)
 {
-	if (!buffer.mHandle) return;
+	if (!buffer.mHandle.idx) return;
 
-	glDeleteFramebuffers(1, &buffer.mHandle);
+	glDeleteFramebuffers(1, &buffer.mHandle.idx);
 	for (const auto& tex : buffer.mTextures)
 	{
 		if (tex.idx)

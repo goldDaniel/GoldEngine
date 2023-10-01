@@ -35,7 +35,7 @@ namespace gold
 		BinaryReader GetReader();
 
 		u8 AddRenderPass(const graphics::RenderPass& pass);
-		u8 AddRenderPass(const char* name, graphics::FrameBuffer target, graphics::ClearColor color, graphics::ClearDepth depth);
+		u8 AddRenderPass(const char* name, graphics::FrameBufferHandle target, graphics::ClearColor color, graphics::ClearDepth depth);
 		u8 AddRenderPass(const char* name, graphics::ClearColor color, graphics::ClearDepth depth);
 
 		graphics::IndexBufferHandle CreateIndexBuffer(const void* data, u32 size);
@@ -54,6 +54,8 @@ namespace gold
 		graphics::MeshHandle CreateMesh(const graphics::MeshDescription& mesh);
 
 		graphics::TextureHandle CreateTexture2D(const graphics::TextureDescription2D& desc);
+
+		graphics::FrameBufferHandle CreateFrameBuffer(const graphics::FrameBufferDescription& desc);
 
 		void DrawMesh(const graphics::MeshHandle mesh, const graphics::RenderState& state);
 	};

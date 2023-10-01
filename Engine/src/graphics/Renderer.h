@@ -22,7 +22,7 @@ namespace graphics
 
 		u8 AddRenderPass(const RenderPass& description);
 		u8 AddRenderPass(const char* name, ClearColor clearColor = ClearColor::NO, ClearDepth clearDepth = ClearDepth::NO);	
-		u8 AddRenderPass(const char* name, FrameBuffer target, ClearColor clearColor = ClearColor::NO, ClearDepth clearDepth = ClearDepth::NO);
+		u8 AddRenderPass(const char* name, FrameBufferHandle target, ClearColor clearColor = ClearColor::NO, ClearDepth clearDepth = ClearDepth::NO);
 
 		
 		UniformBufferHandle CreateUniformBlock(const void* data, uint32_t size);
