@@ -286,20 +286,34 @@ graphics::TextureHandle FrameEncoder::CreateTexture2D(const graphics::TextureDes
 	return clientHandle;
 }
 
-FrameBufferHandle FrameEncoder::CreateFrameBuffer(const FrameBufferDescription& desc)
+FrameBuffer FrameEncoder::CreateFrameBuffer(const FrameBufferDescription& desc)
 {
 	mWriter.Write(RenderCommand::CreateFrameBuffer);
 	FrameBufferHandle clientHandle = mResources.CreateFrameBuffer();
 	mWriter.Write(clientHandle);
 
+	FrameBuffer result{ clientHandle };
+	
 	u32 maxAttachments = static_cast<u32>(OutputSlot::Count);
 	for (u32 i = 0; i < maxAttachments; ++i)
 	{
-		WriteCreateTexture2D(desc.mTextures[i].mDescription, mWriter);
-		mWriter.Write(desc.mTextures[i].mAttachment);
+		if (desc.mTextures[i].mDescription.mFormat != TextureFormat::INVALID)
+		{
+			result.mTextures[i] = mResources.CreateTexture();
+			result.mWidth  = desc.mTextures[i].mDescription.mWidth;
+			result.mHeight = desc.mTextures[i].mDescription.mHeight;
+		}
+
+		mWriter.Write(result.mTextures[i]);
+
+		if (result.mTextures[i].idx)
+		{
+			WriteCreateTexture2D(desc.mTextures[i].mDescription, mWriter);
+			mWriter.Write(desc.mTextures[i].mAttachment);
+		}
 	}
 
-	return clientHandle;
+	return result;
 }
 
 void FrameEncoder::DrawMesh(const MeshHandle handle, const RenderState& state)

@@ -55,7 +55,7 @@ namespace gold
 
 		graphics::TextureHandle CreateTexture2D(const graphics::TextureDescription2D& desc);
 
-		graphics::FrameBufferHandle CreateFrameBuffer(const graphics::FrameBufferDescription& desc);
+		graphics::FrameBuffer CreateFrameBuffer(const graphics::FrameBufferDescription& desc);
 
 		void DrawMesh(const graphics::MeshHandle mesh, const graphics::RenderState& state);
 	};

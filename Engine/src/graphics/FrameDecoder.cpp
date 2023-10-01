@@ -240,15 +240,27 @@ void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, S
 			FrameBufferHandle& serverHandle = resources.get(clientHandle);
 
 			FrameBufferDescription desc;
-
-			u32 maxAttachments = static_cast<u32>(OutputSlot::Count);
+			constexpr u32 maxAttachments = static_cast<u32>(OutputSlot::Count);
+			std::array<TextureHandle, maxAttachments> clientTextures{ 0 };
 			for (u32 i = 0; i < maxAttachments; ++i)
 			{
-				desc.mTextures[i].mDescription = ReadCreateTexture2D(reader, frameAllocator);
-				desc.mTextures[i].mAttachment = reader.Read<FramebufferAttachment>();
+				clientTextures[i] = reader.Read<TextureHandle>();
+
+				if (clientTextures[i].idx)
+				{
+					desc.mTextures[i].mDescription = ReadCreateTexture2D(reader, frameAllocator);
+					desc.mTextures[i].mAttachment = reader.Read<FramebufferAttachment>();
+				}
 			}
 
-			serverHandle = renderer.CreateFramebuffer(desc).mHandle;
+			FrameBuffer fb = renderer.CreateFramebuffer(desc);
+			serverHandle = fb.mHandle;
+			
+			// client/server handle mapping setup for framebuffer reads
+			for (u32 i = 0; i < maxAttachments; ++i)
+			{
+				resources.get(clientTextures[i]) = fb.mTextures[i];
+			}
 
 			break;
 		}

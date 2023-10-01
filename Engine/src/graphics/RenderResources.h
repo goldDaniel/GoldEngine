@@ -18,11 +18,11 @@ namespace gold
 
 		virtual graphics::ShaderBufferHandle CreateShaderBuffer() = 0;
 
-		virtual graphics::FrameBufferHandle CreateFrameBuffer() = 0;
-
 		virtual graphics::MeshHandle CreateMesh() = 0;
 
 		virtual graphics::TextureHandle CreateTexture() = 0;
+
+		virtual graphics::FrameBufferHandle CreateFrameBuffer() = 0;
 	};
 
 
@@ -84,7 +84,6 @@ namespace gold
 		ResourceMapper<graphics::FrameBufferHandle> mFrameBuffers;
 
 	public:
-
 		// Client Side
 		graphics::VertexBufferHandle CreateVertexBuffer() override { return mVertexBuffers.Create(); }
 
@@ -99,9 +98,6 @@ namespace gold
 		graphics::MeshHandle CreateMesh() override { return mMeshs.Create(); }
 
 		graphics::TextureHandle CreateTexture() override { return mTextures.Create(); }
-
-		graphics::FrameBufferHandle CreateFrameBuffer() override { return mFrameBuffers.Create();  }
-
 
 		// Server Side
 		graphics::VertexBufferHandle& get(graphics::VertexBufferHandle clientHandle) override { return mVertexBuffers.Get(clientHandle); }
