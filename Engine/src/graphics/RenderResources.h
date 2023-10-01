@@ -99,6 +99,8 @@ namespace gold
 
 		graphics::TextureHandle CreateTexture() override { return mTextures.Create(); }
 
+		graphics::FrameBufferHandle CreateFrameBuffer() override { return mFrameBuffers.Create(); }
+
 		// Server Side
 		graphics::VertexBufferHandle& get(graphics::VertexBufferHandle clientHandle) override { return mVertexBuffers.Get(clientHandle); }
 
