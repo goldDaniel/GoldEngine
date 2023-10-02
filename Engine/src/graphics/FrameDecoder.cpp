@@ -237,29 +237,26 @@ void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, S
 		case RenderCommand::CreateFrameBuffer:
 		{
 			FrameBufferHandle clientHandle = reader.Read<FrameBufferHandle>();
-			FrameBufferHandle& serverHandle = resources.get(clientHandle);
 
 			FrameBufferDescription desc;
 			constexpr u32 maxAttachments = static_cast<u32>(OutputSlot::Count);
-			std::array<TextureHandle, maxAttachments> clientTextures{ 0 };
+			std::array<TextureHandle, maxAttachments> clientTextures{};
 			for (u32 i = 0; i < maxAttachments; ++i)
 			{
 				clientTextures[i] = reader.Read<TextureHandle>();
-
-				if (clientTextures[i].idx)
-				{
-					desc.mTextures[i].mDescription = ReadCreateTexture2D(reader, frameAllocator);
-					desc.mTextures[i].mAttachment = reader.Read<FramebufferAttachment>();
-				}
+				desc.mTextures[i].mDescription = ReadCreateTexture2D(reader, frameAllocator);
+				desc.mTextures[i].mAttachment = reader.Read<FramebufferAttachment>();
 			}
 
-			FrameBuffer fb = renderer.CreateFramebuffer(desc);
-			serverHandle = fb.mHandle;
-			
 			// client/server handle mapping setup for framebuffer reads
+			FrameBuffer fb = renderer.CreateFramebuffer(desc);
+			resources.get(clientHandle) = fb.mHandle;
 			for (u32 i = 0; i < maxAttachments; ++i)
 			{
-				resources.get(clientTextures[i]) = fb.mTextures[i];
+				if (clientTextures[i].idx)
+				{
+					resources.get(clientTextures[i]) = fb.mTextures[i];
+				}
 			}
 
 			break;

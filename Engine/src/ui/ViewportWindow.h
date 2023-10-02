@@ -13,7 +13,7 @@ private:
 	std::function<uint32_t(u32, u32)> mResizeFunc;
 
 public:
-	ViewportWindow(std::function<uint32_t(u32, u32)>&& func)
+	ViewportWindow(std::function<u32(u32, u32)>&& func)
 		: ImGuiWindow("Game Viewport", true)
 		, mResizeFunc(std::move(func))
 	{

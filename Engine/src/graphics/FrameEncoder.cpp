@@ -294,25 +294,23 @@ FrameBuffer FrameEncoder::CreateFrameBuffer(const FrameBufferDescription& desc)
 
 	FrameBuffer result{ clientHandle };
 	
-	u32 maxAttachments = static_cast<u32>(OutputSlot::Count);
+	constexpr u32 maxAttachments = static_cast<u64>(OutputSlot::Count);
 	for (u32 i = 0; i < maxAttachments; ++i)
 	{
 		if (desc.mTextures[i].mDescription.mFormat != TextureFormat::INVALID)
 		{
 			result.mTextures[i] = mResources.CreateTexture();
-			result.mWidth  = desc.mTextures[i].mDescription.mWidth;
+			result.mWidth = desc.mTextures[i].mDescription.mWidth;
 			result.mHeight = desc.mTextures[i].mDescription.mHeight;
 		}
 
 		mWriter.Write(result.mTextures[i]);
-
-		if (result.mTextures[i].idx)
-		{
-			WriteCreateTexture2D(desc.mTextures[i].mDescription, mWriter);
-			mWriter.Write(desc.mTextures[i].mAttachment);
-		}
+		WriteCreateTexture2D(desc.mTextures[i].mDescription, mWriter);
+		mWriter.Write(desc.mTextures[i].mAttachment);
 	}
 
+	DEBUG_ASSERT(result.mWidth  > 0, "Invalid framebuffer size!");
+	DEBUG_ASSERT(result.mHeight > 0, "Invalid framebuffer size!");
 	return result;
 }
 

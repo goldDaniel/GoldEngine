@@ -36,10 +36,25 @@ protected:
 
 	virtual void Update(float delta, gold::FrameEncoder& encoder) override
 	{
+		
+		if(mFirstFrame)
+		{
+			mFirstFrame = false;
 
+			graphics::FrameBufferDescription desc;
+			graphics::TextureDescription2D texDesc;
+			texDesc.mFormat = graphics::TextureFormat::RGBA_U8;
+			texDesc.mWidth  = 800;
+			texDesc.mHeight = 600;
+
+			desc.Put(graphics::OutputSlot::Color0, texDesc);
+
+			mGameBuffer = encoder.CreateFrameBuffer(desc);
+		}
+		
 		mRenderSystem.SetScreenSize(GetScreenSize());
 		mRenderSystem.SetEncoder(&encoder);
-		//mRenderSystem.SetRenderTarget(mGameBuffer);
+		mRenderSystem.SetRenderTarget(mGameBuffer);
 		mRenderSystem.Tick(mScene, delta);
 	}
 };

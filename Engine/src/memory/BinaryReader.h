@@ -20,7 +20,7 @@ namespace gold
 
 		bool HasData() const
 		{
-			return mOffset <= mSize;
+			return mSize > 0;
 		}
 
 		void Reset()

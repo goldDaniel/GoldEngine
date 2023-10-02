@@ -131,13 +131,20 @@ public:
 		mvp *= glm::lookAt(glm::vec3{ 0, 0, 5 }, glm::vec3{ 0,0,0 }, glm::vec3{ 0,1,0 });
 		mEncoder->UpdateUniformBuffer(mView, &mvp, sizeof(glm::mat4));
 
-		uint8_t pass = mEncoder->AddRenderPass("Default", graphics::ClearColor::YES, graphics::ClearDepth::YES);
+		uint8_t pass = mEncoder->AddRenderPass("Default", mTarget.mHandle, graphics::ClearColor::YES, graphics::ClearDepth::YES);
 		graphics::RenderState state;
 		state.mRenderPass = pass;
 		state.mShader = mShader;
 		state.SetUniformBlock("View_UBO", { mView });
 		state.SetTexture("u_texture", mTexture);
 
+		mEncoder->DrawMesh(mMesh, state);
+
+		uint8_t pass1 = mEncoder->AddRenderPass("Backbuffer", graphics::ClearColor::YES, graphics::ClearDepth::YES);
+		state.mRenderPass = pass1;
+		state.mShader = mShader;
+		state.SetUniformBlock("View_UBO", { mView });
+		state.SetTexture("u_texture", mTarget.mTextures[0]);
 		mEncoder->DrawMesh(mMesh, state);
 	}
 };

@@ -1415,10 +1415,14 @@ FrameBuffer Renderer::CreateFramebuffer(const FrameBufferDescription& desc)
 		return GL_INVALID_ENUM;
 	};
 
-	FrameBuffer result{};
-	glGenFramebuffers(1, &result.mHandle.idx);
-	glBindFramebuffer(GL_FRAMEBUFFER, result.mHandle.idx);
+	FrameBufferHandle handle;
+	glGenFramebuffers(1, &handle.idx);
+	glBindFramebuffer(GL_FRAMEBUFFER, handle.idx);
 
+	DEBUG_ASSERT(frameBuffers.find(handle) == frameBuffers.end(), "Framebuffer already exists?");
+	FrameBuffer& result = frameBuffers[handle];
+	result.mHandle = handle;
+	
 	std::array<GLenum, static_cast<u64>(OutputSlot::Count)> buffers;
 	for (u64 i = 0; i < desc.mTextures.size(); ++i)
 	{
