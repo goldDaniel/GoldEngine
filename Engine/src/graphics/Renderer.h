@@ -25,26 +25,16 @@ namespace graphics
 		u8 AddRenderPass(const char* name, FrameBufferHandle target, ClearColor clearColor = ClearColor::NO, ClearDepth clearDepth = ClearDepth::NO);
 
 		
-		UniformBufferHandle CreateUniformBlock(const void* data, uint32_t size);
-		void UpdateUniformBlock(const void* data, uint32_t size, uint32_t offset, UniformBufferHandle binding);
-		void DestroyUniformBlock(UniformBufferHandle handle);
+		UniformBufferHandle CreateUniformBuffer(const void* data, uint32_t size);
+		void UpdateUniformBuffer(const void* data, uint32_t size, uint32_t offset, UniformBufferHandle binding);
+		void DestroyUniformBuffer(UniformBufferHandle handle);
 
 
 		// Shader Storage Blocks ////////////////////
-		template<typename T>
-		ShaderBufferHandle CreateStorageBlock(const std::vector<T>& data)
-		{
-			return CreateStorageBlock(&data[0], data.size() * sizeof(T));
-		}
-		template<typename T>
-		ShaderBufferHandle CreateStorageBlock(const T& data)
-		{
-			return CreateStorageBlock(&data, sizeof(T));
-		}
-		ShaderBufferHandle CreateStorageBlock(const void* data, uint32_t size);
-
-		void UpdateStorageBlock(const void* data, uint32_t size, uint32_t offset, ShaderBufferHandle binding);
-
+		
+		ShaderBufferHandle CreateShaderBuffer(const void* data, uint32_t size);
+		void UpdateShaderBuffer(const void* data, uint32_t size, uint32_t offset, ShaderBufferHandle binding);
+		void DestroyShaderBuffer(ShaderBufferHandle handle);
 
 		// vertex buffers //////////////////////////
 		template<typename T>
@@ -53,32 +43,13 @@ namespace graphics
 			return CreateVertexBuffer(&data[0], static_cast<uint32_t>(sizeof(T) * data.size()), usage);
 		}
 		VertexBufferHandle CreateVertexBuffer(const void* data = nullptr, uint32_t dataSize = 0, BufferUsage usage = BufferUsage::STATIC);
-
-		template<typename T>
-		void UpdateVertexBuffer(VertexBufferHandle handle, const std::vector<T>& data)
-		{
-			UpdateVertexBuffer(handle, &data[0], static_cast<uint32_t>(data.size() * sizeof(T)));
-		}
-		void UpdateVertexBuffer(VertexBufferHandle handle, const void* data, uint32_t dataSize);
-
-		void DestroyVertexBuffer(VertexBufferHandle handle);
+		void UpdateVertexBuffer(VertexBufferHandle handle, const void* data, uint32_t dataSize, u32 offset);
+		void DestroyVertexBuffer(VertexBufferHandle hanOdle);
 
 
 		// index buffers ////////////////////////////////////////
-		template<typename T>
-		IndexBufferHandle CreateIndexBuffer(const std::vector<T>& data, BufferUsage usage = BufferUsage::STATIC)
-		{
-			return CreateIndexBuffer(&data[0], static_cast<uint32_t>(sizeof(T) * data.size()), usage);
-		}
-		static IndexBufferHandle CreateIndexBuffer(const void* data = nullptr, uint32_t dataSize = 0, BufferUsage usage = BufferUsage::STATIC);
-
-		template<typename T>
-		void UpdateIndexBuffer(IndexBufferHandle handle, const std::vector<T>& data)
-		{
-			UpdateIndexBuffer(handle, &data[0], static_cast<uint32_t>(data.size() * sizeof(T)));
-		}
-		void UpdateIndexBuffer(IndexBufferHandle handle, const void* data, uint32_t dataSize);
-
+		IndexBufferHandle CreateIndexBuffer(const void* data = nullptr, uint32_t dataSize = 0, BufferUsage usage = BufferUsage::STATIC);
+		void UpdateIndexBuffer(IndexBufferHandle handle, const void* data, uint32_t dataSize, u32 offset);
 		void DestroyIndexBuffer(IndexBufferHandle handle);
 
 		// textures //////////////////////////////////////////////
@@ -99,7 +70,7 @@ namespace graphics
 		// frame buffers /////////////////////////////////////
 		FrameBuffer CreateFramebuffer(const TextureDescription2D& description, FramebufferAttachment attachment);
 		FrameBuffer CreateFramebuffer(const FrameBufferDescription& description);
-		void DestroyFramebuffer(FrameBuffer buffer);
+		void DestroyFramebuffer(FrameBufferHandle buffer);
 
 		// shaders /////////////////////////////////////////////
 		ShaderHandle CreateShader(const char* vertexSrc, const char* fragSrc, const char* tessCtrlSrc = nullptr, const char* tessEvalSrc = nullptr);

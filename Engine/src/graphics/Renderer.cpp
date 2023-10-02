@@ -116,23 +116,13 @@ struct DeleteCommand
 	{
 		INVALID,
 
-		VertexBuffer,
-		IndexBuffer,
+		Buffer,
 		Texture,
 		Mesh,
-		UniformBuffer,
 	};
 
 	Type mType = Type::INVALID;
-
-	union
-	{
-		MeshHandle mMesh{0};
-		VertexBufferHandle mVertexBuffer;
-		IndexBufferHandle mIndexBuffer;
-		TextureHandle mTexture;
-		UniformBufferHandle mUniformBuffer;
-	};
+	u32 mHandle;
 };
 
 enum class TextureType
@@ -1051,20 +1041,14 @@ void Renderer::EndFrame()
 	{
 		switch (del.mType)
 		{
-		case DeleteCommand::Type::VertexBuffer:
-			glDeleteBuffers(1, &del.mVertexBuffer.idx);
-			break;
-		case DeleteCommand::Type::IndexBuffer:
-			glDeleteBuffers(1, &del.mIndexBuffer.idx);
-			break;
-		case DeleteCommand::Type::UniformBuffer: 
-			glDeleteBuffers(1, &del.mUniformBuffer.idx);
+		case DeleteCommand::Type::Buffer:
+			glDeleteBuffers(1, &del.mHandle);
 			break;
 		case DeleteCommand::Type::Texture:
-			glDeleteTextures(1, &del.mTexture.idx);
+			glDeleteTextures(1, &del.mHandle);
 			break;
 		case DeleteCommand::Type::Mesh:
-			Mesh& mesh = meshes[del.mMesh];
+			Mesh& mesh = meshes[{del.mHandle}];
 			if (mesh.mPositions.idx)	glDeleteBuffers(1, &mesh.mPositions.idx);
 			if (mesh.mNormals.idx)		glDeleteBuffers(1, &mesh.mNormals.idx);
 			if (mesh.mTexCoords0.idx)	glDeleteBuffers(1, &mesh.mTexCoords0.idx);
@@ -1111,7 +1095,7 @@ u8 Renderer::AddRenderPass(const char* name, ClearColor color, ClearDepth depth)
 	return AddRenderPass(name, fb, color, depth);
 }
 
-ShaderBufferHandle Renderer::CreateStorageBlock(const void* data, u32 size)
+ShaderBufferHandle Renderer::CreateShaderBuffer(const void* data, u32 size)
 {
 	StorageBuffer result;
 
@@ -1121,7 +1105,7 @@ ShaderBufferHandle Renderer::CreateStorageBlock(const void* data, u32 size)
 	return handle;
 }
 
-UniformBufferHandle Renderer::CreateUniformBlock(const void* data, u32 size)
+UniformBufferHandle Renderer::CreateUniformBuffer(const void* data, u32 size)
 {
 	DEBUG_ASSERT(size < static_cast<u32>(maxUBOSize), "Size larger than max UBO size!");
 
@@ -1131,49 +1115,57 @@ UniformBufferHandle Renderer::CreateUniformBlock(const void* data, u32 size)
 	return handle;
 }
 
-void Renderer::UpdateStorageBlock(const void* data, u32 size, u32 offset, ShaderBufferHandle binding)
+void Renderer::UpdateShaderBuffer(const void* data, u32 size, u32 offset, ShaderBufferHandle binding)
 {
 	//DEBUG_ASSERT(size <= binding.mSize, "Size is larger than storage block size!");
 	UpdateGLBuffer(binding.idx, data, offset, size);
 }
 
-void Renderer::UpdateUniformBlock(const void* data, u32 size, u32 offset, UniformBufferHandle binding)
+void Renderer::UpdateUniformBuffer(const void* data, u32 size, u32 offset, UniformBufferHandle binding)
 {
 	//DEBUG_ASSERT(size <= binding.mSize, "Size is larger than storage block size!");
 	UpdateGLBuffer(binding.idx, data, offset, size);
 }
 
-void graphics::Renderer::DestroyUniformBlock(UniformBufferHandle handle)
+void Renderer::DestroyUniformBuffer(UniformBufferHandle handle)
 {
 	DeleteCommand command{};
-	command.mType = DeleteCommand::Type::UniformBuffer;
-	command.mUniformBuffer = handle;
+	command.mType = DeleteCommand::Type::Buffer;
+	command.mHandle = handle.idx;
 
 	deletions.push_back(command);
 }
 
+void Renderer::DestroyShaderBuffer(ShaderBufferHandle handle)
+{
+	DeleteCommand command{};
+	command.mType = DeleteCommand::Type::Buffer;
+	command.mHandle = handle.idx;
+
+	deletions.push_back(command);
+}
 
 VertexBufferHandle Renderer::CreateVertexBuffer(const void* data, u32 size, BufferUsage usage)
 {
 	return { CreateGLBuffer(data, size, usage) };
 }
 
-void Renderer::UpdateVertexBuffer(VertexBufferHandle handle, const void* data, u32 size)
+void Renderer::UpdateVertexBuffer(VertexBufferHandle handle, const void* data, u32 size, u32 offset)
 {
-	UpdateGLBuffer(handle.idx, data, 0, size);
+	UpdateGLBuffer(handle.idx, data, offset, size);
 }
 
-void Renderer::UpdateIndexBuffer(IndexBufferHandle handle, const void* data, u32 size)
+void Renderer::UpdateIndexBuffer(IndexBufferHandle handle, const void* data, u32 size, u32 offset)
 {
-	UpdateGLBuffer(handle.idx, data, 0, size);
+	UpdateGLBuffer(handle.idx, data, offset, size);
 }
 
 void Renderer::DestroyVertexBuffer(VertexBufferHandle handle)
 {
 
 	DeleteCommand command{};
-	command.mType = DeleteCommand::Type::VertexBuffer;
-	command.mVertexBuffer = handle;
+	command.mType = DeleteCommand::Type::Buffer;
+	command.mHandle = handle.idx;
 
 	deletions.push_back(command);
 }
@@ -1186,8 +1178,8 @@ IndexBufferHandle Renderer::CreateIndexBuffer(const void* data, u32 size, Buffer
 void Renderer::DestroyIndexBuffer(IndexBufferHandle handle)
 {
 	DeleteCommand command{};
-	command.mType = DeleteCommand::Type::IndexBuffer;
-	command.mIndexBuffer = handle;
+	command.mType = DeleteCommand::Type::Buffer;
+	command.mHandle = handle.idx;
 
 	deletions.push_back(command);
 }
@@ -1465,9 +1457,11 @@ FrameBuffer Renderer::CreateFramebuffer(const TextureDescription2D& desc, Frameb
 	return CreateFramebuffer(description);
 }
 
-void Renderer::DestroyFramebuffer(FrameBuffer buffer)
+void Renderer::DestroyFramebuffer(FrameBufferHandle handle)
 {
-	if (!buffer.mHandle.idx) return;
+	if (!handle.idx) return;
+
+	FrameBuffer& buffer = frameBuffers[handle];
 
 	glDeleteFramebuffers(1, &buffer.mHandle.idx);
 	for (const auto& tex : buffer.mTextures)
@@ -1477,6 +1471,8 @@ void Renderer::DestroyFramebuffer(FrameBuffer buffer)
 			DestroyTexture(tex);
 		}
 	}
+
+	frameBuffers.erase(handle);
 }
 
 ShaderHandle Renderer::CreateShader(const char* vertexSrc, const char* fragSrc, const char* tessCtrlSrc, const char* tessEvalSrc)
@@ -1882,7 +1878,7 @@ void Renderer::DestroyMesh(const MeshHandle mesh)
 {
 	DeleteCommand command;
 	command.mType = DeleteCommand::Type::Mesh;
-	command.mMesh = mesh;
+	command.mHandle = mesh.idx;
 
 	deletions.push_back(command);
 }

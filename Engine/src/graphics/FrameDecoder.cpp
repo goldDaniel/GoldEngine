@@ -77,7 +77,7 @@ void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, S
 			u8* data = (u8*)frameAllocator.Allocate(size);
 			reader.Read(data, size);
 
-			serverHandle = renderer.CreateUniformBlock(data, size);
+			serverHandle = renderer.CreateUniformBuffer(data, size);
 			break;
 		}
 		case RenderCommand::UpdateUniformBuffer:
@@ -89,7 +89,7 @@ void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, S
 			u32 offset = reader.Read<u32>();
 			preDrawActions.push_back([&renderer, data, size, offset, serverHandle]()
 			{
-				renderer.UpdateUniformBlock(data, size, offset, serverHandle);
+				renderer.UpdateUniformBuffer(data, size, offset, serverHandle);
 			});
 
 			break;
@@ -97,7 +97,7 @@ void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, S
 		case RenderCommand::DestroyUniformBuffer:
 		{
 			UniformBufferHandle serverHandle = resources.get(reader.Read<UniformBufferHandle>());
-			renderer.DestroyUniformBlock(serverHandle);
+			renderer.DestroyUniformBuffer(serverHandle);
 			break;
 		}
 
@@ -111,7 +111,7 @@ void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, S
 			u8* data = (u8*)frameAllocator.Allocate(size);
 			reader.Read(data, size);
 
-			serverHandle = renderer.CreateStorageBlock(data, size);
+			serverHandle = renderer.CreateShaderBuffer(data, size);
 			break;
 		}
 		case RenderCommand::UpdateShaderBuffer:
@@ -123,13 +123,14 @@ void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, S
 			u32 offset = reader.Read<u32>();
 			preDrawActions.push_back([&renderer, data, size, offset, serverHandle]()
 			{
-				renderer.UpdateStorageBlock(data, size, offset, serverHandle);
+				renderer.UpdateShaderBuffer(data, size, offset, serverHandle);
 			});
 			break;
 		}
 		case RenderCommand::DestroyShaderBuffer:
 		{
-			DEBUG_ASSERT(false, "Not implemented!");
+			ShaderBufferHandle serverHandle = resources.get(reader.Read<ShaderBufferHandle>());
+			renderer.DestroyShaderBuffer(serverHandle);
 			break;
 		}
 
@@ -148,13 +149,21 @@ void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, S
 		}
 		case RenderCommand::UpdateVertexBuffer:
 		{
-			DEBUG_ASSERT(false, "Not implemented!");
-			//preDrawActions.push_back([&]() {});
+			VertexBufferHandle serverHandle = resources.get(reader.Read<VertexBufferHandle>());
+			u32 size = reader.Read<u32>();
+			u8* const data = (u8*)frameAllocator.Allocate(size);
+			reader.Read(data, size);
+			u32 offset = reader.Read<u32>();
+			preDrawActions.push_back([&renderer, data, size, offset, serverHandle]()
+			{
+				renderer.UpdateVertexBuffer(serverHandle, data, size, offset);
+			});
 			break;
 		}
 		case RenderCommand::DestroyVertexBuffer:
 		{
-			DEBUG_ASSERT(false, "Not implemented!");
+			VertexBufferHandle serverHandle = resources.get(reader.Read<VertexBufferHandle>());
+			renderer.DestroyVertexBuffer(serverHandle);
 			break;
 		}
 
@@ -173,13 +182,21 @@ void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, S
 		}
 		case RenderCommand::UpdateIndexBuffer:
 		{
-			DEBUG_ASSERT(false, "Not implemented!");
-			//preDrawActions.push_back([&]() {});
+			IndexBufferHandle serverHandle = resources.get(reader.Read<IndexBufferHandle>());
+			u32 size = reader.Read<u32>();
+			u8* const data = (u8*)frameAllocator.Allocate(size);
+			reader.Read(data, size);
+			u32 offset = reader.Read<u32>();
+			preDrawActions.push_back([&renderer, data, size, offset, serverHandle]()
+			{
+				renderer.UpdateIndexBuffer(serverHandle, data, size, offset);
+			});
 			break;
 		}
 		case RenderCommand::DestroyIndexBuffer:
 		{
-			DEBUG_ASSERT(false, "Not implemented!");
+			IndexBufferHandle serverHandle = resources.get(reader.Read<IndexBufferHandle>());
+			renderer.DestroyIndexBuffer(serverHandle);
 			break;
 		}
 
@@ -219,17 +236,64 @@ void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, S
 		}
 		case RenderCommand::CreateTexture3D:
 		{
-			DEBUG_ASSERT(false, "Not implemented!");
+			TextureHandle& serverHandle = resources.get(reader.Read<TextureHandle>());
+			
+			TextureDescription3D desc{};
+			desc.mWidth = reader.Read<u32>();
+			desc.mHeight = reader.Read<u32>();
+			desc.mDepth = reader.Read<u32>();
+
+			desc.mDataSize = reader.Read<u32>();
+			if (desc.mDataSize > 0)
+			{
+				desc.mData.reserve(desc.mDepth);
+				for (u32 i = 0; i < desc.mDepth; ++i)
+				{
+					void* data = frameAllocator.Allocate(desc.mDataSize);
+					reader.Read((u8*)data, desc.mDataSize);
+					desc.mData.push_back(data);
+				}
+			}
+
+			desc.mFormat = reader.Read<TextureFormat>();
+			desc.mWrap = reader.Read<TextureWrap>();
+			desc.mFilter = reader.Read<TextureFilter>();
+			desc.mMipmaps = reader.Read<bool>();
+			desc.mBorderColor = reader.Read<glm::vec4>();
+
+			serverHandle = renderer.CreateTexture3D(desc);
+
 			break;
 		}
 		case RenderCommand::CreateCubemap:
 		{
-			DEBUG_ASSERT(false, "Not implemented!");
+			TextureHandle& serverHandle = resources.get(reader.Read<TextureHandle>());
+			
+			CubemapDescription desc{};
+			desc.mWidth = reader.Read<u32>();
+			desc.mHeight = reader.Read<u32>();
+
+			desc.mDataSize = reader.Read<u32>();
+			if (desc.mDataSize > 0)
+			{
+				for (u8 i = 0; i < static_cast<u8>(CubemapFace::COUNT); ++i)
+				{
+					CubemapFace face = reader.Read<CubemapFace>();
+					desc.mData[face] = frameAllocator.Allocate(desc.mDataSize);
+					reader.Read((u8*)desc.mData[face], desc.mDataSize);
+				}
+			}
+
+			desc.mFormat = reader.Read<TextureFormat>();
+			desc.mWrap = reader.Read<TextureWrap>();
+			desc.mFilter = reader.Read<TextureFilter>();
+
 			break;
 		}
 		case RenderCommand::DestroyTexture:
 		{
-			DEBUG_ASSERT(false, "Not implemented!");
+			TextureHandle serverHandle = resources.get(reader.Read<TextureHandle>());
+			renderer.DestroyTexture(serverHandle);
 			break;
 		}
 
@@ -263,7 +327,8 @@ void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, S
 		}
 		case RenderCommand::DestroyFrameBuffer:
 		{
-			DEBUG_ASSERT(false, "Not implemented!");
+			FrameBufferHandle serverHandle = resources.get(reader.Read<FrameBufferHandle>());
+			renderer.DestroyFramebuffer(serverHandle);
 			break;
 		}
 

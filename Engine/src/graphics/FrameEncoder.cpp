@@ -123,6 +123,21 @@ IndexBufferHandle FrameEncoder::CreateIndexBuffer(const void* data, u32 size)
 	return clientHandle;
 }
 
+void FrameEncoder::UpdateIndexBuffer(graphics::IndexBufferHandle clientHandle, const void* data, u32 size, u32 offset)
+{
+	mWriter.Write(RenderCommand::UpdateIndexBuffer);
+	mWriter.Write(clientHandle);
+	mWriter.Write(size);
+	mWriter.Write(data, size);
+	mWriter.Write(offset);
+}
+
+void FrameEncoder::DestroyIndexBuffer(graphics::IndexBufferHandle clientHandle)
+{
+	mWriter.Write(RenderCommand::DestroyIndexBuffer);
+	mWriter.Write(clientHandle);
+}
+
 VertexBufferHandle FrameEncoder::CreateVertexBuffer(const void* data, u32 size)
 {
 	DEBUG_ASSERT(mRecording, "");
@@ -135,6 +150,21 @@ VertexBufferHandle FrameEncoder::CreateVertexBuffer(const void* data, u32 size)
 	mWriter.Write(data, size);
 
 	return clientHandle;
+}
+
+void FrameEncoder::UpdateVertexBuffer(graphics::VertexBufferHandle clientHandle, const void* data, u32 size, u32 offset)
+{
+	mWriter.Write(RenderCommand::UpdateVertexBuffer);
+	mWriter.Write(clientHandle);
+	mWriter.Write(size);
+	mWriter.Write(data, size);
+	mWriter.Write(offset);
+}
+
+void FrameEncoder::DestroyVertexBuffer(graphics::VertexBufferHandle clientHandle)
+{
+	mWriter.Write(RenderCommand::DestroyVertexBuffer);
+	mWriter.Write(clientHandle);
 }
 
 // Uniform Buffers ////////////////////////////////
@@ -193,6 +223,12 @@ void FrameEncoder::UpdateShaderBuffer(graphics::ShaderBufferHandle clientHandle,
 	mWriter.Write(size);
 	mWriter.Write(data, size);
 	mWriter.Write(offset);
+}
+
+void FrameEncoder::DestroyShaderBuffer(graphics::ShaderBufferHandle clientHandle)
+{
+	mWriter.Write(RenderCommand::DestroyShaderBuffer);
+	mWriter.Write(clientHandle);
 }
 
 ShaderHandle FrameEncoder::CreateShader(const char* vertSrc, const char* fragSrc)
@@ -274,7 +310,7 @@ MeshHandle FrameEncoder::CreateMesh(const MeshDescription& desc)
 	return clientHandle;
 }
 
-graphics::TextureHandle FrameEncoder::CreateTexture2D(const graphics::TextureDescription2D& desc)
+TextureHandle FrameEncoder::CreateTexture2D(const graphics::TextureDescription2D& desc)
 {
 	mWriter.Write(RenderCommand::CreateTexture2D);
 
@@ -284,6 +320,65 @@ graphics::TextureHandle FrameEncoder::CreateTexture2D(const graphics::TextureDes
 	WriteCreateTexture2D(desc, mWriter);
 
 	return clientHandle;
+}
+
+TextureHandle FrameEncoder::CreateTexture3D(const graphics::TextureDescription3D& desc)
+{
+	mWriter.Write(RenderCommand::CreateTexture3D);
+	TextureHandle clientHandle = mResources.CreateTexture();
+
+	mWriter.Write(clientHandle);
+	mWriter.Write(desc.mWidth);
+	mWriter.Write(desc.mHeight);
+	mWriter.Write(desc.mDepth);
+
+	mWriter.Write(desc.mDataSize);
+	if (desc.mDataSize > 0)
+	{
+		DEBUG_ASSERT(desc.mDepth == desc.mData.size(), "must upload all data or no data");
+		for (const auto& data : desc.mData)
+		{
+			mWriter.Write(data, desc.mDataSize);
+		}
+	}
+	
+	mWriter.Write(desc.mFormat);
+	mWriter.Write(desc.mWrap);
+	mWriter.Write(desc.mFilter);
+	mWriter.Write(desc.mMipmaps);
+	mWriter.Write(desc.mBorderColor);
+
+	return clientHandle;
+}
+
+TextureHandle FrameEncoder::CreateCubemap(const graphics::CubemapDescription& desc)
+{
+	TextureHandle clientHandle = mResources.CreateTexture();
+	mWriter.Write(RenderCommand::CreateCubemap);
+
+	mWriter.Write(clientHandle);
+	mWriter.Write(desc.mWidth);
+	mWriter.Write(desc.mHeight);
+
+	mWriter.Write(desc.mDataSize);
+	if (desc.mDataSize > 0)
+	{
+		for (const auto& [face, data] : desc.mData)
+		{
+			mWriter.Write(face);
+			mWriter.Write(data, desc.mDataSize);
+		}
+	}
+
+	mWriter.Write(desc.mFormat);
+	mWriter.Write(desc.mWrap);
+	mWriter.Write(desc.mFilter);
+}
+
+void FrameEncoder::DestroyTexture(TextureHandle clientHandle)
+{
+	mWriter.Write(RenderCommand::DestroyTexture);
+	mWriter.Write(clientHandle);
 }
 
 FrameBuffer FrameEncoder::CreateFrameBuffer(const FrameBufferDescription& desc)
@@ -312,6 +407,12 @@ FrameBuffer FrameEncoder::CreateFrameBuffer(const FrameBufferDescription& desc)
 	DEBUG_ASSERT(result.mWidth  > 0, "Invalid framebuffer size!");
 	DEBUG_ASSERT(result.mHeight > 0, "Invalid framebuffer size!");
 	return result;
+}
+
+void FrameEncoder::DestroyFrameBuffer(graphics::FrameBufferHandle clientHandle)
+{
+	mWriter.Write(RenderCommand::DestroyFrameBuffer);
+	mWriter.Write(clientHandle);
 }
 
 void FrameEncoder::DrawMesh(const MeshHandle handle, const RenderState& state)

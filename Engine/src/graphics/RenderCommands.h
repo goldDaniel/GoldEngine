@@ -8,30 +8,30 @@ namespace gold
 	{
 		CreateUniformBuffer = 0, //e, d
 		UpdateUniformBuffer, //e, d
-		DestroyUniformBuffer, //e
+		DestroyUniformBuffer, //e, d
 
 		CreateShaderBuffer, //e, d
 		UpdateShaderBuffer, //e, d
-		DestroyShaderBuffer,
+		DestroyShaderBuffer, //e, d
 
 		CreateVertexBuffer,	//e, d
-		UpdateVertexBuffer,
-		DestroyVertexBuffer,
+		UpdateVertexBuffer, //e, d
+		DestroyVertexBuffer, //e, d
 
 		CreateIndexBuffer,	//e, d
-		UpdateIndexBuffer,
-		DestroyIndexBuffer,
+		UpdateIndexBuffer, //e, d
+		DestroyIndexBuffer, //e, d 
 
 		CreateShader, //e, d
 		DestroyShader,
 
-		CreateTexture2D, //e, 
-		CreateTexture3D,
-		CreateCubemap,
-		DestroyTexture,
+		CreateTexture2D, //e, d
+		CreateTexture3D, //e, d
+		CreateCubemap, //e, d
+		DestroyTexture, //e, d
 
-		CreateFrameBuffer,
-		DestroyFrameBuffer,
+		CreateFrameBuffer, //e, d
+		DestroyFrameBuffer, //e, D
 
 		CreateMesh, //e, d
 

@@ -290,7 +290,7 @@ namespace graphics
 	struct CubemapDescription
 	{
 		//NOTE (danielg): all faces must have same dataSize, width, and height
-		std::unordered_map<CubemapFace, const void*> mData;
+		std::unordered_map<CubemapFace, const void*> mData{};
 		u32 mDataSize = 0;
 
 		u32 mWidth = 0;
