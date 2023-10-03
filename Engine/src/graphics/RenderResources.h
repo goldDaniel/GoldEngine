@@ -48,6 +48,8 @@ namespace gold
 		virtual graphics::TextureHandle& get(graphics::TextureHandle clientHandle) = 0;
 
 		virtual graphics::FrameBufferHandle& get(graphics::FrameBufferHandle clientHandle) = 0;
+
+		virtual void Destroy(graphics::FrameBufferHandle clientHandle) = 0;
 	};
 
 	template<typename T>
@@ -65,8 +67,14 @@ namespace gold
 
 		T& Get(const T& clientHandle)
 		{
-			DEBUG_ASSERT(mBufferMap.find(clientHandle) != mBufferMap.end(), "");
+			DEBUG_ASSERT(mBufferMap.find(clientHandle) != mBufferMap.end(), "Could not find resource handle for type: {}", typeid(T).name());
 			return mBufferMap[clientHandle];
+		}
+
+		void Destroy(const T& clientHandle)
+		{
+			DEBUG_ASSERT(mBufferMap.find(clientHandle) != mBufferMap.end(), "Could not find resource handle for type: {}", typeid(T).name());
+			mBufferMap.erase(clientHandle);
 		}
 	};
 
@@ -117,5 +125,6 @@ namespace gold
 		graphics::TextureHandle& get(graphics::TextureHandle clientHandle) override { return mTextures.Get(clientHandle); }
 
 		graphics::FrameBufferHandle& get(graphics::FrameBufferHandle clientHandle) override { return mFrameBuffers.Get(clientHandle); }
+		void Destroy(graphics::FrameBufferHandle clientHandle) override { mFrameBuffers.Destroy(clientHandle); }
 	};
 }

@@ -100,13 +100,13 @@ protected:
 			mStatus = scene::Loader::LoadGameObjectFromModel(mScene, encoder, "sponza2/sponza.gltf");
 		}
 
-		mViewport->SetTexture(mGameBuffer.mTextures[0].idx);
-
 		mCameraSystem.Tick(mScene, delta);
 
 		mRenderSystem.SetEncoder(&encoder);
 		mRenderSystem.SetRenderTarget(mGameBuffer);
 		mRenderSystem.Tick(mScene, delta);
+
+		mViewport->SetTexture(mGameBuffer.mTextures[0].idx);
 	}
 };
 

@@ -327,8 +327,10 @@ void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, S
 		}
 		case RenderCommand::DestroyFrameBuffer:
 		{
-			FrameBufferHandle serverHandle = resources.get(reader.Read<FrameBufferHandle>());
+			FrameBufferHandle clientHandle = reader.Read<FrameBufferHandle>();
+			FrameBufferHandle serverHandle = resources.get(clientHandle);
 			renderer.DestroyFramebuffer(serverHandle);
+			resources.Destroy(clientHandle);
 			break;
 		}
 
