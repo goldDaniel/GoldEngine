@@ -131,7 +131,7 @@ void PropertyWindow::DrawWindow(graphics::Renderer& renderer, gold::ServerResour
 
 	ImGui::SameLine();
 	ImGui::PushItemWidth(-1);
-	if (ImGui::Button("Add Component..."))
+	if (ImGui::Button("Add Component"))
 	{
 		// TODO (danielg): component pop-up window
 	}

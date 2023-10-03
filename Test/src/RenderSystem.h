@@ -119,7 +119,7 @@ public:
 		}
 
 		uint8_t pass = mEncoder->AddRenderPass("Default", mTarget.mHandle, graphics::ClearColor::YES, graphics::ClearDepth::YES);
-		scene.ForEach<TransformComponent, RenderComponent>([&](scene::GameObject obj)
+		scene.ForEach<TransformComponent, RenderComponent>([&](const scene::GameObject obj)
 		{
 			glm::mat4 mvp = glm::perspective(glm::radians(65.f), (float)mTarget.mWidth / (float)mTarget.mHeight, 1.f, 100.f);
 			mvp *= glm::lookAt(glm::vec3{ 0, 0, 5 }, glm::vec3{ 0,0,0 }, glm::vec3{ 0,1,0 });

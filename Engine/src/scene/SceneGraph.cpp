@@ -12,9 +12,9 @@ Scene::Scene()
 void Scene::ForEach(std::function<void(GameObject)>&& func)
 {
 	mRegistry.each([this, &func](auto entity)
-		{
-			func(GameObject(&mRegistry, entity));
-		});
+	{
+		func(GameObject(&mRegistry, entity));
+	});
 }
 
 GameObject Scene::Get(entt::entity entity)
