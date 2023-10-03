@@ -5,6 +5,8 @@
 #include "graphics/FrameEncoder.h"
 #include "graphics/Texture.h"
 
+#include "Components.h"
+
 class RenderSystem : scene::GameSystem
 {
 private:
@@ -118,22 +120,32 @@ public:
 			mFirstFrame = false;
 		}
 
+		glm::mat4 view{};
+		scene.ForEach<TransformComponent, DebugCameraComponent>(
+		[&view](scene::GameObject obj)
+		{
+			const auto& cam = obj.GetComponent<DebugCameraComponent>();
+			view = cam.GetViewMatrix();
+		});
+
 		uint8_t pass = mEncoder->AddRenderPass("Default", mTarget.mHandle, graphics::ClearColor::YES, graphics::ClearDepth::YES);
 		scene.ForEach<TransformComponent, RenderComponent>([&](const scene::GameObject obj)
 		{
-			glm::mat4 mvp = glm::perspective(glm::radians(65.f), (float)mTarget.mWidth / (float)mTarget.mHeight, 1.f, 100.f);
-			mvp *= glm::lookAt(glm::vec3{ 0, 0, 5 }, glm::vec3{ 0,0,0 }, glm::vec3{ 0,1,0 });
-			mvp *= obj.GetComponent<TransformComponent>().GetMatrix();
+			auto& render = obj.GetComponent<RenderComponent>();
+
+			glm::mat4 mvp = glm::perspective(glm::radians(65.f), (float)mTarget.mWidth / (float)mTarget.mHeight, 1.f, 1000.f);
+			mvp *= view;
+			mvp *= obj.GetWorldSpaceTransform();
 			mEncoder->UpdateUniformBuffer(mView, &mvp, sizeof(glm::mat4));
 
 			graphics::RenderState state;
 			state.mRenderPass = pass;
 			state.mShader = mShader;
-			state.mCullFace = graphics::CullFace::DISABLED;
 			state.SetUniformBlock("View_UBO", { mView });
-			state.SetTexture("u_texture", mTexture);
 
-			auto& render = obj.GetComponent<RenderComponent>();
+			graphics::TextureHandle texture = render.useAlbedoMap ? render.albedoMap : mTexture;
+			state.SetTexture("u_texture", texture);
+
 			mEncoder->DrawMesh(render.mesh, state);
 		});
 	}

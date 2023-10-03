@@ -5,6 +5,7 @@
 #include "graphics/FrameEncoder.h"
 
 #include "scene/SceneGraph.h"
+#include "scene/SceneLoader.h"
 
 #include "ui/LogWindow.h"
 #include "ui/SceneWindow.h"
@@ -12,11 +13,16 @@
 #include "ui/ViewportWindow.h"
 
 #include "RenderSystem.h"
+#include "DebugCameraSystem.h"
+
+
 
 class TestApp : public gold::Application
 {
 private:
+	scene::Loader::Status mStatus = scene::Loader::Status::None;
 	scene::Scene mScene;
+	DebugCameraSystem mCameraSystem;
 	RenderSystem mRenderSystem;
 	
 	graphics::FrameBuffer mGameBuffer;
@@ -42,6 +48,9 @@ protected:
 			return sceneWindow->GetSelected();
 		}));
 		mViewport = AddEditorWindow(std::make_unique<ViewportWindow>());
+
+		auto camera = mScene.CreateGameObject("Camera");
+		camera.AddComponent<DebugCameraComponent>();
 	}
 
 	virtual void Update(float delta, gold::FrameEncoder& encoder) override
@@ -85,7 +94,15 @@ protected:
 			mGameBuffer = encoder.CreateFrameBuffer(desc);
 		}
 
+		if (mStatus == scene::Loader::Status::Loading || mStatus == scene::Loader::Status::None)
+		{
+			mStatus = scene::Loader::LoadGameObjectFromModel(mScene, encoder, "sponza2/sponza.gltf");
+		}
+
 		mViewport->SetTexture(mGameBuffer.mTextures[0].idx);
+
+		mCameraSystem.Tick(mScene, delta);
+
 		mRenderSystem.SetEncoder(&encoder);
 		mRenderSystem.SetRenderTarget(mGameBuffer);
 		mRenderSystem.Tick(mScene, delta);

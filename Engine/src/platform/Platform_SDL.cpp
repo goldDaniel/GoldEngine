@@ -128,7 +128,7 @@ void Platform_SDL::PlatformEvents(Application& app)
 			}
 			break;
 		case SDL_MOUSEMOTION:
-			if (!io.WantCaptureMouse)
+			//if (!io.WantCaptureMouse)
 			{
 				int x;
 				int y;
@@ -138,14 +138,14 @@ void Platform_SDL::PlatformEvents(Application& app)
 			break;
 
 		case SDL_MOUSEBUTTONDOWN:
-			if (!io.WantCaptureMouse)
+			//if (!io.WantCaptureMouse)
 			{
 				Singletons::Get()->Resolve<Input>()->SetMouseState(static_cast<MouseButton>(event.button.button), true);
 			}
 			break;
 
 		case SDL_MOUSEBUTTONUP:
-			if (!io.WantCaptureMouse)
+			//if (!io.WantCaptureMouse)
 			{
 				Singletons::Get()->Resolve<Input>()->SetMouseState(static_cast<MouseButton>(event.button.button), false);
 			}

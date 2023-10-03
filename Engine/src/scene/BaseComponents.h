@@ -6,7 +6,6 @@
 #include "graphics/Renderer.h"
 #include "graphics/Material.h"
 
-
 struct ChildrenComponent
 {
 	std::vector<entt::entity> children;
@@ -58,5 +57,25 @@ struct LightComponent
 struct RenderComponent
 {
 	graphics::MeshHandle mesh{};
-	graphics::MaterialHandle material{};
+
+	// TODO (danielg): have material buffer so renderComponent only needs an index/handle
+	//graphics::MaterialHandle material{};
+
+	glm::vec4 albedo{ 0.4f, 1.0f, 1.0f, 1.0f };
+	glm::vec4 emissive{ 0.f, 0.f, 0.f, 0.0f };
+
+	float metallic = 0.0f;
+	float roughness = 1.0f;
+
+	bool useAlbedoMap = false;
+	bool useNormalMap = false;
+	bool useMetallicMap = false;
+	bool useRoughnessMap = false;
+
+	float uvScale = 1.0f;
+
+	graphics::TextureHandle albedoMap{ 0 };
+	graphics::TextureHandle normalMap{ 0 };
+	graphics::TextureHandle metallicMap{ 0 };
+	graphics::TextureHandle roughnessMap{ 0 };
 };

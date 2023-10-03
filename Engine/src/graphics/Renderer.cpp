@@ -1730,7 +1730,10 @@ MeshHandle Renderer::CreateMesh(const MeshDescription& desc)
 	switch (desc.mPrimitiveType)
 	{
 	case PrimitiveType::TRIANGLES:
-		if (!desc.mIndices.idx) DEBUG_ASSERT(desc.mVertexCount % 3 == 0, "Invalid vertex count!");
+		if (desc.mIndices.idx == 0)
+		{
+			DEBUG_ASSERT(desc.mVertexCount % 3 == 0, "Invalid vertex count!");
+		}
 		break;
 	case PrimitiveType::TRIANGLE_STRIP:
 		DEBUG_ASSERT(desc.mVertexCount >= 3, "Invalid vertex count!");
@@ -1738,7 +1741,7 @@ MeshHandle Renderer::CreateMesh(const MeshDescription& desc)
 	case PrimitiveType::POINTS:
 		break; //no constraints 
 	case PrimitiveType::LINES:
-		if (!desc.mIndices.idx) DEBUG_ASSERT(desc.mVertexCount % 2 == 0, "Invalid vertex count!");
+		if (desc.mIndices.idx == 0) DEBUG_ASSERT(desc.mVertexCount % 2 == 0, "Invalid vertex count!");
 		break;
 	}
 
