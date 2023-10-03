@@ -84,7 +84,7 @@ namespace scene
 
 		void ForEachChild(std::function<void(const GameObject&)> func) const;
 
-		void RemoveChildren(std::vector<GameObject> children);
+		void RemoveChildren(const std::vector<GameObject>& children);
 
 		void SetParent(GameObject parent);
 

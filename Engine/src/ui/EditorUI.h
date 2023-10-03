@@ -3,6 +3,7 @@
 #include "core/Core.h"
 
 #include "ImGuiWindow.h"
+#include "graphics/RenderResources.h"
 
 namespace gold
 {
@@ -25,6 +26,6 @@ namespace gold
 			return result;
 		}
 
-		void OnImguiRender();
+		void OnImguiRender(graphics::Renderer& renderer, RenderResources& resources);
 	};
 }

@@ -31,7 +31,7 @@ void GameObject::ForEachChild(std::function<void(const GameObject&)> func) const
 	}
 }
 
-void GameObject::RemoveChildren(std::vector<GameObject> toRemove)
+void GameObject::RemoveChildren(const std::vector<GameObject>& toRemove)
 {
 	if (HasComponent<ChildrenComponent>())
 	{

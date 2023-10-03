@@ -13,7 +13,7 @@ public:
 	}
 
 protected:
-	virtual void DrawWindow() override
+	virtual void DrawWindow(graphics::Renderer& renderer, gold::ServerResources& resources) override
 	{
 		if (ImGui::Button("Clear Log"))
 		{

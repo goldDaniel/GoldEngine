@@ -18,7 +18,7 @@ void ImGuiWindow::Hide()
 	mShowWindow = false;
 }
 
-void ImGuiWindow::Draw() 
+void ImGuiWindow::Draw(graphics::Renderer& renderer, gold::ServerResources& resources)
 { 
 	if (mShowWindow)
 	{
@@ -26,7 +26,11 @@ void ImGuiWindow::Draw()
 		StylePush();
 		ImGui::Begin(mName.c_str(), nullptr, flags);
 
-		DrawWindow();
+		auto size = ImGui::GetWindowSize();
+		mSize.x = size.x;
+		mSize.y = size.y;
+
+		DrawWindow(renderer, resources);
 
 		ImGui::End();
 		StylePop();

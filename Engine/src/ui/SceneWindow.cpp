@@ -20,7 +20,7 @@ scene::GameObject SceneWindow::GetSelected() const
 	return mSelected;
 }
 
-void SceneWindow::DrawWindow()
+void SceneWindow::DrawWindow(graphics::Renderer& renderer, gold::ServerResources& resources)
 {
 	if (!mScene) return; 
 	

@@ -9,15 +9,16 @@
 class ViewportWindow : public ImGuiWindow
 {
 private:
-	u32 mViewportOutput = 0; 
-	std::function<uint32_t(u32, u32)> mResizeFunc;
+	u32 mClientFrameBuffer = 0; 
 
 public:
-	ViewportWindow(std::function<u32(u32, u32)>&& func)
-		: ImGuiWindow("Game Viewport", true)
-		, mResizeFunc(std::move(func))
+	ViewportWindow() : ImGuiWindow("Game Viewport", true)
 	{
+	}
 
+	void SetTexture(u32 output)
+	{
+		mClientFrameBuffer = output;
 	}
 
 protected:
@@ -31,18 +32,20 @@ protected:
 		ImGui::PopStyleVar();
 	}
 
-	virtual void DrawWindow() override
+	virtual void DrawWindow(graphics::Renderer& renderer, gold::ServerResources& resources) override
 	{ 
+		using namespace graphics;
+
 		auto size = ImGui::GetWindowSize();
 		size.x = glm::max(32.f, size.x);
 		size.y = glm::max(32.f, size.y);
-
-		mViewportOutput = mResizeFunc(static_cast<uint32_t>(size.x), static_cast<uint32_t>(size.y));
+	
+		TextureHandle& serverHandle = resources.get(TextureHandle{ mClientFrameBuffer });
 
 		size.y -= 24;
 
 		ImGui::BeginChild("Game Render");
-		ImGui::Image((ImTextureID)(uint64_t)mViewportOutput, size, { 0,1 }, { 1,0 });
+		ImGui::Image((ImTextureID)(uint64_t)serverHandle.idx, size, { 0,1 }, { 1,0 });
 		ImGui::EndChild();
 	}
 };

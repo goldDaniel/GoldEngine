@@ -72,9 +72,11 @@ namespace gold
 		const std::vector<std::string>& GetCommandArgs() const;
 
 		template<typename T>
-		void AddEditorWindow(std::unique_ptr<T>&& window)
+		T* AddEditorWindow(std::unique_ptr<T>&& window)
 		{
+			T* result = window.get();
 			mUI.AddEditorWindow(std::move(window));
+			return result;
 		}
 
 		void SetScreenSize(int w, int h) 

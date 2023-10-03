@@ -6,7 +6,7 @@ using namespace gold;
 
 static void InitImGuiStyles();
 
-void EditorUI::OnImguiRender()
+void EditorUI::OnImguiRender(graphics::Renderer& renderer, gold::RenderResources& resources)
 {
 	static bool firstFrame = true;
 	if (firstFrame)
@@ -20,7 +20,7 @@ void EditorUI::OnImguiRender()
 
 	for (const auto& window : mWindows)
 	{
-		window->Draw();
+		window->Draw(renderer, resources);
 	}
 
 	// begin is called in _DrawDockSpace()

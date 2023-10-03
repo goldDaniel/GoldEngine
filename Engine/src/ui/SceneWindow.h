@@ -13,7 +13,7 @@ public:
 	scene::GameObject GetSelected() const;
 
 protected:
-	virtual void DrawWindow() override;
+	virtual void DrawWindow(graphics::Renderer& renderer, gold::ServerResources& resources) override;
 private:
 
 	void _DrawNode(scene::GameObject obj);

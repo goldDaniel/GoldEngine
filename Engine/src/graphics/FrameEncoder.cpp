@@ -373,6 +373,8 @@ TextureHandle FrameEncoder::CreateCubemap(const graphics::CubemapDescription& de
 	mWriter.Write(desc.mFormat);
 	mWriter.Write(desc.mWrap);
 	mWriter.Write(desc.mFilter);
+
+	return clientHandle;
 }
 
 void FrameEncoder::DestroyTexture(TextureHandle clientHandle)

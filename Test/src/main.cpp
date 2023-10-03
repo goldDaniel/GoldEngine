@@ -19,6 +19,8 @@ private:
 	
 	graphics::FrameBuffer mGameBuffer;
 	
+	ViewportWindow* mViewport = nullptr;
+
 	bool mFirstFrame = true;
 
 public:
@@ -32,26 +34,49 @@ protected:
 	virtual void Init() override
 	{	
 		AddEditorWindow(std::make_unique<LogWindow>());
+		mViewport = AddEditorWindow(std::make_unique<ViewportWindow>());
 	}
 
 	virtual void Update(float delta, gold::FrameEncoder& encoder) override
 	{
-		
-		if(mFirstFrame)
+		u32 width = mViewport->GetSize().x;
+		u32 height = mViewport->GetSize().y;
+		if (width == 0 || height == 0)
 		{
-			mFirstFrame = false;
+			width = GetScreenSize().x;
+			height = GetScreenSize().y;
+		}
 
+		if (mGameBuffer.mHandle.idx == 0 ||
+			mGameBuffer.mWidth != width || mGameBuffer.mHeight != height)
+		{
 			graphics::FrameBufferDescription desc;
-			graphics::TextureDescription2D texDesc;
-			texDesc.mFormat = graphics::TextureFormat::RGBA_U8;
-			texDesc.mWidth  = 800;
-			texDesc.mHeight = 600;
 
-			desc.Put(graphics::OutputSlot::Color0, texDesc);
+			{
+				graphics::TextureDescription2D texDesc;
+				texDesc.mWidth = width;
+				texDesc.mHeight = height;
+				texDesc.mFormat = graphics::TextureFormat::RGB_U8;
+				desc.Put(graphics::OutputSlot::Color0, texDesc);
+			}
+
+			{
+				graphics::TextureDescription2D depthDesc;
+				depthDesc.mWidth = width;
+				depthDesc.mHeight = height;
+				depthDesc.mFormat = graphics::TextureFormat::DEPTH;
+				desc.Put(graphics::OutputSlot::Depth, depthDesc);
+			}
+
+			if (mGameBuffer.mHandle.idx)
+			{
+				encoder.DestroyFrameBuffer(mGameBuffer.mHandle);
+			}
 
 			mGameBuffer = encoder.CreateFrameBuffer(desc);
 		}
-		
+
+		mViewport->SetTexture(mGameBuffer.mTextures[0].idx);
 		mRenderSystem.SetScreenSize(GetScreenSize());
 		mRenderSystem.SetEncoder(&encoder);
 		mRenderSystem.SetRenderTarget(mGameBuffer);
