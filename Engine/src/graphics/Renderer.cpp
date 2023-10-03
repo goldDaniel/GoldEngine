@@ -1741,7 +1741,10 @@ MeshHandle Renderer::CreateMesh(const MeshDescription& desc)
 	case PrimitiveType::POINTS:
 		break; //no constraints 
 	case PrimitiveType::LINES:
-		if (desc.mIndices.idx == 0) DEBUG_ASSERT(desc.mVertexCount % 2 == 0, "Invalid vertex count!");
+		if (desc.mIndices.idx == 0)
+		{
+			DEBUG_ASSERT(desc.mVertexCount % 2 == 0, "Invalid vertex count!");
+		}
 		break;
 	}
 

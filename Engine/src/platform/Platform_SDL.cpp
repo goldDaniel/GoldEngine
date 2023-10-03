@@ -116,13 +116,13 @@ void Platform_SDL::PlatformEvents(Application& app)
 			break;
 		}
 		case SDL_KEYDOWN:
-			if (!io.WantCaptureKeyboard)
+			//if (!io.WantCaptureKeyboard)
 			{
 				Singletons::Get()->Resolve<Input>()->SetKeyState(static_cast<KeyCode>(event.key.keysym.sym), true);
 			}
 			break;
 		case SDL_KEYUP:
-			if (!io.WantCaptureKeyboard)
+			//if (!io.WantCaptureKeyboard)
 			{
 				Singletons::Get()->Resolve<Input>()->SetKeyState(static_cast<KeyCode>(event.key.keysym.sym), false);
 			}
