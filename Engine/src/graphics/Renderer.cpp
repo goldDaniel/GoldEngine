@@ -1068,6 +1068,7 @@ void Renderer::EndFrame()
 	currentFrame++;
 
 	ImGui::Render();
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 	SDL_GL_SwapWindow(sdlWindow);
 }

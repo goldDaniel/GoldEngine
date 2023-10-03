@@ -77,7 +77,6 @@ protected:
 		}
 
 		mViewport->SetTexture(mGameBuffer.mTextures[0].idx);
-		mRenderSystem.SetScreenSize(GetScreenSize());
 		mRenderSystem.SetEncoder(&encoder);
 		mRenderSystem.SetRenderTarget(mGameBuffer);
 		mRenderSystem.Tick(mScene, delta);

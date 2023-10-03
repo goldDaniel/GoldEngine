@@ -18,17 +18,13 @@ private:
 	
 	graphics::FrameBuffer mTarget{};
 
-	glm::vec2 mScreenSize{};
-
-
-
 	bool mFirstFrame = true;
 
 	void InitRenderData()
 	{
 		glm::mat4 mvp;
 
-		mvp = glm::perspective(glm::radians(65.f), mScreenSize.x / mScreenSize.y, 1.f, 100.f);
+		mvp = glm::perspective(glm::radians(65.f), (float)mTarget.mWidth / (float)mTarget.mHeight, 1.f, 100.f);
 		mvp *= glm::lookAt(glm::vec3{ 0, 0, 5 }, glm::vec3{ 0,0,0 }, glm::vec3{ 0,1,0 });
 
 		mView = mEncoder->CreateUniformBuffer(&mvp, sizeof(glm::mat4));
@@ -102,11 +98,6 @@ public:
 
 	}
 
-	void SetScreenSize(glm::vec2 screenSize)
-	{
-		mScreenSize = screenSize;
-	}
-
 	void SetEncoder(gold::FrameEncoder* frameEncoder)
 	{
 		DEBUG_ASSERT(frameEncoder, "Frame Encoder should never be null!");
@@ -126,7 +117,7 @@ public:
 			mFirstFrame = false;
 		}
 
-		glm::mat4 mvp = glm::perspective(glm::radians(65.f), mScreenSize.x / mScreenSize.y, 1.f, 100.f);
+		glm::mat4 mvp = glm::perspective(glm::radians(65.f), (float)mTarget.mWidth / (float)mTarget.mHeight, 1.f, 100.f);
 
 		mvp *= glm::lookAt(glm::vec3{ 0, 0, 5 }, glm::vec3{ 0,0,0 }, glm::vec3{ 0,1,0 });
 		mEncoder->UpdateUniformBuffer(mView, &mvp, sizeof(glm::mat4));
@@ -138,13 +129,6 @@ public:
 		state.SetUniformBlock("View_UBO", { mView });
 		state.SetTexture("u_texture", mTexture);
 
-		mEncoder->DrawMesh(mMesh, state);
-
-		uint8_t pass1 = mEncoder->AddRenderPass("Backbuffer", graphics::ClearColor::YES, graphics::ClearDepth::YES);
-		state.mRenderPass = pass1;
-		state.mShader = mShader;
-		state.SetUniformBlock("View_UBO", { mView });
-		state.SetTexture("u_texture", mTarget.mTextures[0]);
 		mEncoder->DrawMesh(mMesh, state);
 	}
 };

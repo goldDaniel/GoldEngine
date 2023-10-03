@@ -90,6 +90,8 @@ void Application::RenderThread()
 
 		
 		mRenderer->SetBackBufferSize((int)mConfig.windowWidth, (int)mConfig.windowHeight);
+		mRenderer->ClearBackBuffer();
+
 		mRenderer->BeginFrame();
 		if(reader.HasData())
 		{
