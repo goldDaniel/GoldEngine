@@ -155,7 +155,8 @@ static void DrawVec3Control(const std::string& label, glm::vec3& values, float r
 	ImGui::Text(label.c_str());
 	ImGui::NextColumn();
 
-	ImGui::PushMultiItemsWidths(3, ImGui::CalcItemWidth());
+	float width = ImGui::CalcItemWidth() / 3;
+	ImGui::PushItemWidth(width);
 	ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2{ 0, 0 });
 
 
@@ -179,6 +180,7 @@ static void DrawVec3Control(const std::string& label, glm::vec3& values, float r
 	ImGui::PopItemWidth();
 	ImGui::SameLine();
 
+	ImGui::PushItemWidth(width);
 	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.2f, 0.7f, 0.2f, 1.0f });
 	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.3f, 0.8f, 0.3f, 1.0f });
 	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.2f, 0.7f, 0.2f, 1.0f });
@@ -195,6 +197,7 @@ static void DrawVec3Control(const std::string& label, glm::vec3& values, float r
 	ImGui::PopItemWidth();
 	ImGui::SameLine();
 
+	ImGui::PushItemWidth(width);
 	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4{ 0.1f, 0.25f, 0.8f, 1.0f });
 	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.2f, 0.35f, 0.9f, 1.0f });
 	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.1f, 0.25f, 0.8f, 1.0f });
