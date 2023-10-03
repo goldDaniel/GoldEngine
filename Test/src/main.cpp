@@ -26,7 +26,7 @@ private:
 	RenderSystem mRenderSystem;
 	
 	graphics::FrameBuffer mGameBuffer;
-	
+
 	ViewportWindow* mViewport = nullptr;
 
 	bool mFirstFrame = true;
@@ -89,6 +89,7 @@ protected:
 			if (mGameBuffer.mHandle.idx)
 			{
 				encoder.DestroyFrameBuffer(mGameBuffer.mHandle);
+				mGameBuffer.mHandle.idx = 0;
 			}
 
 			mGameBuffer = encoder.CreateFrameBuffer(desc);

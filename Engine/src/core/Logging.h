@@ -37,7 +37,6 @@ namespace gold
 }
 
 
-#ifndef NDEBUG
 
 #if defined(GOLD_ENGINE)
 
@@ -55,23 +54,4 @@ namespace gold
 #define G_INFO(...)  ::gold::Logging::ClientLogger()->info(__VA_ARGS__)
 #define G_TRACE(...) ::gold::Logging::ClientLogger()->trace(__VA_ARGS__)
 
-#else 
-
-#if defined(GOLD_ENGINE)
-
-#define G_ENGINE_FATAL(...)
-#define G_ENGINE_ERROR(...)
-#define G_ENGINE_WARN(...)  
-#define G_ENGINE_INFO(...)  
-#define G_ENGINE_TRACE(...) 
-
-#endif
-
-#define G_FATAL(...) 
-#define G_ERROR(...) 
-#define G_WARN(...)  
-#define G_INFO(...)  
-#define G_TRACE(...) 
-
-#endif
 

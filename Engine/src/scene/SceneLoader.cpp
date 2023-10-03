@@ -23,6 +23,8 @@ static std::string filename;
 static std::string filepath;
 static Loader::Status kStatus = Loader::Status::None;
 
+static std::unordered_map<u32, graphics::TextureHandle> kTextureCache;
+
 Loader::Status Loader::LoadGameObjectFromModel(Scene& scene, gold::FrameEncoder& encoder, const std::string& file)
 {
 	if (kStatus == Status::None)
@@ -125,6 +127,18 @@ static void CreateMesh(const aiMesh* mesh, gold::FrameEncoder& encoder, RenderCo
 	render.mesh = encoder.CreateMesh(desc);
 }
 
+static graphics::TextureHandle FindOrAddTexture(const std::string& file, gold::FrameEncoder& encoder)
+{
+	graphics::Texture2D texture(file);
+	if (kTextureCache.find(texture.GetNameHash()) == kTextureCache.end())
+	{
+		graphics::TextureDescription2D desc(texture, true);
+		kTextureCache[texture.GetNameHash()] = encoder.CreateTexture2D(desc);
+	}
+
+	return kTextureCache.find(texture.GetNameHash())->second;
+}
+
 static void CreateMaterial(const std::string& filepath, unsigned int index, aiMaterial** const materials, gold::FrameEncoder& encoder, RenderComponent& render)
 {
 	const auto material = materials[index];
@@ -134,41 +148,28 @@ static void CreateMaterial(const std::string& filepath, unsigned int index, aiMa
 	aiString metalic;
 	aiString roughness;
 
-
 	if (material->GetTexture(AI_MATKEY_BASE_COLOR_TEXTURE, &albedo) == AI_SUCCESS)
 	{
 		render.useAlbedoMap = true;
-
-		graphics::Texture2D texture(filepath + albedo.C_Str());
-		graphics::TextureDescription2D desc(texture, true);
-		render.albedoMap = encoder.CreateTexture2D(desc);
+		render.albedoMap = FindOrAddTexture(filepath + albedo.C_Str(), encoder);
 	}
 
 	if (material->GetTexture(aiTextureType_NORMALS, 0, &normal) == AI_SUCCESS)
 	{
 		render.useNormalMap = true;
-
-		graphics::Texture2D texture(filepath + normal.C_Str());
-		graphics::TextureDescription2D desc(texture, true);
-		render.normalMap = encoder.CreateTexture2D(desc);
+		render.normalMap = FindOrAddTexture(filepath + normal.C_Str(), encoder);
 	}
 
 	if (material->GetTexture(AI_MATKEY_METALLIC_TEXTURE, &metalic) == AI_SUCCESS)
 	{
 		render.useMetallicMap = true;
-
-		graphics::Texture2D texture(filepath + metalic.C_Str());
-		graphics::TextureDescription2D desc(texture, true);
-		render.metallicMap = encoder.CreateTexture2D(desc);
+		render.normalMap = FindOrAddTexture(filepath + metalic.C_Str(), encoder);
 	}
 
 	if (material->GetTexture(AI_MATKEY_ROUGHNESS_TEXTURE, &roughness) == AI_SUCCESS)
 	{
 		render.useRoughnessMap = true;
-
-		graphics::Texture2D texture(filepath + roughness.C_Str());
-		graphics::TextureDescription2D desc(texture, true);
-		render.roughnessMap = encoder.CreateTexture2D(desc);
+		render.normalMap = FindOrAddTexture(filepath + roughness.C_Str(), encoder);
 	}
 
 	if (!render.useAlbedoMap)

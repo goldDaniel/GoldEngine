@@ -41,4 +41,3 @@ namespace graphics
 		void* mData = 0;
 	};
 }
-

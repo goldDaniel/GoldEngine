@@ -118,6 +118,7 @@ struct DeleteCommand
 
 		Buffer,
 		Texture,
+		FrameBuffer,
 		Mesh,
 	};
 
@@ -1036,6 +1037,13 @@ void Renderer::EndFrame()
 		glPopDebugGroup();
 	}
 
+	currentFrame++;
+
+	ImGui::Render();
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+	SDL_GL_SwapWindow(sdlWindow);
+
 	// resource deletion
 	for (const auto& del : deletions)
 	{
@@ -1045,7 +1053,12 @@ void Renderer::EndFrame()
 			glDeleteBuffers(1, &del.mHandle);
 			break;
 		case DeleteCommand::Type::Texture:
+			textureDescriptions.erase({ del.mHandle });
 			glDeleteTextures(1, &del.mHandle);
+			break;
+		case DeleteCommand::Type::FrameBuffer:
+			frameBuffers.erase({ del.mHandle });
+			glDeleteFramebuffers(1, &del.mHandle);
 			break;
 		case DeleteCommand::Type::Mesh:
 			Mesh& mesh = meshes[{del.mHandle}];
@@ -1064,13 +1077,6 @@ void Renderer::EndFrame()
 			break;
 		}
 	}
-
-	currentFrame++;
-
-	ImGui::Render();
-	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-	SDL_GL_SwapWindow(sdlWindow);
 }
 
 u8 Renderer::AddRenderPass(const RenderPass& desc)
@@ -1332,8 +1338,11 @@ TextureHandle Renderer::CreateTexture2D(const TextureDescription2D& desc)
 
 void Renderer::DestroyTexture(TextureHandle handle)
 {
-	textureDescriptions.erase(handle);
-	glDeleteTextures(1, &handle.idx);
+	DeleteCommand command{};
+	command.mType = DeleteCommand::Type::Texture;
+	command.mHandle = handle.idx;
+
+	deletions.push_back(command);
 }
 
 TextureHandle Renderer::CreateTexture3D(const TextureDescription3D& desc)
@@ -1464,7 +1473,6 @@ void Renderer::DestroyFramebuffer(FrameBufferHandle handle)
 
 	FrameBuffer& buffer = frameBuffers[handle];
 
-	glDeleteFramebuffers(1, &buffer.mHandle.idx);
 	for (const auto& tex : buffer.mTextures)
 	{
 		if (tex.idx)
@@ -1473,7 +1481,11 @@ void Renderer::DestroyFramebuffer(FrameBufferHandle handle)
 		}
 	}
 
-	frameBuffers.erase(handle);
+	DeleteCommand command{};
+	command.mType = DeleteCommand::Type::FrameBuffer;
+	command.mHandle = handle.idx;
+
+	deletions.push_back(command);
 }
 
 ShaderHandle Renderer::CreateShader(const char* vertexSrc, const char* fragSrc, const char* tessCtrlSrc, const char* tessEvalSrc)
