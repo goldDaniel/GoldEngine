@@ -28,7 +28,7 @@ target_link_libraries(Engine glm)
 get_property(sdl_include GLOBAL PROPERTY SDL2_INCLUDE_DIRS)
 get_property(sdl_lib GLOBAL PROPERTY SDL2_LIBRARIES)
 target_include_directories(Engine PRIVATE ${sdl_include})
-target_link_libraries(Engine ${sdl_lib})
+
 
 #glad
 get_property(glad_include GLOBAL PROPERTY GLAD_INCLUDE_DIR)
@@ -46,8 +46,9 @@ target_include_directories(Engine PUBLIC "${PROJECT_SOURCE_DIR}/dependencies/spd
 #imgui
 file(GLOB IMGUI_SOURCE_LIST "${PROJECT_SOURCE_DIR}/dependencies/imgui/*.cpp")
 target_include_directories(Engine PUBLIC "${PROJECT_SOURCE_DIR}/dependencies/imgui/")
-
 target_sources(Engine PRIVATE ${IMGUI_SOURCE_LIST})
+
+target_link_libraries(Engine ${sdl_lib} assimp)
 
 foreach(_source IN ITEMS ${ENGINE_SOURCE_LIST})
     get_filename_component(_source_path "${_source}" PATH)
