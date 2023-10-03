@@ -7,6 +7,8 @@
 #include "scene/SceneGraph.h"
 
 #include "ui/LogWindow.h"
+#include "ui/SceneWindow.h"
+#include "ui/PropertyWindow.h"
 #include "ui/ViewportWindow.h"
 
 #include "RenderSystem.h"
@@ -34,11 +36,18 @@ protected:
 	virtual void Init() override
 	{	
 		AddEditorWindow(std::make_unique<LogWindow>());
+		auto sceneWindow = AddEditorWindow(std::make_unique<SceneWindow>(&mScene));
+		auto propertyWindow = AddEditorWindow(std::make_unique<PropertyWindow>(mScene, [sceneWindow]()
+		{
+			return sceneWindow->GetSelected();
+		}));
 		mViewport = AddEditorWindow(std::make_unique<ViewportWindow>());
 	}
 
 	virtual void Update(float delta, gold::FrameEncoder& encoder) override
 	{
+		mScene.FlushDestructionQueue();
+
 		u32 width = mViewport->GetSize().x;
 		u32 height = mViewport->GetSize().y;
 		if (width == 0 || height == 0)
