@@ -56,6 +56,7 @@ protected:
 	virtual void Update(float delta, gold::FrameEncoder& encoder) override
 	{
 		mScene.FlushDestructionQueue();
+		mViewport->SetTexture(mGameBuffer.mTextures[0].idx);
 
 		u32 width = mViewport->GetSize().x;
 		u32 height = mViewport->GetSize().y;
@@ -105,8 +106,6 @@ protected:
 		mRenderSystem.SetEncoder(&encoder);
 		mRenderSystem.SetRenderTarget(mGameBuffer);
 		mRenderSystem.Tick(mScene, delta);
-
-		mViewport->SetTexture(mGameBuffer.mTextures[0].idx);
 	}
 };
 

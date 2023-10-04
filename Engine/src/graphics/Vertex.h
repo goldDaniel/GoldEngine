@@ -200,12 +200,20 @@ namespace graphics
 			return static_cast<uint32_t>(mBuffer.size());
 		}
 
+		void Reserve(u32 numElements)
+		{
+			mBuffer.reserve((u64)numElements * mLayout.Size());
+		}
+
 		template<typename... Args>
 		void Emplace(Args&&... args)
 		{
 			DEBUG_ASSERT(sizeof...(args) == mLayout.ElementCount(), "parameter count mismatch");
 
-			mBuffer.resize(mBuffer.size() + mLayout.Size());
+			for (u32 i = 0; i < mLayout.Size(); ++i)
+			{
+				mBuffer.emplace_back(0);
+			}
 			Back().SetAttribByIndex(0u, std::forward<Args>(args)...);
 		}
 

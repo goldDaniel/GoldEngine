@@ -82,6 +82,9 @@ static void CreateMesh(const aiMesh* mesh, gold::FrameEncoder& encoder, RenderCo
 	auto posBuffer = VertexBuffer(std::move(VertexLayout().Push<VertexLayout::Position3>()));
 	auto norBuffer = VertexBuffer(std::move(VertexLayout().Push<VertexLayout::Normal>()));
 	auto texBuffer = VertexBuffer(std::move(VertexLayout().Push<VertexLayout::Texcoord2>()));
+	posBuffer.Reserve(mesh->mNumVertices);
+	norBuffer.Reserve(mesh->mNumVertices);
+	texBuffer.Reserve(mesh->mNumVertices);
 
 	for (size_t i = 0; i < mesh->mNumVertices; ++i)
 	{
