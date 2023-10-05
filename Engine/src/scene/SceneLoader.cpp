@@ -10,6 +10,8 @@
 #include "graphics/Vertex.h"
 #include "graphics/Texture.h"
 
+#include <future>
+
 using namespace scene;
 
 static void CreateMaterial(const std::string& filepath, unsigned int index, aiMaterial** const materials, gold::FrameEncoder& encoder, RenderComponent& render);
@@ -101,18 +103,18 @@ static void CreateMesh(const aiMesh* mesh, gold::FrameEncoder& encoder, RenderCo
 				 norBuffer.VertexCount() == mesh->mNumVertices &&
 				 texBuffer.VertexCount() == mesh->mNumVertices, "");
 
-	std::vector<u32> faces;
+	std::vector<u32> indices;
 
-	faces.reserve(mesh->mNumFaces);
+	indices.reserve(mesh->mNumFaces);
 	for (size_t i = 0; i < mesh->mNumFaces; ++i)
 	{
 		DEBUG_ASSERT(mesh->mFaces[i].mNumIndices == 3, "");
-		faces.push_back(mesh->mFaces[i].mIndices[0]);
-		faces.push_back(mesh->mFaces[i].mIndices[1]);
-		faces.push_back(mesh->mFaces[i].mIndices[2]);
+		indices.push_back(mesh->mFaces[i].mIndices[0]);
+		indices.push_back(mesh->mFaces[i].mIndices[1]);
+		indices.push_back(mesh->mFaces[i].mIndices[2]);
 	}
 
-	auto desc = graphics::MeshDescription();
+	graphics::MeshDescription desc{};
 
 	desc.handles.mPositions = encoder.CreateVertexBuffer(posBuffer.Raw(), posBuffer.SizeInBytes());
 	desc.handles.mNormals = encoder.CreateVertexBuffer(norBuffer.Raw(), norBuffer.SizeInBytes());
@@ -120,23 +122,28 @@ static void CreateMesh(const aiMesh* mesh, gold::FrameEncoder& encoder, RenderCo
 
 	desc.mVertexCount = posBuffer.VertexCount();
 
-	if (faces.size() > 0)
+	if (indices.size() > 0)
 	{
 		desc.mIndicesFormat = IndexFormat::U32;
-		desc.mIndices = encoder.CreateIndexBuffer(faces.data(), faces.size() * sizeof(u32));
-		desc.mIndexCount = static_cast<uint32_t>(faces.size());
+		desc.mIndices = encoder.CreateIndexBuffer(indices.data(), indices.size() * sizeof(u32));
+		desc.mIndexCount = static_cast<uint32_t>(indices.size());
 	}
 
 	render.mesh = encoder.CreateMesh(desc);
 }
 
+static std::mutex kTextureWriteMutex;
 static graphics::TextureHandle FindOrAddTexture(const std::string& file, gold::FrameEncoder& encoder)
 {
 	graphics::Texture2D texture(file);
 	if (kTextureCache.find(texture.GetNameHash()) == kTextureCache.end())
 	{
 		graphics::TextureDescription2D desc(texture, true);
-		kTextureCache[texture.GetNameHash()] = encoder.CreateTexture2D(desc);
+		{
+			std::scoped_lock lock(kTextureWriteMutex);
+			kTextureCache[texture.GetNameHash()] = encoder.CreateTexture2D(desc);
+		}
+		
 	}
 
 	return kTextureCache.find(texture.GetNameHash())->second;
@@ -150,30 +157,45 @@ static void CreateMaterial(const std::string& filepath, unsigned int index, aiMa
 	aiString normal;
 	aiString metalic;
 	aiString roughness;
-
+	
+	std::vector<std::future<void>> futures;
 	if (material->GetTexture(AI_MATKEY_BASE_COLOR_TEXTURE, &albedo) == AI_SUCCESS)
 	{
 		render.useAlbedoMap = true;
-		render.albedoMap = FindOrAddTexture(filepath + albedo.C_Str(), encoder);
+		futures.emplace_back(std::async(std::launch::async, [&]
+		{
+			render.albedoMap = FindOrAddTexture(filepath + albedo.C_Str(), encoder);
+		}));
+		
 	}
 
 	if (material->GetTexture(aiTextureType_NORMALS, 0, &normal) == AI_SUCCESS)
 	{
 		render.useNormalMap = true;
-		render.normalMap = FindOrAddTexture(filepath + normal.C_Str(), encoder);
+		futures.emplace_back(std::async(std::launch::async, [&]
+		{
+			render.normalMap = FindOrAddTexture(filepath + normal.C_Str(), encoder);
+		}));
 	}
 
 	if (material->GetTexture(AI_MATKEY_METALLIC_TEXTURE, &metalic) == AI_SUCCESS)
 	{
 		render.useMetallicMap = true;
-		render.normalMap = FindOrAddTexture(filepath + metalic.C_Str(), encoder);
+		futures.emplace_back(std::async(std::launch::async, [&]
+		{
+			render.normalMap = FindOrAddTexture(filepath + metalic.C_Str(), encoder);
+		}));
 	}
 
 	if (material->GetTexture(AI_MATKEY_ROUGHNESS_TEXTURE, &roughness) == AI_SUCCESS)
 	{
 		render.useRoughnessMap = true;
-		render.normalMap = FindOrAddTexture(filepath + roughness.C_Str(), encoder);
+		futures.emplace_back(std::async(std::launch::async, [&]
+		{
+			render.normalMap = FindOrAddTexture(filepath + roughness.C_Str(), encoder);
+		}));
 	}
+
 
 	if (!render.useAlbedoMap)
 	{
@@ -201,5 +223,10 @@ static void CreateMaterial(const std::string& filepath, unsigned int index, aiMa
 		{
 			render.roughness = roughnessVal;
 		}
+	}
+
+	for (auto& future : futures)
+	{
+		future.get();
 	}
 }

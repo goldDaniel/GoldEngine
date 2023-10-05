@@ -373,26 +373,26 @@ namespace graphics
 		float mDepth = 1.0f;
 	};
 
+	struct Viewport
+	{
+		int x{};
+		int y{};
+		int width{};
+		int height{};
+
+		bool operator== (const Viewport& rhs) const
+		{
+			return x == rhs.x && y == rhs.y && width == rhs.width && height == rhs.height;
+		}
+
+		bool operator!= (const Viewport& rhs) const
+		{
+			return !(*this == rhs);
+		}
+	};
+
 	struct RenderState
 	{
-		struct Viewport
-		{
-			int x{};
-			int y{};
-			int width{};
-			int height{};
-
-			bool operator== (const Viewport& rhs) const
-			{
-				return x == rhs.x && y == rhs.y && width == rhs.width && height == rhs.height;
-			}
-
-			bool operator!= (const Viewport& rhs) const
-			{
-				return !(*this == rhs);
-			}
-		};
-
 		struct UniformBlock
 		{
 			u32 mNameHash{};
