@@ -163,6 +163,14 @@ namespace graphics
 	enum class ClearColor : u8 { YES, NO };
 	enum class ClearDepth : u8 { YES, NO };
 
+	struct PerfStats
+	{
+		u8 numPasses;
+		std::array<std::string, UINT8_MAX> mPassNames{};
+		std::array<int, UINT8_MAX>		   mPassDrawCalls{};
+		std::array<u64, UINT8_MAX>		   mPassTimeNS{};
+	};
+
 	struct Mesh
 	{
 		u32  mID{};

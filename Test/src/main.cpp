@@ -11,6 +11,7 @@
 #include "ui/SceneWindow.h"
 #include "ui/PropertyWindow.h"
 #include "ui/ViewportWindow.h"
+#include "ui/PerformanceWindow.h"
 
 #include "RenderSystem.h"
 #include "DebugCameraSystem.h"
@@ -42,6 +43,7 @@ protected:
 	virtual void Init() override
 	{	
 		AddEditorWindow(std::make_unique<LogWindow>());
+		AddEditorWindow(std::make_unique<PerformanceWindow>(true));
 		auto sceneWindow = AddEditorWindow(std::make_unique<SceneWindow>(&mScene));
 		auto propertyWindow = AddEditorWindow(std::make_unique<PropertyWindow>(mScene, [sceneWindow]()
 		{

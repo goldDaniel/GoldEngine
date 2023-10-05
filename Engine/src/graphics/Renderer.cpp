@@ -159,6 +159,7 @@ static SDL_GLContext glContext;
 
 static StateCache stateCache;
 
+static PerfStats perfStats;
 
 static std::unordered_map<FrameBufferHandle, FrameBuffer> frameBuffers =
 {
@@ -173,8 +174,10 @@ static std::unordered_map<MeshHandle, Mesh> meshes;
 static std::unordered_map<TextureHandle, TextureDesc> textureDescriptions;
 
 static std::vector<DrawCall> drawCalls{};
-static std::vector<RenderPass> renderPasses{};
 static std::vector<DeleteCommand> deletions{};
+
+static std::array<u32, UINT8_MAX> renderPassTimerQueries{};
+static std::vector<RenderPass> renderPasses{};
 
 static bool buildingFrame = false;
 
@@ -493,8 +496,6 @@ void Renderer::Init(void* window)
 	G_ENGINE_TRACE("Renderer: {}", (const char*)glGetString(GL_RENDERER));
 	G_ENGINE_TRACE("Version: {}", (const char*)glGetString(GL_VERSION));
 
-
-
 	glEnable(GL_DEBUG_OUTPUT);
 	glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
 	glDebugMessageCallback(GLErrorCallback, nullptr);
@@ -505,6 +506,9 @@ void Renderer::Init(void* window)
 	buildingFrame = false;
 	stateCache.prevMesh = {};
 	 
+	// timer query intialization for profiling renderpases
+	glGenQueries(renderPassTimerQueries.size(), renderPassTimerQueries.data());
+
 	// default GL state
 	// done using prevState so if we want to change defaults we just need
 	// to change the RenderState struct defaults
@@ -556,7 +560,7 @@ void Renderer::Init(void* window)
 
 void Renderer::Destroy()
 {
-
+	glDeleteQueries(renderPassTimerQueries.size(), renderPassTimerQueries.data());
 }
 
 void Renderer::BeginFrame()
@@ -587,10 +591,17 @@ void Renderer::ClearBackBuffer()
 	glBindFramebuffer(GL_DRAW_FRAMEBUFFER, stateCache.prevFrameBuffer.mHandle.idx);
 }
 
+PerfStats Renderer::GetPerfStats() const
+{
+	return perfStats;
+}
+
 void Renderer::EndFrame()
 {
 	DEBUG_ASSERT(buildingFrame, "Cannot end frame if one is not building!");
 	buildingFrame = false;
+
+	perfStats.numPasses = renderPasses.size();
 
 	auto setRenderState = [](const RenderState& state, bool isCompute)
 	{
@@ -835,9 +846,14 @@ void Renderer::EndFrame()
 		stateCache.prevRenderState = state;
 	};
 
-	auto setupRenderPass = [](const RenderPass& pass)
+	auto setupRenderPass = [](uint8_t passID)
 	{
+		const RenderPass& pass = renderPasses[passID];
 		glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, -1, pass.mName);
+		glBeginQuery(GL_TIME_ELAPSED, renderPassTimerQueries[passID]);
+		perfStats.mPassNames[passID] = pass.mName;
+		perfStats.mPassDrawCalls[passID] = 0;
+		perfStats.mPassTimeNS[passID] = 0;
 
 		const FrameBuffer& framebuffer = frameBuffers[pass.mTarget];
 
@@ -986,10 +1002,11 @@ void Renderer::EndFrame()
 		{
 			if (passIndex != std::numeric_limits<u8>::max())
 			{
+				glEndQuery(GL_TIME_ELAPSED);
 				glPopDebugGroup();
 			}
 			
-			setupRenderPass(renderPasses[draw.mState.mRenderPass]);
+			setupRenderPass(draw.mState.mRenderPass);
 			passIndex = draw.mState.mRenderPass;
 		}
 
@@ -1029,15 +1046,28 @@ void Renderer::EndFrame()
 			{
 				drawCallSingle(draw, prim);
 			}
+			perfStats.mPassDrawCalls[passIndex]++;
 		}
 	}
 	
 	if (passIndex != std::numeric_limits<u8>::max())
 	{
+		glEndQuery(GL_TIME_ELAPSED);
 		glPopDebugGroup();
 	}
 
 	currentFrame++;
+
+	for (u8 i = 0; i < renderPasses.size(); ++i)
+	{
+		u32 timerAvailable = 0;
+		while (!timerAvailable)
+		{
+			glGetQueryObjectuiv(renderPassTimerQueries[i], GL_QUERY_RESULT_AVAILABLE, &timerAvailable);
+		}
+
+		glGetQueryObjectui64v(renderPassTimerQueries[i], GL_QUERY_RESULT, &perfStats.mPassTimeNS[i]);
+	}
 
 	ImGui::Render();
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);

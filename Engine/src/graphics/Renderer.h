@@ -87,5 +87,7 @@ namespace graphics
 		void DispatchCompute(const RenderState& state, uint16_t localX, uint16_t localY, uint16_t localZ, std::function<void()> preAction = nullptr);
 
 		void ClearBackBuffer();
+
+		PerfStats GetPerfStats() const;
 	};
 }
