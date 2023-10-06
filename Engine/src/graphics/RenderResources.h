@@ -58,21 +58,28 @@ namespace gold
 	private:
 		u32 mNextID = 1;
 		std::unordered_map<T, T> mBufferMap;
+		std::mutex mMutex;
 	public:
 		T Create()
 		{
+			std::scoped_lock lock(mMutex);
+
 			mBufferMap[{mNextID}] = { 0 };
 			return { mNextID++ };
 		}
 
 		T& Get(const T& clientHandle)
 		{
+			std::scoped_lock lock(mMutex);
+
 			DEBUG_ASSERT(mBufferMap.find(clientHandle) != mBufferMap.end(), "Could not find resource handle({}) for type: {}", clientHandle.idx, typeid(T).name());
 			return mBufferMap[clientHandle];
 		}
 
 		void Destroy(const T& clientHandle)
 		{
+			std::scoped_lock lock(mMutex);
+
 			DEBUG_ASSERT(mBufferMap.find(clientHandle) != mBufferMap.end(), "Could not find resource handle for type: {}", clientHandle.idx, typeid(T).name());
 			mBufferMap.erase(clientHandle);
 		}

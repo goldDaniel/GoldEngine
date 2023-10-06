@@ -296,7 +296,6 @@ void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, S
 			renderer.DestroyTexture(serverHandle);
 			break;
 		}
-
 		// Frame Buffers
 		case RenderCommand::CreateFrameBuffer:
 		{
@@ -498,7 +497,6 @@ void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, S
 			*/
 			break;
 		}
-
 		// Render Pass
 		case RenderCommand::AddRenderPass:
 		{
