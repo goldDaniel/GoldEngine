@@ -26,11 +26,63 @@ private:
 	DebugCameraSystem mCameraSystem;
 	RenderSystem mRenderSystem;
 	
-	graphics::FrameBuffer mGameBuffer;
+	graphics::FrameBuffer mGBuffer;
 
 	ViewportWindow* mViewport = nullptr;
 
 	bool mFirstFrame = true;
+
+	void ResizeGBuffer(gold::FrameEncoder& encoder)
+	{
+		u32 width = mViewport->GetSize().x;
+		u32 height = mViewport->GetSize().y;
+		if (width == 0 || height == 0)
+		{
+			width = GetScreenSize().x;
+			height = GetScreenSize().y;
+		}
+
+		if (mGBuffer.mHandle.idx == 0 ||
+			mGBuffer.mWidth != width || mGBuffer.mHeight != height)
+		{
+			if (mGBuffer.mHandle.idx)
+			{
+				encoder.DestroyFrameBuffer(mGBuffer.mHandle);
+				mGBuffer.mHandle.idx = 0;
+			}
+
+			{
+				using namespace graphics;
+				FrameBufferDescription fbDesc;
+
+				TextureDescription2D albedoDesc;
+				albedoDesc.mWidth = width;
+				albedoDesc.mHeight = height;
+				albedoDesc.mFormat = TextureFormat::RGB_U8;
+				fbDesc.Put(graphics::OutputSlot::Color0, albedoDesc);
+
+				TextureDescription2D normalDesc;
+				normalDesc.mWidth = width;
+				normalDesc.mHeight = height;
+				normalDesc.mFormat = TextureFormat::RGB_FLOAT;
+				fbDesc.Put(graphics::OutputSlot::Color1, normalDesc);
+
+				TextureDescription2D coeffDesc;
+				coeffDesc.mWidth = width;
+				coeffDesc.mHeight = height;
+				coeffDesc.mFormat = TextureFormat::RGB_U8;
+				fbDesc.Put(graphics::OutputSlot::Color2, coeffDesc);
+
+				TextureDescription2D depthDesc;
+				depthDesc.mWidth = width;
+				depthDesc.mHeight = height;
+				depthDesc.mFormat = TextureFormat::DEPTH;
+				fbDesc.Put(graphics::OutputSlot::Depth, depthDesc);
+
+				mGBuffer = encoder.CreateFrameBuffer(fbDesc);
+			}
+		}
+	}
 
 public:
 	TestApp(gold::ApplicationConfig&& config)
@@ -53,50 +105,17 @@ protected:
 
 		auto camera = mScene.CreateGameObject("Camera");
 		camera.AddComponent<DebugCameraComponent>();
+
+		mCameraSystem = DebugCameraSystem(this);
 	}
 
 	virtual void Update(float delta, gold::FrameEncoder& encoder) override
 	{
 		mScene.FlushDestructionQueue();
-		mViewport->SetTexture(mGameBuffer.mTextures[0].idx);
+		
+		mViewport->SetTexture(mGBuffer.mTextures[0].idx);
 
-		u32 width = mViewport->GetSize().x;
-		u32 height = mViewport->GetSize().y;
-		if (width == 0 || height == 0)
-		{
-			width = GetScreenSize().x;
-			height = GetScreenSize().y;
-		}
-
-		if (mGameBuffer.mHandle.idx == 0 ||
-			mGameBuffer.mWidth != width || mGameBuffer.mHeight != height)
-		{
-			graphics::FrameBufferDescription desc;
-
-			{
-				graphics::TextureDescription2D texDesc;
-				texDesc.mWidth = width;
-				texDesc.mHeight = height;
-				texDesc.mFormat = graphics::TextureFormat::RGB_U8;
-				desc.Put(graphics::OutputSlot::Color0, texDesc);
-			}
-
-			{
-				graphics::TextureDescription2D depthDesc;
-				depthDesc.mWidth = width;
-				depthDesc.mHeight = height;
-				depthDesc.mFormat = graphics::TextureFormat::DEPTH;
-				desc.Put(graphics::OutputSlot::Depth, depthDesc);
-			}
-
-			if (mGameBuffer.mHandle.idx)
-			{
-				encoder.DestroyFrameBuffer(mGameBuffer.mHandle);
-				mGameBuffer.mHandle.idx = 0;
-			}
-
-			mGameBuffer = encoder.CreateFrameBuffer(desc);
-		}
+		ResizeGBuffer(encoder);
 
 		if (mStatus == scene::Loader::Status::Loading || mStatus == scene::Loader::Status::None)
 		{
@@ -106,7 +125,7 @@ protected:
 		mCameraSystem.Tick(mScene, delta);
 
 		mRenderSystem.SetEncoder(&encoder);
-		mRenderSystem.SetRenderTarget(mGameBuffer);
+		mRenderSystem.SetRenderTarget(mGBuffer);
 		mRenderSystem.Tick(mScene, delta);
 	}
 };

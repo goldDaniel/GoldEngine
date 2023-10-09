@@ -14,6 +14,11 @@ void DebugCameraComponent::ProcessKeyboard(Camera_Movement dir, float dt)
 	mCamera.ProcessKeyboard(dir, dt);
 }
 
+glm::mat4 DebugCameraComponent::GetProjectionMatrix() const
+{
+	return mCamera.GetProjectionMatrix();
+}
+
 glm::mat4 DebugCameraComponent::GetViewMatrix() const
 {
 	return mCamera.GetViewMatrix();

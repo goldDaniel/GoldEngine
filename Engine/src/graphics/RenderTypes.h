@@ -503,6 +503,8 @@ namespace graphics
 
 		void SetTexture(const std::string& name, TextureHandle texture)
 		{
+			DEBUG_ASSERT(texture.idx != 0, "Invalid Texture Handle!");
+
 			u64 nameHash = util::Hash(name.c_str(), name.size());
 
 			// update texture if it exists

@@ -27,8 +27,9 @@ protected:
 		ImGui::Separator();
 		ImGui::Text("Render Passes");
 		for (u8 i = 0; i < stats.numPasses; ++i)
-		{ 
-			if (ImGui::TreeNode(stats.mPassNames[i].c_str()))
+		{
+			std::string nodeName = stats.mPassNames[i] + "##_" + std::to_string(i);
+			if (ImGui::TreeNode(nodeName.c_str()))
 			{
 				std::string text = "- Draw Calls: " + std::to_string(stats.mPassDrawCalls[i]);
 				text += "\n- FrameTime(MS): " + std::to_string(stats.mPassTimeNS[i] / 1000000.0);

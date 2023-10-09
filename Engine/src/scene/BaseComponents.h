@@ -26,7 +26,7 @@ struct TransformComponent
 	glm::vec3 prevPosition{ 0 };
 	glm::vec3 position{ 0 };
 
-	glm::vec3 rotation;
+	glm::vec3 rotation{};
 	glm::vec3 scale{ 1,1,1 };
 
 	glm::mat4 GetMatrix() const
@@ -54,6 +54,11 @@ struct LightComponent
 	glm::vec3 color;
 };
 
+struct NotFrustumCulledComponent
+{
+	u8 flag;
+};
+
 struct RenderComponent
 {
 	graphics::MeshHandle mesh{};
@@ -61,17 +66,15 @@ struct RenderComponent
 	// TODO (danielg): have material buffer so renderComponent only needs an index/handle
 	//graphics::MaterialHandle material{};
 
+	glm::vec3 aabbMin{};
+	glm::vec3 aabbMax{};
+
+
 	glm::vec4 albedo{ 0.4f, 1.0f, 1.0f, 1.0f };
 	glm::vec4 emissive{ 0.f, 0.f, 0.f, 0.0f };
 
 	float metallic = 0.0f;
 	float roughness = 1.0f;
-
-	bool useAlbedoMap = false;
-	bool useNormalMap = false;
-	bool useMetallicMap = false;
-	bool useRoughnessMap = false;
-
 	float uvScale = 1.0f;
 
 	graphics::TextureHandle albedoMap{ 0 };

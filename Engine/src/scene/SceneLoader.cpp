@@ -88,9 +88,23 @@ static void CreateMesh(const aiMesh* mesh, gold::FrameEncoder& encoder, RenderCo
 	norBuffer.Reserve(mesh->mNumVertices);
 	texBuffer.Reserve(mesh->mNumVertices);
 
+	constexpr float fMin = std::numeric_limits<float>::min();
+	constexpr float fMax = std::numeric_limits<float>::max();
+	render.aabbMin = { fMax,fMax,fMax };
+	render.aabbMax = { fMin, fMin, fMin};
+
 	for (size_t i = 0; i < mesh->mNumVertices; ++i)
 	{
-		auto pos = glm::vec3{ mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z };
+		glm::vec3 pos = { mesh->mVertices[i].x, mesh->mVertices[i].y, mesh->mVertices[i].z };
+
+		if (pos.x < render.aabbMin.x) render.aabbMin.x = pos.x;
+		if (pos.y < render.aabbMin.y) render.aabbMin.y = pos.y;
+		if (pos.z < render.aabbMin.z) render.aabbMin.z = pos.z;
+
+		if (pos.x > render.aabbMax.x) render.aabbMax.x = pos.x;
+		if (pos.y > render.aabbMax.y) render.aabbMax.y = pos.y;
+		if (pos.z > render.aabbMax.z) render.aabbMax.z = pos.z;
+
 		auto nor = glm::vec3{ mesh->mNormals[i].x, mesh->mNormals[i].y, mesh->mNormals[i].z };
 		auto tex = glm::vec2{ mesh->mTextureCoords[0][i].x, mesh->mTextureCoords[0][i].y };
 
@@ -161,7 +175,6 @@ static void CreateMaterial(const std::string& filepath, unsigned int index, aiMa
 	std::vector<std::future<void>> futures;
 	if (material->GetTexture(AI_MATKEY_BASE_COLOR_TEXTURE, &albedo) == AI_SUCCESS)
 	{
-		render.useAlbedoMap = true;
 		futures.emplace_back(std::async(std::launch::async, [&]
 		{
 			render.albedoMap = FindOrAddTexture(filepath + albedo.C_Str(), encoder);
@@ -171,7 +184,6 @@ static void CreateMaterial(const std::string& filepath, unsigned int index, aiMa
 
 	if (material->GetTexture(aiTextureType_NORMALS, 0, &normal) == AI_SUCCESS)
 	{
-		render.useNormalMap = true;
 		futures.emplace_back(std::async(std::launch::async, [&]
 		{
 			render.normalMap = FindOrAddTexture(filepath + normal.C_Str(), encoder);
@@ -180,24 +192,26 @@ static void CreateMaterial(const std::string& filepath, unsigned int index, aiMa
 
 	if (material->GetTexture(AI_MATKEY_METALLIC_TEXTURE, &metalic) == AI_SUCCESS)
 	{
-		render.useMetallicMap = true;
 		futures.emplace_back(std::async(std::launch::async, [&]
 		{
-			render.normalMap = FindOrAddTexture(filepath + metalic.C_Str(), encoder);
+			render.metallicMap = FindOrAddTexture(filepath + metalic.C_Str(), encoder);
 		}));
 	}
 
 	if (material->GetTexture(AI_MATKEY_ROUGHNESS_TEXTURE, &roughness) == AI_SUCCESS)
 	{
-		render.useRoughnessMap = true;
 		futures.emplace_back(std::async(std::launch::async, [&]
 		{
-			render.normalMap = FindOrAddTexture(filepath + roughness.C_Str(), encoder);
+			render.roughnessMap = FindOrAddTexture(filepath + roughness.C_Str(), encoder);
 		}));
 	}
+	
+	for (auto& future : futures)
+	{
+		future.get();
+	}
 
-
-	if (!render.useAlbedoMap)
+	if (!render.albedoMap.idx)
 	{
 		aiColor4D albedoVal;
 		if (aiGetMaterialColor(material, AI_MATKEY_BASE_COLOR, &albedoVal) == AI_SUCCESS)
@@ -206,7 +220,7 @@ static void CreateMaterial(const std::string& filepath, unsigned int index, aiMa
 		}
 	}
 
-	if (!render.useMetallicMap)
+	if (!render.metallicMap.idx)
 	{
 
 		float metalicVal;
@@ -216,17 +230,12 @@ static void CreateMaterial(const std::string& filepath, unsigned int index, aiMa
 		}
 	}
 
-	if (!render.useRoughnessMap)
+	if (!render.roughnessMap.idx)
 	{
 		float roughnessVal;
 		if (aiGetMaterialFloat(material, AI_MATKEY_ROUGHNESS_FACTOR, &roughnessVal) == AI_SUCCESS)
 		{
 			render.roughness = roughnessVal;
 		}
-	}
-
-	for (auto& future : futures)
-	{
-		future.get();
 	}
 }

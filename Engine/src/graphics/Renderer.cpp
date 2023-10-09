@@ -759,6 +759,12 @@ void Renderer::EndFrame()
 			glDepthMask(state.mDepthWriteEnabled ? GL_TRUE : GL_FALSE);
 		}
 
+		//color 
+		if (state.mColorWriteEnabled != stateCache.prevRenderState.mColorWriteEnabled)
+		{
+			glColorMask(state.mColorWriteEnabled, state.mColorWriteEnabled, state.mColorWriteEnabled, state.mColorWriteEnabled);
+		}
+
 		// face culling 
 		if (state.mCullFace != stateCache.prevRenderState.mCullFace)
 		{
@@ -1061,12 +1067,15 @@ void Renderer::EndFrame()
 	for (u8 i = 0; i < renderPasses.size(); ++i)
 	{
 		u32 timerAvailable = 0;
-		while (!timerAvailable)
+		while (!timerAvailable && perfStats.mPassDrawCalls[i] > 0)
 		{
 			glGetQueryObjectuiv(renderPassTimerQueries[i], GL_QUERY_RESULT_AVAILABLE, &timerAvailable);
 		}
 
-		glGetQueryObjectui64v(renderPassTimerQueries[i], GL_QUERY_RESULT, &perfStats.mPassTimeNS[i]);
+		if (timerAvailable && perfStats.mPassDrawCalls[i] > 0)
+		{
+			glGetQueryObjectui64v(renderPassTimerQueries[i], GL_QUERY_RESULT, &perfStats.mPassTimeNS[i]);
+		}
 	}
 
 	ImGui::Render();

@@ -442,8 +442,7 @@ void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, S
 			state.mRenderPass = reader.Read<u8>();
 
 			// Shader
-			state.mShader = reader.Read<ShaderHandle>();
-			state.mShader = resources.get(state.mShader);
+			state.mShader = resources.get(reader.Read<ShaderHandle>());
 
 			// viewport
 			state.mViewport.x = reader.Read<int>();

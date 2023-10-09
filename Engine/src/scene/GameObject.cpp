@@ -171,36 +171,19 @@ glm::mat4 GameObject::GetInterpolatedWorldSpaceTransform(float alpha) const
 	return interpolated;
 }
 
-std::tuple<glm::vec4, glm::vec4> GameObject::GetAABB() const
+std::tuple<glm::vec3, glm::vec3> GameObject::GetAABB() const
 {
 	glm::vec3 min(std::numeric_limits<float>::max());
 	glm::vec3 max(std::numeric_limits<float>::min());
 
-	ForEachChild([&min, &max](const GameObject& obj)
-		{
-			//TODO (danielg): AABBS have been ripped out temporarily during refactor
-			//if (obj.HasComponent<MeshComponent>())
-			{
-				const auto [aabbMin, aabbMax] = obj.GetAABB();
+	if (HasComponent<RenderComponent>())
+	{
+		const auto& transform = GetComponent<TransformComponent>();
+		const auto& render = GetComponent<RenderComponent>();
 
-				if (aabbMin.x < min.x) min.x = aabbMin.x;
-				if (aabbMin.y < min.y) min.y = aabbMin.y;
-				if (aabbMin.z < min.z) min.z = aabbMin.z;
+		min = render.aabbMin;
+		max = render.aabbMax;
+	}
 
-				if (aabbMax.x > max.x) max.x = aabbMax.x;
-				if (aabbMax.y > max.y) max.y = aabbMax.y;
-				if (aabbMax.z > max.z) max.z = aabbMax.z;
-			}
-		});
-
-
-	const auto& transform = GetComponent<TransformComponent>();
-
-	min *= transform.scale;
-	min += transform.position;
-
-	max *= transform.scale;
-	max += transform.position;
-
-	return { glm::vec4(min, 1), glm::vec4(max,1) };
+	return { min, max };
 }

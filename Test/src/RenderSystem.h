@@ -4,6 +4,7 @@
 #include "scene/GameSystem.h"
 #include "graphics/FrameEncoder.h"
 #include "graphics/Texture.h"
+#include "graphics/FrustumCuller.h"
 
 #include "Components.h"
 
@@ -12,10 +13,34 @@ class RenderSystem : scene::GameSystem
 private:
 	gold::FrameEncoder* mEncoder = nullptr;
 
-	graphics::UniformBufferHandle mView{};
-	graphics::ShaderHandle mShader{};
 
-	graphics::TextureHandle mTexture{};
+	struct PerFrameConstants
+	{
+		glm::mat4 u_proj{};
+		glm::mat4 u_projInv{};
+
+		glm::mat4 u_view{};
+		glm::mat4 u_viewInv{};
+
+		glm::vec4 u_time{};
+	};
+	PerFrameConstants mPerFrameConstants{};
+	graphics::UniformBufferHandle mPerFrameContantsBuffer{};
+
+	struct PerDrawConstants
+	{
+		glm::mat4 u_model{};
+		
+		// for use when maps are not present
+		glm::vec4 u_albedo{};
+		glm::vec4 u_emissive{};
+		glm::vec4 u_coefficients{};// metallic, roughness, ?, uvScale
+
+		glm::vec4 u_flags; // albedoMap, normalMap, metallicMap, roughnessMap
+	};
+	graphics::UniformBufferHandle mPerDrawConstantsBuffer{};
+
+	graphics::ShaderHandle mShader{};
 
 	graphics::FrameBuffer mTarget{};
 
@@ -23,70 +48,20 @@ private:
 
 	void InitRenderData(scene::Scene& scene)
 	{
-		glm::mat4 mvp;
+		mPerFrameConstants.u_proj = glm::perspective(glm::radians(65.f), (float)mTarget.mWidth / (float)mTarget.mHeight, 1.f, 1000.f);
+		mPerFrameConstants.u_projInv = glm::inverse(mPerFrameConstants.u_proj);
 
-		mvp = glm::perspective(glm::radians(65.f), (float)mTarget.mWidth / (float)mTarget.mHeight, 1.f, 100.f);
-		mvp *= glm::lookAt(glm::vec3{ 0, 0, 5 }, glm::vec3{ 0,0,0 }, glm::vec3{ 0,1,0 });
+		mPerFrameConstants.u_view = glm::lookAt(glm::vec3{ 0, 0, 5 }, glm::vec3{ 0,0,0 }, glm::vec3{ 0,1,0 });
+		mPerFrameConstants.u_viewInv = glm::inverse(mPerFrameConstants.u_view);
+		mPerFrameConstants.u_time = { 0,0,0,0 };
+		mPerFrameContantsBuffer = mEncoder->CreateUniformBuffer(&mPerFrameConstants, sizeof(PerFrameConstants));
 
-		mView = mEncoder->CreateUniformBuffer(&mvp, sizeof(glm::mat4));
+		PerDrawConstants perDrawConstants{};
+		mPerDrawConstantsBuffer = mEncoder->CreateUniformBuffer(&perDrawConstants, sizeof(PerDrawConstants));
 
-		std::string vertSrc = util::LoadStringFromFile("shaders/default.vert.glsl");
-
-		std::string fragSrc = util::LoadStringFromFile("shaders/default.frag.glsl");
+		std::string vertSrc = util::LoadStringFromFile("shaders/gbuffer_fill.vert.glsl");
+		std::string fragSrc = util::LoadStringFromFile("shaders/gbuffer_fill.frag.glsl");
 		mShader = mEncoder->CreateShader(vertSrc.c_str(), fragSrc.c_str());
-
-
-		graphics::VertexLayout layout;
-		layout.Push<graphics::VertexLayout::Position3>();
-		layout.Push<graphics::VertexLayout::Texcoord2>();
-		layout.Push<graphics::VertexLayout::Color3>();
-
-		graphics::VertexBuffer buffer(std::move(layout));
-
-		glm::vec3 pos0 = { -1, -1, 0 };
-		glm::vec2 tex0 = { 0, 0 };
-		glm::vec3 col0 = { 1, 0, 0 };
-
-		glm::vec3 pos1 = { 1, -1, 0 };
-		glm::vec2 tex1 = { 1, 0 };
-		glm::vec3 col1 = { 0, 1, 0 };
-
-		glm::vec3 pos2 = { 0, 1, 0 };
-		glm::vec2 tex2 = { 0.5, 1.0};
-		glm::vec3 col2 = { 0, 0, 1 };
-
-		buffer.Emplace(pos0, tex0, col0);
-		buffer.Emplace(pos1, tex1, col1);
-		buffer.Emplace(pos2, tex2, col2);
-
-		std::vector<uint16_t> indices =
-		{
-			0, 1, 2
-		};
-
-		graphics::MeshDescription mesh;
-		mesh.mIndicesFormat = graphics::IndexFormat::U16;
-		mesh.mIndices = mEncoder->CreateIndexBuffer(indices.data(), sizeof(uint16_t) * indices.size());
-		mesh.mIndexCount = 3;
-
-		mesh.mVertexCount = 3;
-		mesh.mStride = buffer.GetLayout().Size();
-		mesh.offsets.mPositionOffset = buffer.GetLayout().Resolve<graphics::VertexLayout::Position3>().GetOffset();
-		mesh.offsets.mTexCoord0Offset = buffer.GetLayout().Resolve<graphics::VertexLayout::Texcoord2>().GetOffset();
-		mesh.offsets.mColorsOffset = buffer.GetLayout().Resolve<graphics::VertexLayout::Color3>().GetOffset();
-
-		mesh.mInterlacedBuffer = mEncoder->CreateVertexBuffer(buffer.Raw(), buffer.SizeInBytes());
-
-		{
-			graphics::Texture2D texture("textures/lava.png");
-			graphics::TextureDescription2D desc(texture, false);
-			desc.mFilter = graphics::TextureFilter::POINT;
-			mTexture = mEncoder->CreateTexture2D(desc);
-		}
-
-		auto obj = scene.CreateGameObject();
-		auto& render = obj.AddComponent<RenderComponent>();
-		render.mesh = mEncoder->CreateMesh(mesh);
 	}
 
 public:
@@ -119,34 +94,85 @@ public:
 			InitRenderData(scene);
 			mFirstFrame = false;
 		}
+		
+		
+		
+
 
 		glm::mat4 view{};
-		scene.ForEach<TransformComponent, DebugCameraComponent>(
-		[&view](scene::GameObject obj)
+		float nearPlane{};
+		float farPlane{};
+		float aspect = (float)mTarget.mWidth / (float)mTarget.mHeight;
+		scene.ForEach<TransformComponent, DebugCameraComponent>([&](scene::GameObject obj)
 		{
 			const auto& cam = obj.GetComponent<DebugCameraComponent>();
 			view = cam.GetViewMatrix();
+			nearPlane = cam.mCamera.Near;
+			farPlane = cam.mCamera.Far;
+		});
+		
+		// update per frame buffer
+		{
+			mPerFrameConstants.u_proj = glm::perspective(glm::radians(65.f), (float)mTarget.mWidth / (float)mTarget.mHeight, 1.f, 1000.f);
+			mPerFrameConstants.u_projInv = glm::inverse(mPerFrameConstants.u_proj);
+
+			mPerFrameConstants.u_view = view;
+			mPerFrameConstants.u_viewInv = glm::inverse(mPerFrameConstants.u_view);
+			mPerFrameConstants.u_time.x += dt;
+
+			mEncoder->UpdateUniformBuffer(mPerFrameContantsBuffer, &mPerFrameConstants, sizeof(PerFrameConstants));
+		}
+
+		// frustum cull
+		scene.ForEach<RenderComponent>([&](scene::GameObject obj)
+		{
+			auto aabb = obj.GetAABB();
+
+			glm::vec3 min = std::get<0>(aabb);
+			glm::vec3 max = std::get<1>(aabb);
+
+			// invalid AABB? Add to draw list just in case
+			if (min.x > max.x || min.y > max.y || min.z > max.z)
+			{
+				DEBUG_ASSERT(false, "Invalid AABB");	
+				obj.AddComponent<NotFrustumCulledComponent>();
+				return;
+			}
+
+			obj.AddComponent<NotFrustumCulledComponent>();
 		});
 
 		uint8_t pass = mEncoder->AddRenderPass("Default", mTarget.mHandle, graphics::ClearColor::YES, graphics::ClearDepth::YES);
-		scene.ForEach<TransformComponent, RenderComponent>([&](const scene::GameObject obj)
+		scene.ForEach<TransformComponent, RenderComponent, NotFrustumCulledComponent>([&](const scene::GameObject obj)
 		{
-			auto& render = obj.GetComponent<RenderComponent>();
+			const auto& render = obj.GetComponent<RenderComponent>();
 
-			glm::mat4 mvp = glm::perspective(glm::radians(65.f), (float)mTarget.mWidth / (float)mTarget.mHeight, 1.f, 1000.f);
-			mvp *= view;
-			mvp *= obj.GetWorldSpaceTransform();
-			mEncoder->UpdateUniformBuffer(mView, &mvp, sizeof(glm::mat4));
+			PerDrawConstants drawConstants =
+			{
+				obj.GetWorldSpaceTransform() ,
+				render.albedo,
+				render.emissive,
+
+				{render.metallic, render.roughness, 0.f, render.uvScale},
+				{render.albedoMap.idx, render.normalMap.idx,render.metallicMap.idx,render.roughnessMap.idx}
+			};
+			mEncoder->UpdateUniformBuffer(mPerDrawConstantsBuffer, &drawConstants, sizeof(PerDrawConstants));
 
 			graphics::RenderState state;
 			state.mRenderPass = pass;
+			state.mAlphaBlendEnabled = false;
 			state.mShader = mShader;
-			state.SetUniformBlock("View_UBO", { mView });
+			state.SetUniformBlock("PerFrameConstants_UBO", mPerFrameContantsBuffer);
+			state.SetUniformBlock("PerDrawConstants_UBO", mPerDrawConstantsBuffer);
 
-			graphics::TextureHandle texture = render.useAlbedoMap ? render.albedoMap : mTexture;
-			state.SetTexture("u_texture", texture);
+			if (render.albedoMap.idx)		state.SetTexture("u_albedoMap", render.albedoMap);
+			if (render.normalMap.idx)		state.SetTexture("u_normalMap", render.normalMap);
+			if (render.metallicMap.idx)		state.SetTexture("u_metallicMap", render.metallicMap);
+			if (render.roughnessMap.idx)	state.SetTexture("u_roughnessMap", render.roughnessMap);
 
 			mEncoder->DrawMesh(render.mesh, state);
 		});
+
+		scene.ForEach<NotFrustumCulledComponent>([](scene::GameObject obj) { obj.RemoveComponent<NotFrustumCulledComponent>(); });
 	}
 };

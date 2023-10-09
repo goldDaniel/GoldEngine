@@ -8,15 +8,28 @@
 
 class DebugCameraSystem : public scene::GameSystem
 {
+private:
+	const gold::Application const* mApp{};
 public:
+	DebugCameraSystem() = default;
+
+	DebugCameraSystem(gold::Application* app)
+		: mApp(app)
+	{
+	}
+
 	virtual ~DebugCameraSystem() {}
 
 	virtual void Tick(scene::Scene& scene, float dt) override
 	{
 		scene.ForEach<TransformComponent, DebugCameraComponent>([this, dt](scene::GameObject obj)
 		{
+			
+
 			auto& transform = obj.GetComponent<TransformComponent>();
 			auto& cam = obj.GetComponent<DebugCameraComponent>();
+
+			cam.mCamera.Aspect = mApp->GetScreenSize().x / mApp->GetScreenSize().y;
 
 			auto& input = *Singletons::Get()->Resolve<gold::Input>();
 
