@@ -32,29 +32,41 @@ public:
 			if (r == 8) return false;
 		}
 
-		int r = 0;
-		r = 0; for (int i = 0; i < 8; i++) r += ((corners[i].x > aabb.max.x) ? 1 : 0);
-		if (r == 8) return false;
-
-		r = 0; for (int i = 0; i < 8; i++) r += ((corners[i].x < aabb.min.x) ? 1 : 0);
-		if (r == 8) return false;
-
-		r = 0; for (int i = 0; i < 8; i++) r += ((corners[i].y > aabb.max.y) ? 1 : 0);
-		if (r == 8) return false;
-
-		r = 0; for (int i = 0; i < 8; i++) r += ((corners[i].y < aabb.min.y) ? 1 : 0);
-		if (r == 8) return false;
-
-		r = 0; for (int i = 0; i < 8; i++) r += ((corners[i].z > aabb.max.z) ? 1 : 0);
-		if (r == 8) return false;
-
-		r = 0; for (int i = 0; i < 8; i++) r += ((corners[i].z < aabb.min.z) ? 1 : 0);
-		if (r == 8) return false;
+		{
+			int r = 0;
+			for (int i = 0; i < 8; i++) r += ((corners[i].x > aabb.max.x) ? 1 : 0);
+			if (r == 8) return false;
+		}
+		{
+			int r = 0; 
+			for (int i = 0; i < 8; i++) r += ((corners[i].x < aabb.min.x) ? 1 : 0);
+			if (r == 8) return false;
+		}
+		{
+			int r = 0; 
+			for (int i = 0; i < 8; i++) r += ((corners[i].y > aabb.max.y) ? 1 : 0);
+			if (r == 8) return false;
+		}
+		{
+			int r = 0; 
+			for (int i = 0; i < 8; i++) r += ((corners[i].y < aabb.min.y) ? 1 : 0);
+			if (r == 8) return false;
+		}
+		{
+			int r = 0; 
+			for (int i = 0; i < 8; i++) r += ((corners[i].z > aabb.max.z) ? 1 : 0);
+			if (r == 8) return false;
+		}
+		{
+			int r = 0; 
+			for (int i = 0; i < 8; i++) r += ((corners[i].z < aabb.min.z) ? 1 : 0);
+			if (r == 8) return false;
+		}
 
 		return true;
 	}
 
-	static bool FrustumCulled(Camera& camera, const AABB& aabb)
+	static bool FrustumCulled(const Camera& camera, const AABB& aabb)
 	{
 		glm::mat4 viewProj = camera.GetProjectionMatrix() * camera.GetViewMatrix();
 		glm::mat4 transposeViewProj = glm::transpose(viewProj);

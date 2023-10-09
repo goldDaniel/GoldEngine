@@ -114,7 +114,10 @@ void GameObject::Destroy()
 	mRegistry->destroy(mEntity);
 }
 
-bool GameObject::HasParent() const { return HasComponent<ParentComponent>() && GameObject(mRegistry, GetComponent<ParentComponent>().parent).IsValid(); }
+bool GameObject::HasParent() const 
+{ 
+	return HasComponent<ParentComponent>() && GameObject(mRegistry, GetComponent<ParentComponent>().parent).IsValid(); 
+}
 
 void GameObject::SetTag(const std::string& tag)
 {

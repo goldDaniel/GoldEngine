@@ -601,7 +601,7 @@ void Renderer::EndFrame()
 	DEBUG_ASSERT(buildingFrame, "Cannot end frame if one is not building!");
 	buildingFrame = false;
 
-	perfStats.numPasses = renderPasses.size();
+	perfStats = {};
 
 	auto setRenderState = [](const RenderState& state, bool isCompute)
 	{
@@ -857,6 +857,7 @@ void Renderer::EndFrame()
 		const RenderPass& pass = renderPasses[passID];
 		glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, -1, pass.mName);
 		glBeginQuery(GL_TIME_ELAPSED, renderPassTimerQueries[passID]);
+		perfStats.numPasses++;
 		perfStats.mPassNames[passID] = pass.mName;
 		perfStats.mPassDrawCalls[passID] = 0;
 		perfStats.mPassTimeNS[passID] = 0;

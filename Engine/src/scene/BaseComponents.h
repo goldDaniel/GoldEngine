@@ -59,6 +59,57 @@ struct NotFrustumCulledComponent
 	u8 flag;
 };
 
+struct DirectionalLightComponent
+{
+	glm::vec4 direction{ 0 };
+	glm::vec4 color{ 0 };
+};
+
+struct PointLightComponent
+{
+	glm::vec4 color{ 0 };
+	float falloff = 0;
+};
+
+struct ShadowMapComponent
+{
+	// NOTE (danielg): view matrix will be calculated during pass 
+
+	union
+	{
+		// construct dir light ortho
+		struct
+		{
+			float left;
+			float right;
+			float top;
+			float bottom;
+		};
+
+		// construct point light projection
+		struct
+		{
+			float FOV;
+			float aspect;
+		};
+	};
+
+	float nearPlane;
+	float farPlane;
+
+	// NOTE (danielg): 0 is used for directional lights. Otherwise: 
+	/*
+		0 - ShadowMapIndex+X
+		1 - shadowMapIndex-X
+		2 - shadowMapIndex+Y,
+		3 - shadowMapIndex-Y,
+		4 - shadowMapIndex+Z,
+		5 - shadowMapIndex-Z
+	*/
+	std::array<float, 6> shadowMapBias{ -1,-1,-1,-1,-1,-1 };
+	std::array<int, 6> shadowMapIndex{ -1,-1,-1,-1,-1,-1 };
+};
+
 struct RenderComponent
 {
 	graphics::MeshHandle mesh{};

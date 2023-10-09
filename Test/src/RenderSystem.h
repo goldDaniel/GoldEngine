@@ -13,7 +13,6 @@ class RenderSystem : scene::GameSystem
 private:
 	gold::FrameEncoder* mEncoder = nullptr;
 
-
 	struct PerFrameConstants
 	{
 		glm::mat4 u_proj{};
@@ -42,27 +41,13 @@ private:
 
 	graphics::ShaderHandle mShader{};
 
-	graphics::FrameBuffer mTarget{};
+	graphics::FrameBuffer mGBuffer{};
 
 	bool mFirstFrame = true;
 
-	void InitRenderData(scene::Scene& scene)
-	{
-		mPerFrameConstants.u_proj = glm::perspective(glm::radians(65.f), (float)mTarget.mWidth / (float)mTarget.mHeight, 1.f, 1000.f);
-		mPerFrameConstants.u_projInv = glm::inverse(mPerFrameConstants.u_proj);
+	void InitRenderData(scene::Scene& scene);
 
-		mPerFrameConstants.u_view = glm::lookAt(glm::vec3{ 0, 0, 5 }, glm::vec3{ 0,0,0 }, glm::vec3{ 0,1,0 });
-		mPerFrameConstants.u_viewInv = glm::inverse(mPerFrameConstants.u_view);
-		mPerFrameConstants.u_time = { 0,0,0,0 };
-		mPerFrameContantsBuffer = mEncoder->CreateUniformBuffer(&mPerFrameConstants, sizeof(PerFrameConstants));
-
-		PerDrawConstants perDrawConstants{};
-		mPerDrawConstantsBuffer = mEncoder->CreateUniformBuffer(&perDrawConstants, sizeof(PerDrawConstants));
-
-		std::string vertSrc = util::LoadStringFromFile("shaders/gbuffer_fill.vert.glsl");
-		std::string fragSrc = util::LoadStringFromFile("shaders/gbuffer_fill.frag.glsl");
-		mShader = mEncoder->CreateShader(vertSrc.c_str(), fragSrc.c_str());
-	}
+	void FillGBuffer(const Camera& camera, scene::Scene& scene);
 
 public:
 	
@@ -76,96 +61,18 @@ public:
 
 	}
 
+	void ResizeGBuffer(int width, int height);
+
 	void SetEncoder(gold::FrameEncoder* frameEncoder)
 	{
 		DEBUG_ASSERT(frameEncoder, "Frame Encoder should never be null!");
 		mEncoder = frameEncoder;
 	}
 
-	void SetRenderTarget(graphics::FrameBuffer target)
+	const graphics::FrameBuffer& GetRenderTarget()
 	{
-		mTarget = target;
+		return mGBuffer;
 	}
 
-	virtual void Tick(scene::Scene& scene, float dt) override
-	{
-		if (mFirstFrame)
-		{
-			InitRenderData(scene);
-			mFirstFrame = false;
-		}
-		
-		
-		Camera* camera = nullptr;
-		scene.ForEach<TransformComponent, DebugCameraComponent>([&](scene::GameObject obj)
-		{
-			auto& cam = obj.GetComponent<DebugCameraComponent>();
-			cam.mCamera.Aspect = (float)mTarget.mWidth / (float)mTarget.mHeight;;
-			camera = &cam.mCamera;
-		});
-		
-		// update per frame buffer
-		{
-			mPerFrameConstants.u_proj = camera->GetProjectionMatrix();
-			mPerFrameConstants.u_projInv = glm::inverse(mPerFrameConstants.u_proj);
-
-			mPerFrameConstants.u_view = camera->GetViewMatrix();
-			mPerFrameConstants.u_viewInv = glm::inverse(mPerFrameConstants.u_view);
-			mPerFrameConstants.u_time.x += dt;
-
-			mEncoder->UpdateUniformBuffer(mPerFrameContantsBuffer, &mPerFrameConstants, sizeof(PerFrameConstants));
-		}
-
-		// frustum cull
-		scene.ForEach<RenderComponent>([&](scene::GameObject obj)
-		{
-			auto aabb = obj.GetAABB();
-
-			// invalid AABB? Add to draw list just in case
-			if (aabb.min.x > aabb.max.x || aabb.min.y > aabb.max.y || aabb.min.z > aabb.max.z)
-			{
-				DEBUG_ASSERT(false, "Invalid AABB");	
-				obj.AddComponent<NotFrustumCulledComponent>();
-				return;
-			}
-
-			if (!FrustumCuller::FrustumCulled(*camera, aabb))
-			{
-				obj.AddComponent<NotFrustumCulledComponent>();
-			}
-		});
-
-		uint8_t pass = mEncoder->AddRenderPass("Default", mTarget.mHandle, graphics::ClearColor::YES, graphics::ClearDepth::YES);
-		scene.ForEach<TransformComponent, RenderComponent, NotFrustumCulledComponent>([&](const scene::GameObject obj)
-		{
-			const auto& render = obj.GetComponent<RenderComponent>();
-
-			PerDrawConstants drawConstants =
-			{
-				obj.GetWorldSpaceTransform() ,
-				render.albedo,
-				render.emissive,
-
-				{render.metallic, render.roughness, 0.f, render.uvScale},
-				{render.albedoMap.idx, render.normalMap.idx,render.metallicMap.idx,render.roughnessMap.idx}
-			};
-			mEncoder->UpdateUniformBuffer(mPerDrawConstantsBuffer, &drawConstants, sizeof(PerDrawConstants));
-
-			graphics::RenderState state;
-			state.mRenderPass = pass;
-			state.mAlphaBlendEnabled = false;
-			state.mShader = mShader;
-			state.SetUniformBlock("PerFrameConstants_UBO", mPerFrameContantsBuffer);
-			state.SetUniformBlock("PerDrawConstants_UBO", mPerDrawConstantsBuffer);
-
-			if (render.albedoMap.idx)		state.SetTexture("u_albedoMap", render.albedoMap);
-			if (render.normalMap.idx)		state.SetTexture("u_normalMap", render.normalMap);
-			if (render.metallicMap.idx)		state.SetTexture("u_metallicMap", render.metallicMap);
-			if (render.roughnessMap.idx)	state.SetTexture("u_roughnessMap", render.roughnessMap);
-
-			mEncoder->DrawMesh(render.mesh, state);
-		});
-
-		scene.ForEach<NotFrustumCulledComponent>([](scene::GameObject obj) { obj.RemoveComponent<NotFrustumCulledComponent>(); });
-	}
+	virtual void Tick(scene::Scene& scene, float dt) override;
 };

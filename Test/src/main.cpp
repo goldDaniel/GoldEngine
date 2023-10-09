@@ -25,7 +25,7 @@ private:
 	scene::Scene mScene;
 	DebugCameraSystem mCameraSystem;
 	RenderSystem mRenderSystem;
-	
+
 	graphics::FrameBuffer mGBuffer;
 
 	ViewportWindow* mViewport = nullptr;
@@ -34,54 +34,7 @@ private:
 
 	void ResizeGBuffer(gold::FrameEncoder& encoder)
 	{
-		u32 width = mViewport->GetSize().x;
-		u32 height = mViewport->GetSize().y;
-		if (width == 0 || height == 0)
-		{
-			width = GetScreenSize().x;
-			height = GetScreenSize().y;
-		}
-
-		if (mGBuffer.mHandle.idx == 0 ||
-			mGBuffer.mWidth != width || mGBuffer.mHeight != height)
-		{
-			if (mGBuffer.mHandle.idx)
-			{
-				encoder.DestroyFrameBuffer(mGBuffer.mHandle);
-				mGBuffer.mHandle.idx = 0;
-			}
-
-			{
-				using namespace graphics;
-				FrameBufferDescription fbDesc;
-
-				TextureDescription2D albedoDesc;
-				albedoDesc.mWidth = width;
-				albedoDesc.mHeight = height;
-				albedoDesc.mFormat = TextureFormat::RGB_U8;
-				fbDesc.Put(graphics::OutputSlot::Color0, albedoDesc);
-
-				TextureDescription2D normalDesc;
-				normalDesc.mWidth = width;
-				normalDesc.mHeight = height;
-				normalDesc.mFormat = TextureFormat::RGB_FLOAT;
-				fbDesc.Put(graphics::OutputSlot::Color1, normalDesc);
-
-				TextureDescription2D coeffDesc;
-				coeffDesc.mWidth = width;
-				coeffDesc.mHeight = height;
-				coeffDesc.mFormat = TextureFormat::RGB_U8;
-				fbDesc.Put(graphics::OutputSlot::Color2, coeffDesc);
-
-				TextureDescription2D depthDesc;
-				depthDesc.mWidth = width;
-				depthDesc.mHeight = height;
-				depthDesc.mFormat = TextureFormat::DEPTH;
-				fbDesc.Put(graphics::OutputSlot::Depth, depthDesc);
-
-				mGBuffer = encoder.CreateFrameBuffer(fbDesc);
-			}
-		}
+		
 	}
 
 public:
@@ -93,14 +46,14 @@ public:
 protected:
 
 	virtual void Init() override
-	{	
+	{
 		AddEditorWindow(std::make_unique<LogWindow>());
 		AddEditorWindow(std::make_unique<PerformanceWindow>(true));
 		auto sceneWindow = AddEditorWindow(std::make_unique<SceneWindow>(&mScene));
 		auto propertyWindow = AddEditorWindow(std::make_unique<PropertyWindow>(mScene, [sceneWindow]()
-		{
-			return sceneWindow->GetSelected();
-		}));
+			{
+				return sceneWindow->GetSelected();
+			}));
 		mViewport = AddEditorWindow(std::make_unique<ViewportWindow>());
 
 		auto camera = mScene.CreateGameObject("Camera");
@@ -112,11 +65,6 @@ protected:
 	virtual void Update(float delta, gold::FrameEncoder& encoder) override
 	{
 		mScene.FlushDestructionQueue();
-		
-		mViewport->SetTexture(mGBuffer.mTextures[0].idx);
-
-		ResizeGBuffer(encoder);
-
 		if (mStatus == scene::Loader::Status::Loading || mStatus == scene::Loader::Status::None)
 		{
 			mStatus = scene::Loader::LoadGameObjectFromModel(mScene, encoder, "sponza2/sponza.gltf");
@@ -124,8 +72,22 @@ protected:
 
 		mCameraSystem.Tick(mScene, delta);
 
+
+		const graphics::FrameBuffer& fb = mRenderSystem.GetRenderTarget();
+		mViewport->SetTexture(fb.mTextures[0].idx);
+
 		mRenderSystem.SetEncoder(&encoder);
-		mRenderSystem.SetRenderTarget(mGBuffer);
+
+		u32 width = mViewport->GetSize().x;
+		u32 height = mViewport->GetSize().y;
+		if (width == 0 || height == 0)
+		{
+			width  = GetScreenSize().x;
+			height = GetScreenSize().y;
+		}
+
+		mRenderSystem.ResizeGBuffer(width, height);
+		
 		mRenderSystem.Tick(mScene, delta);
 	}
 };

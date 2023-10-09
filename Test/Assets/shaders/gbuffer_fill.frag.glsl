@@ -49,7 +49,7 @@ void main()
     {
         albedoColor = texture(u_albedoMap, Texcoord.xy * u_coefficients.w);
     }
-    if(albedoColor.a < 0.5) discard;
+    if(albedoColor.a < 0.4) discard;
 	
 
     color0 = albedoColor.xyz;
