@@ -40,7 +40,7 @@ public:
 
 	float FOV = glm::radians(60.f);
 	float Near = 1.0f;
-	float Far = 100.f;
+	float Far = 250.f;
 	float Aspect = 1.0f;
 
 	// constructor with vectors

@@ -8,6 +8,7 @@
 #include <string>
 #include <memory>
 
+#include "graphics/FrustumCuller.h"
 
 namespace scene
 {
@@ -91,6 +92,6 @@ namespace scene
 		glm::mat4 GetWorldSpaceTransform() const;
 		glm::mat4 GetInterpolatedWorldSpaceTransform(float alpha) const;
 
-		std::tuple<glm::vec3, glm::vec3> GetAABB() const;
+		AABB GetAABB() const;
 	};
 }

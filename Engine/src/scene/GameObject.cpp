@@ -171,19 +171,45 @@ glm::mat4 GameObject::GetInterpolatedWorldSpaceTransform(float alpha) const
 	return interpolated;
 }
 
-std::tuple<glm::vec3, glm::vec3> GameObject::GetAABB() const
+AABB GameObject::GetAABB() const
 {
-	glm::vec3 min(std::numeric_limits<float>::max());
-	glm::vec3 max(std::numeric_limits<float>::min());
+	glm::vec3 minResult(std::numeric_limits<float>::max());
+	glm::vec3 maxResult(std::numeric_limits<float>::min());
 
 	if (HasComponent<RenderComponent>())
 	{
-		const auto& transform = GetComponent<TransformComponent>();
 		const auto& render = GetComponent<RenderComponent>();
 
-		min = render.aabbMin;
-		max = render.aabbMax;
+		glm::vec3 min = render.aabbMin;
+		glm::vec3 max = render.aabbMax;
+
+		std::array<glm::vec3, 8> box =
+		{
+			glm::vec3{min.x, min.y, min.z},
+			glm::vec3{max.x, min.y, min.z},
+			glm::vec3{max.x, min.y, max.z},
+			glm::vec3{min.x, min.y, max.z},
+
+			glm::vec3{min.x, max.y, min.z},
+			glm::vec3{max.x, max.y, min.z},
+			glm::vec3{max.x, max.y, max.z},
+			glm::vec3{min.x, max.y, max.z},
+		};
+
+		glm::mat4 transform = GetWorldSpaceTransform();
+		for (auto& corner : box)
+		{
+			glm::vec4 result = transform * glm::vec4(corner, 1.0);
+
+			if (result.x < minResult.x) minResult.x = result.x;
+			if (result.y < minResult.y) minResult.y = result.y;
+			if (result.z < minResult.z) minResult.z = result.z;
+
+			if (result.x > maxResult.x) maxResult.x = result.x;
+			if (result.y > maxResult.y) maxResult.y = result.y;
+			if (result.z > maxResult.z) maxResult.z = result.z;
+		}
 	}
 
-	return { min, max };
+	return { minResult, maxResult };
 }

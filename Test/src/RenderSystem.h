@@ -96,27 +96,20 @@ public:
 		}
 		
 		
-		
-
-
-		glm::mat4 view{};
-		float nearPlane{};
-		float farPlane{};
-		float aspect = (float)mTarget.mWidth / (float)mTarget.mHeight;
+		Camera* camera = nullptr;
 		scene.ForEach<TransformComponent, DebugCameraComponent>([&](scene::GameObject obj)
 		{
-			const auto& cam = obj.GetComponent<DebugCameraComponent>();
-			view = cam.GetViewMatrix();
-			nearPlane = cam.mCamera.Near;
-			farPlane = cam.mCamera.Far;
+			auto& cam = obj.GetComponent<DebugCameraComponent>();
+			cam.mCamera.Aspect = (float)mTarget.mWidth / (float)mTarget.mHeight;;
+			camera = &cam.mCamera;
 		});
 		
 		// update per frame buffer
 		{
-			mPerFrameConstants.u_proj = glm::perspective(glm::radians(65.f), (float)mTarget.mWidth / (float)mTarget.mHeight, 1.f, 1000.f);
+			mPerFrameConstants.u_proj = camera->GetProjectionMatrix();
 			mPerFrameConstants.u_projInv = glm::inverse(mPerFrameConstants.u_proj);
 
-			mPerFrameConstants.u_view = view;
+			mPerFrameConstants.u_view = camera->GetViewMatrix();
 			mPerFrameConstants.u_viewInv = glm::inverse(mPerFrameConstants.u_view);
 			mPerFrameConstants.u_time.x += dt;
 
@@ -128,18 +121,18 @@ public:
 		{
 			auto aabb = obj.GetAABB();
 
-			glm::vec3 min = std::get<0>(aabb);
-			glm::vec3 max = std::get<1>(aabb);
-
 			// invalid AABB? Add to draw list just in case
-			if (min.x > max.x || min.y > max.y || min.z > max.z)
+			if (aabb.min.x > aabb.max.x || aabb.min.y > aabb.max.y || aabb.min.z > aabb.max.z)
 			{
 				DEBUG_ASSERT(false, "Invalid AABB");	
 				obj.AddComponent<NotFrustumCulledComponent>();
 				return;
 			}
 
-			obj.AddComponent<NotFrustumCulledComponent>();
+			if (!FrustumCuller::FrustumCulled(*camera, aabb))
+			{
+				obj.AddComponent<NotFrustumCulledComponent>();
+			}
 		});
 
 		uint8_t pass = mEncoder->AddRenderPass("Default", mTarget.mHandle, graphics::ClearColor::YES, graphics::ClearDepth::YES);

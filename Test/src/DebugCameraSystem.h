@@ -9,7 +9,7 @@
 class DebugCameraSystem : public scene::GameSystem
 {
 private:
-	const gold::Application const* mApp{};
+	gold::Application const * mApp{};
 public:
 	DebugCameraSystem() = default;
 
@@ -24,8 +24,6 @@ public:
 	{
 		scene.ForEach<TransformComponent, DebugCameraComponent>([this, dt](scene::GameObject obj)
 		{
-			
-
 			auto& transform = obj.GetComponent<TransformComponent>();
 			auto& cam = obj.GetComponent<DebugCameraComponent>();
 

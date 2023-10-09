@@ -1,7 +1,7 @@
 #pragma once
 
 #include "core/Core.h"
-#include "Camera.h"
+#include "scene/Camera.h"
 
 class DebugCameraComponent
 {
