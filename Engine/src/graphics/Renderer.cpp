@@ -1032,7 +1032,6 @@ void Renderer::EndFrame()
 			
 			//TODO (danielg): support explicit memory barriers so we aren't always waiting
 			glDispatchCompute(draw.groupsX, draw.groupsY, draw.groupsZ);
-			glMemoryBarrier(GL_ALL_BARRIER_BITS);
 		}
 		else
 		{
@@ -1303,28 +1302,6 @@ TextureHandle Renderer::CreateCubemap(const CubemapDescription& desc)
 	textureDescriptions[{texture}] = std::move(d);
 
 	return { texture };
-}
-
-void Renderer::TextureReadback(const TextureHandle handle, u8* buffer, u32 size)
-{
-	const auto& desc = textureDescriptions[handle];
-
-	GLenum channels = 0;
-	GLenum type = 0;
-	switch (desc.mType)
-	{
-	case TextureType::Texture2D:
-		TypeToGL(desc.desc2D.mFormat, channels, type);
-		break;
-	case TextureType::Texture3D:
-		TypeToGL(desc.desc3D.mFormat, channels, type);
-		break;
-	case TextureType::Cubemap:
-		TypeToGL(desc.descCubemap.mFormat, channels, type);
-		break;
-	}
-
-	glGetTextureImage(handle.idx, 0, channels, type, size, buffer);
 }
 
 TextureHandle Renderer::CreateTexture2D(const TextureDescription2D& desc)
@@ -1995,4 +1972,9 @@ void Renderer::DispatchCompute(const RenderState& state, u16 groupsX, u16 groups
 	draw.mPreAction = preAction;
 
 	drawCalls.push_back(draw);
+}
+
+void Renderer::IssueMemoryBarrier()
+{
+	glMemoryBarrier(GL_ALL_BARRIER_BITS);
 }

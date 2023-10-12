@@ -30,6 +30,94 @@ static TextureDescription2D ReadCreateTexture2D(BinaryReader& reader, LinearAllo
 	return desc;
 }
 
+static RenderState ReadRenderState(BinaryReader& reader, LinearAllocator& frameAllocator, ServerResources& resources)
+{
+	RenderState state;
+
+	// uniform buffers
+	state.mNumUniformBlocks = reader.Read<u32>();
+	for (u32 i = 0; i < state.mNumUniformBlocks; ++i)
+	{
+		RenderState::UniformBlock& buffer = state.mUniformBlocks[i];
+		buffer.mNameHash = reader.Read<u32>();
+		buffer.mBinding = resources.get(reader.Read<UniformBufferHandle>());
+	}
+
+	// shader buffers
+	state.mNumStorageBlocks = reader.Read<u32>();
+	for (u32 i = 0; i < state.mNumStorageBlocks; ++i)
+	{
+		RenderState::StorageBlock& buffer = state.mStorageBlocks[i];
+		buffer.mNameHash = reader.Read<u32>();
+		buffer.mBinding = resources.get(reader.Read<ShaderBufferHandle>());
+	}
+
+	// Textures
+	state.mNumTextures = reader.Read<u32>();
+	for (u32 i = 0; i < state.mNumTextures; ++i)
+	{
+		RenderState::Texture& texture = state.mTextures[i];
+		texture.mNameHash = reader.Read<u32>();
+		texture.mHandle = resources.get(reader.Read<TextureHandle>());
+	}
+
+	// Images
+	state.mNumImages = reader.Read<u32>();
+	for (u32 i = 0; i < state.mNumImages; ++i)
+	{
+		RenderState::Image& image = state.mImages[i];
+		image.mNameHash = reader.Read<u32>();
+		image.mHandle = resources.get(reader.Read<TextureHandle>());
+
+		// TODO (danielg): Also defined in the frame encoder. Move to shared location
+		u8 readBit = image.read ? 1 << 0 : 0;
+		u8 writeBit = image.write ? 1 << 1 : 0;
+
+		u8 readWrite = reader.Read<u8>();
+
+		image.read = (readWrite & readBit) > 0;
+		image.write = (readWrite & writeBit) > 0;
+	}
+
+	// Render pass 
+	state.mRenderPass = reader.Read<u8>();
+
+	// Shader
+	state.mShader = resources.get(reader.Read<ShaderHandle>());
+
+	// viewport
+	state.mViewport.x = reader.Read<int>();
+	state.mViewport.y = reader.Read<int>();
+	state.mViewport.width = reader.Read<int>();
+	state.mViewport.height = reader.Read<int>();
+
+	// Depth Func
+	state.mDepthFunc = reader.Read<DepthFunction>();
+
+	// Blend Func
+	state.mSrcBlendFunc = reader.Read<BlendFunction>();
+	state.mDstBlendFunc = reader.Read<BlendFunction>();
+
+	// CullFace
+	state.mCullFace = reader.Read<CullFace>();
+
+	// TODO (danielg): Also defined in the frame encoder. Move to shared location
+	// enable/disable booleans
+	u8 depthWriteBit = 1 << 0;
+	u8 colorWriteBit = 1 << 1;
+	u8 alphaBlendBit = 1 << 2;
+	u8 wireframeBit = 1 << 3;
+
+	u8 toggles = reader.Read<u8>();
+
+	state.mDepthWriteEnabled = (toggles & depthWriteBit) > 0;
+	state.mColorWriteEnabled = (toggles & colorWriteBit) > 0;
+	state.mAlphaBlendEnabled = (toggles & alphaBlendBit) > 0;
+	state.mWireFrame = (toggles & wireframeBit) > 0;
+
+	return state;
+}
+
 void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, ServerResources& resources, BinaryReader& reader)
 {
 	std::vector<std::function<void()>> preDrawActions;
@@ -391,88 +479,7 @@ void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, S
 			MeshHandle clientHandle = reader.Read<MeshHandle>();
 			MeshHandle serverHandle = resources.get(clientHandle);
 
-			RenderState state;
-
-			// uniform buffers
-			state.mNumUniformBlocks = reader.Read<u32>();
-			for (u32 i = 0; i < state.mNumUniformBlocks; ++i)
-			{
-				RenderState::UniformBlock& buffer = state.mUniformBlocks[i];
-				buffer.mNameHash = reader.Read<u32>();
-				buffer.mBinding = resources.get(reader.Read<UniformBufferHandle>());
-			}
-
-			// shader buffers
-			state.mNumStorageBlocks = reader.Read<u32>();
-			for (u32 i = 0; i < state.mNumStorageBlocks; ++i)
-			{
-				RenderState::StorageBlock& buffer = state.mStorageBlocks[i];
-				buffer.mNameHash = reader.Read<u32>();
-				buffer.mBinding = resources.get(reader.Read<ShaderBufferHandle>());
-			}
-
-			// Textures
-			state.mNumTextures = reader.Read<u32>();
-			for (u32 i = 0; i < state.mNumTextures; ++i)
-			{
-				RenderState::Texture& texture = state.mTextures[i];
-				texture.mNameHash = reader.Read<u32>();
-				texture.mHandle = resources.get(reader.Read<TextureHandle>());
-			}
-
-			// Images
-			state.mNumImages = reader.Read<u32>();
-			for (u32 i = 0; i < state.mNumImages; ++i)
-			{
-				RenderState::Image& image = state.mImages[i];
-				image.mNameHash = reader.Read<u32>();
-				image.mHandle = resources.get(reader.Read<TextureHandle>());
-
-				// TODO (danielg): Also defined in the frame encoder. Move to shared location
-				u8 readBit = image.read ? 1 << 0 : 0;
-				u8 writeBit = image.write ? 1 << 1 : 0;
-
-				u8 readWrite = reader.Read<u8>();
-
-				image.read = (readWrite & readBit) > 0;
-				image.write = (readWrite & writeBit) > 0;
-			}
-
-			// Render pass 
-			state.mRenderPass = reader.Read<u8>();
-
-			// Shader
-			state.mShader = resources.get(reader.Read<ShaderHandle>());
-
-			// viewport
-			state.mViewport.x = reader.Read<int>();
-			state.mViewport.y = reader.Read<int>();
-			state.mViewport.width = reader.Read<int>();
-			state.mViewport.height = reader.Read<int>();
-
-			// Depth Func
-			state.mDepthFunc = reader.Read<DepthFunction>();
-
-			// Blend Func
-			state.mSrcBlendFunc = reader.Read<BlendFunction>();
-			state.mDstBlendFunc = reader.Read<BlendFunction>();
-
-			// CullFace
-			state.mCullFace = reader.Read<CullFace>();
-
-			// TODO (danielg): Also defined in the frame encoder. Move to shared location
-			// enable/disable booleans
-			u8 depthWriteBit = 1 << 0;
-			u8 colorWriteBit = 1 << 1;
-			u8 alphaBlendBit = 1 << 2;
-			u8 wireframeBit  = 1 << 3;
-
-			u8 toggles = reader.Read<u8>();
-
-			state.mDepthWriteEnabled = (toggles & depthWriteBit) > 0;
-			state.mColorWriteEnabled = (toggles & colorWriteBit) > 0;
-			state.mAlphaBlendEnabled = (toggles & alphaBlendBit) > 0;
-			state.mWireFrame = (toggles & wireframeBit) > 0;
+			RenderState state = ReadRenderState(reader, frameAllocator, resources);
 
 			std::function<void()> preAction = generatePreDrawFunction();
 			renderer.DrawMesh(serverHandle, state, preAction);
@@ -489,11 +496,13 @@ void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, S
 		}
 		case RenderCommand::DispatchCompute:
 		{
-			DEBUG_ASSERT(false, "Not implemented!");
-			/*
-				std::function<void()> preAction = generatePreDrawFunction();
-				renderer.DispatchCompute(serverHandle, state, preAction);
-			*/
+			RenderState state = ReadRenderState(reader, frameAllocator, resources);
+			u16 groupsX = reader.Read<u16>();
+			u16 groupsY = reader.Read<u16>();
+			u16 groupsZ = reader.Read<u16>();
+			
+			std::function<void()> preAction = generatePreDrawFunction();
+			renderer.DispatchCompute(state, groupsX, groupsY, groupsZ, preAction);
 			break;
 		}
 		// Render Pass
@@ -523,6 +532,15 @@ void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, S
 
 			break;
 		}
+		case RenderCommand::IssueMemoryBarrier:
+		{
+			preDrawActions.push_back([&renderer]()
+			{
+				renderer.IssueMemoryBarrier();
+			});
+			break;
+		}
+
 		case RenderCommand::END:
 		{
 			complete = true;

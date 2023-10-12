@@ -13,6 +13,17 @@ private:
 
 	glm::ivec2 mSize{};
 
+	int mWindowFlags{};
+
+protected:
+
+	void SetFlags(int flags);
+
+	virtual void StylePush() {};
+	virtual void StylePop() {};
+
+	virtual void DrawWindow(graphics::Renderer& renderer, gold::ServerResources& resources) = 0;
+
 public:
 	ImGuiWindow(const std::string& name, bool showWindow = false);
 	virtual ~ImGuiWindow() {}
@@ -27,10 +38,4 @@ public:
 	void Draw(graphics::Renderer& renderer, gold::ServerResources& resources);
 
 	const std::string& GetName() const;
-
-protected:
-	virtual void StylePush() {};
-	virtual void StylePop() {};
-
-	virtual void DrawWindow(graphics::Renderer& renderer, gold::ServerResources& resources) = 0;
 };

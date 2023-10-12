@@ -37,7 +37,9 @@ namespace gold
 
 		DrawMesh,			//e, d
 		DrawMeshInstanced,
-		DispatchCompute,
+		DispatchCompute, //e, d
+
+		IssueMemoryBarrier, //e, 
 
 		AddRenderPass, //e, d
 

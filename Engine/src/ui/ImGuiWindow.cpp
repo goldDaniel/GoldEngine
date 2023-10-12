@@ -5,6 +5,7 @@
 ImGuiWindow::ImGuiWindow(const std::string& name, bool showWindow)
 	:	mName(name)
 	,	mShowWindow(showWindow)
+	, mWindowFlags(ImGuiWindowFlags_NoCollapse)
 {	
 }
 
@@ -22,9 +23,8 @@ void ImGuiWindow::Draw(graphics::Renderer& renderer, gold::ServerResources& reso
 { 
 	if (mShowWindow)
 	{
-		ImGuiWindowFlags flags = ImGuiWindowFlags_NoCollapse;
 		StylePush();
-		ImGui::Begin(mName.c_str(), nullptr, flags);
+		ImGui::Begin(mName.c_str(), nullptr, mWindowFlags);
 
 		auto size = ImGui::GetWindowSize();
 		mSize.x = size.x;
@@ -35,6 +35,11 @@ void ImGuiWindow::Draw(graphics::Renderer& renderer, gold::ServerResources& reso
 		ImGui::End();
 		StylePop();
 	}	
+}
+
+void ImGuiWindow::SetFlags(int flags)
+{
+	mWindowFlags = flags | ImGuiWindowFlags_NoCollapse;
 }
 
 bool ImGuiWindow::IsShowing() const

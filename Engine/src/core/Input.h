@@ -94,34 +94,30 @@ namespace gold
     public:
         Input();
 
-        
-        void Update();
+		void Update();
 
-        
-        bool IsKeyJustPressed(KeyCode code) const;
+		bool IsKeyJustPressed(KeyCode code) const;
 
-        bool IsKeyDown(KeyCode code) const;
+		bool IsKeyDown(KeyCode code) const;
 
-        bool IsButtonDown(MouseButton button) const;
-        bool IsButtonJustPressed(MouseButton button) const;
-        
-        //relative to top-left
-        const glm::vec2 GetMousePos() const;
+		bool IsButtonDown(MouseButton button) const;
+		bool IsButtonJustPressed(MouseButton button) const;
 
-        void SetKeyState(KeyCode code, bool state);
-        void SetMouseState(MouseButton button, bool state);
-        void SetMousePosition(int x, int y);
+		//relative to top-left
+		const glm::vec2 GetMousePos() const;
 
-            
+		void SetKeyState(KeyCode code, bool state);
+		void SetMouseState(MouseButton button, bool state);
+		void SetMousePosition(int x, int y);
+
     private:
 
-        int mMouseX = 0;
-        int mMouseY = 0;
+		int mMouseX = 0;
+		int mMouseY = 0;
 
-        std::unordered_map<MouseButton, bool> mButtonDown;
-        std::unordered_map<MouseButton, bool> mButtonDownPrev;
-
-        std::unordered_map<KeyCode, bool> mKeyDown;
-        std::unordered_map<KeyCode, bool> mKeyDownPrev;
+		std::unordered_map<MouseButton, bool> mButtonDown;
+		std::unordered_map<MouseButton, bool> mButtonDownPrev;
+		std::unordered_map<KeyCode, bool> mKeyDown;
+		std::unordered_map<KeyCode, bool> mKeyDownPrev;
     };
 }

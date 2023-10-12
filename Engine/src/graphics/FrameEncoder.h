@@ -67,5 +67,9 @@ namespace gold
 		void DestroyFrameBuffer(graphics::FrameBufferHandle handle);
 
 		void DrawMesh(const graphics::MeshHandle mesh, const graphics::RenderState& state);
+
+		void DispatchCompute(const graphics::RenderState& state, u16 groupsX, u16 groupsY, u16 groupsZ);
+
+		void IssueMemoryBarrier();
 	};
 }

@@ -14,6 +14,7 @@ private:
 public:
 	ViewportWindow() : ImGuiWindow("Game Viewport", true)
 	{
+		SetFlags(ImGuiWindowFlags_NoInputs);
 	}
 
 	void SetTexture(u32 output)

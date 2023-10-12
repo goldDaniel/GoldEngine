@@ -87,7 +87,6 @@ protected:
 		}
 
 		mRenderSystem.ResizeGBuffer(width, height);
-		
 		mRenderSystem.Tick(mScene, delta);
 	}
 };

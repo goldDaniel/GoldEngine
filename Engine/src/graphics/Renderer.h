@@ -59,14 +59,6 @@ namespace graphics
 
 		void DestroyTexture(TextureHandle handle);
 
-		template<typename T>
-		void TextureReadback(const TextureHandle handle, std::vector<T>& readbackBuffer)
-		{
-			TextureReadback(handle, (u8*)(&readbackBuffer[0]), static_cast<uint32_t>(sizeof(T) * readbackBuffer.size()));
-		}
-
-		void TextureReadback(const TextureHandle handle, u8* buffer, uint32_t size);
-
 		// frame buffers /////////////////////////////////////
 		FrameBuffer CreateFramebuffer(const TextureDescription2D& description, FramebufferAttachment attachment);
 		FrameBuffer CreateFramebuffer(const FrameBufferDescription& description);
@@ -85,6 +77,8 @@ namespace graphics
 		void DrawMeshInstanced(MeshHandle mesh, const RenderState& state, VertexBufferHandle instanceData, uint32_t instanceCount, std::function<void()> preAction = nullptr);
 
 		void DispatchCompute(const RenderState& state, uint16_t localX, uint16_t localY, uint16_t localZ, std::function<void()> preAction = nullptr);
+		void IssueMemoryBarrier();
+
 
 		void ClearBackBuffer();
 
