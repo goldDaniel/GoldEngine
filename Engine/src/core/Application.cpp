@@ -14,12 +14,12 @@ void Application::Run()
 	mRunning = true;
 
 	// virtual command buffer size
-	u64 size = 16* 1024 * 1024;
+	u64 size = 1 * 1024 * 1024;
 	mEncoders.Init([this, size]() { return std::make_unique<FrameEncoder>(mRenderResources, size); });
 
 	// frame allocator size 
 	size = 16 * 1024 * 1024;
-	mFrameAllocator = std::make_unique<LinearAllocator>(malloc(size), size);
+	mFrameAllocators.Init([this, size]() {return  std::make_unique<LinearAllocator>(malloc(size), size); });
 
 	std::thread updateThread = std::thread(&Application::UpdateThread, this);
 
@@ -47,7 +47,8 @@ void Application::UpdateThread()
 		f32 frameTime = static_cast<float>(currTime - prevTime) / 1000.f;
 		prevTime = currTime;
 
-		mEncoders.Get()->Begin();
+		mFrameAllocators.Get()->Reset();
+		mEncoders.Get()->Begin(mFrameAllocators.Get().get());
 		Update(frameTime, *mEncoders.Get());
 		mEncoders.Get()->End();
 
@@ -72,21 +73,25 @@ void Application::RenderThread()
 
 	while (mRunning)
 	{
-		gold::FrameEncoder* mReadEncoder = nullptr;
+		gold::FrameEncoder* readEncoder = nullptr;
+		gold::LinearAllocator* frameAllocator = nullptr;
 		{
 			std::unique_lock lock(mSwapMutex);
 			mSwapCond.wait(lock, [this] { return mUpdateComplete || !mRunning; });
 			
 			mPlatform->PlatformEvents(*this);
 			mUpdateComplete = false;
-			mReadEncoder = mEncoders.Get().get();
+			
+			readEncoder = mEncoders.Get().get();
 			mEncoders.Swap();
+			frameAllocator = mFrameAllocators.Get().get();
+			mFrameAllocators.Swap();
+
 			mSwapCond.notify_one();
 		}
 		if (!mRunning) break;
 
-		mFrameAllocator->Reset();
-		BinaryReader reader = mReadEncoder->GetReader();
+		BinaryReader reader = readEncoder->GetReader();
 
 		
 		mRenderer->SetBackBufferSize((int)mConfig.windowWidth, (int)mConfig.windowHeight);
@@ -95,7 +100,7 @@ void Application::RenderThread()
 		mRenderer->BeginFrame();
 		if(reader.HasData())
 		{
-			gold::FrameDecoder::Decode(*mRenderer, *mFrameAllocator, mRenderResources, reader);
+			gold::FrameDecoder::Decode(*mRenderer, mRenderResources, reader);
 		}
 		mUI.OnImguiRender(*mRenderer, mRenderResources);
 		mRenderer->EndFrame();
@@ -114,7 +119,9 @@ Application::Application(ApplicationConfig&& config)
 
 Application::~Application()
 {
-	mFrameAllocator->Free();
+	mFrameAllocators.Get()->Free();
+	mFrameAllocators.Swap();
+	mFrameAllocators.Get()->Free();
 	mRunning = false;
 }
  

@@ -52,5 +52,11 @@ namespace gold
 
 			mOffset += size;
 		}
+
+		void Skip(u64 size)
+		{
+			DEBUG_ASSERT(size + mOffset <= mSize, "Data overflow!");
+			mOffset += size;
+		}
 	};
 }

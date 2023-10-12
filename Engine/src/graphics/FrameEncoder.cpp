@@ -5,7 +5,7 @@
 using namespace graphics;
 using namespace gold;
 
-static void WriteCreateTexture2D(const TextureDescription2D& desc, BinaryWriter& writer)
+static void WriteCreateTexture2D(const TextureDescription2D& desc, BinaryWriter& writer, LinearAllocator& allocator)
 {
 	writer.Write(desc.mNameHash);
 	writer.Write(desc.mWidth);
@@ -13,7 +13,9 @@ static void WriteCreateTexture2D(const TextureDescription2D& desc, BinaryWriter&
 	writer.Write(desc.mDataSize);
 	if (desc.mDataSize > 0)
 	{
-		writer.Write(desc.mData, desc.mDataSize);
+		void* data = allocator.Allocate(desc.mDataSize);
+		memcpy(data, desc.mData, desc.mDataSize);
+		writer.Write(Memory{data, desc.mDataSize});
 	}
 
 	writer.Write(desc.mFormat);
@@ -109,6 +111,7 @@ FrameEncoder::FrameEncoder(ClientResources& resources, u64 virtualCommandListSiz
 	, mWriter(mMemory, virtualCommandListSize)
 	, mResources(resources)
 	, mNextPass(0)
+	, mAllocator(nullptr)
 {
 
 }
@@ -119,10 +122,12 @@ FrameEncoder::~FrameEncoder()
 	free(mMemory);
 }
 
-void FrameEncoder::Begin()
+void FrameEncoder::Begin(LinearAllocator* frameAllocator)
 {
 	DEBUG_ASSERT(!mRecording, "Must end begin recording before beginning");
+	DEBUG_ASSERT(frameAllocator, "Allocator cannot be null!");
 	mRecording = true;
+	mAllocator = frameAllocator;
 	mWriter.Reset();
 	mNextPass = 0;
 }
@@ -150,8 +155,7 @@ u8 FrameEncoder::AddRenderPass(const graphics::RenderPass& pass)
 
 	// name
 	u32 size = strlen(pass.mName) + 1;
-	mWriter.Write(size);
-	mWriter.Write(pass.mName, size);
+	mWriter.Write(Memory{ pass.mName, size });
 
 	// framebuffer
 	mWriter.Write(pass.mTarget); // client handle
@@ -197,8 +201,10 @@ IndexBufferHandle FrameEncoder::CreateIndexBuffer(const void* data, u32 size)
 
 	mWriter.Write(RenderCommand::CreateIndexBuffer);
 	mWriter.Write(clientHandle);
-	mWriter.Write(size);
-	mWriter.Write(data, size);
+	
+	void* frameData = mAllocator->Allocate(size);
+	memcpy(frameData, data, size);
+	mWriter.Write(Memory{frameData, size});
 
 	return clientHandle;
 }
@@ -207,8 +213,11 @@ void FrameEncoder::UpdateIndexBuffer(graphics::IndexBufferHandle clientHandle, c
 {
 	mWriter.Write(RenderCommand::UpdateIndexBuffer);
 	mWriter.Write(clientHandle);
-	mWriter.Write(size);
-	mWriter.Write(data, size);
+
+	void* frameData = mAllocator->Allocate(size);
+	memcpy(frameData, data, size);
+	
+	mWriter.Write(Memory{ frameData, size });
 	mWriter.Write(offset);
 }
 
@@ -226,9 +235,11 @@ VertexBufferHandle FrameEncoder::CreateVertexBuffer(const void* data, u32 size)
 
 	mWriter.Write(RenderCommand::CreateVertexBuffer);
 	mWriter.Write(clientHandle);
-	mWriter.Write(size);
-	mWriter.Write(data, size);
 
+	void* frameData = mAllocator->Allocate(size);
+	memcpy(frameData, data, size);
+
+	mWriter.Write(Memory{frameData, size});
 	return clientHandle;
 }
 
@@ -236,8 +247,11 @@ void FrameEncoder::UpdateVertexBuffer(graphics::VertexBufferHandle clientHandle,
 {
 	mWriter.Write(RenderCommand::UpdateVertexBuffer);
 	mWriter.Write(clientHandle);
-	mWriter.Write(size);
-	mWriter.Write(data, size);
+
+	void* frameData = mAllocator->Allocate(size);
+	memcpy(frameData, data, size);
+	
+	mWriter.Write(Memory{frameData, size});
 	mWriter.Write(offset);
 }
 
@@ -257,8 +271,10 @@ UniformBufferHandle FrameEncoder::CreateUniformBuffer(const void* data, u32 size
 
 	mWriter.Write(RenderCommand::CreateUniformBuffer);
 	mWriter.Write(clientHandle);
-	mWriter.Write(size);
-	mWriter.Write(data, size);
+	
+	void* frameData = mAllocator->Allocate(size);
+	memcpy(frameData, data, size);
+	mWriter.Write(Memory{ frameData, size });
 
 	return clientHandle;
 }
@@ -269,8 +285,10 @@ void FrameEncoder::UpdateUniformBuffer(UniformBufferHandle clientHandle, const v
 
 	mWriter.Write(RenderCommand::UpdateUniformBuffer);
 	mWriter.Write(clientHandle);
-	mWriter.Write(size);
-	mWriter.Write(data, size);
+	
+	void* frameData = mAllocator->Allocate(size);
+	memcpy(frameData, data, size);
+	mWriter.Write(Memory{ frameData, size });
 	mWriter.Write(offset);
 }
 
@@ -290,8 +308,10 @@ ShaderBufferHandle FrameEncoder::CreateShaderBuffer(const void* data, u32 size)
 
 	mWriter.Write(RenderCommand::CreateShaderBuffer);
 	mWriter.Write(clientHandle);
-	mWriter.Write(size);
-	mWriter.Write(data, size);
+	
+	void* frameData = mAllocator->Allocate(size);
+	memcpy(frameData, data, size);
+	mWriter.Write(Memory{ frameData, size });
 
 	return clientHandle;
 }
@@ -300,8 +320,10 @@ void FrameEncoder::UpdateShaderBuffer(graphics::ShaderBufferHandle clientHandle,
 {
 	mWriter.Write(RenderCommand::UpdateShaderBuffer);
 	mWriter.Write(clientHandle);
-	mWriter.Write(size);
-	mWriter.Write(data, size);
+	
+	void* frameData = mAllocator->Allocate(size);
+	memcpy(frameData, data, size);
+	mWriter.Write(Memory{ frameData, size });
 	mWriter.Write(offset);
 }
 
@@ -324,12 +346,14 @@ ShaderHandle FrameEncoder::CreateShader(const char* vertSrc, const char* fragSrc
 	u32 fragLen = strlen(fragSrc) + 1;
 
 	// vert
-	mWriter.Write(vertLen);
-	mWriter.Write(vertSrc, vertLen);
+	void* vertData = mAllocator->Allocate(vertLen);
+	memcpy(vertData, vertSrc, vertLen);
+	mWriter.Write(Memory{ vertData, vertLen });
 	
 	// frag
-	mWriter.Write(fragLen);
-	mWriter.Write(fragSrc, fragLen);
+	void* fragData = mAllocator->Allocate(fragLen);
+	memcpy(fragData, fragSrc, fragLen);
+	mWriter.Write(Memory{ fragData, fragLen });
 
 	return clientHandle;
 }
@@ -397,7 +421,7 @@ TextureHandle FrameEncoder::CreateTexture2D(const graphics::TextureDescription2D
 	graphics::TextureHandle clientHandle = mResources.CreateTexture();
 	mWriter.Write(clientHandle);
 
-	WriteCreateTexture2D(desc, mWriter);
+	WriteCreateTexture2D(desc, mWriter, *mAllocator);
 
 	return clientHandle;
 }
@@ -418,7 +442,10 @@ TextureHandle FrameEncoder::CreateTexture3D(const graphics::TextureDescription3D
 		DEBUG_ASSERT(desc.mDepth == desc.mData.size(), "must upload all data or no data");
 		for (const auto& data : desc.mData)
 		{
-			mWriter.Write(data, desc.mDataSize);
+			void* frameData = mAllocator->Allocate(desc.mDataSize);
+			memcpy(frameData, data, desc.mDataSize);
+			
+			mWriter.Write(Memory{frameData, desc.mDataSize});
 		}
 	}
 	
@@ -446,7 +473,9 @@ TextureHandle FrameEncoder::CreateCubemap(const graphics::CubemapDescription& de
 		for (const auto& [face, data] : desc.mData)
 		{
 			mWriter.Write(face);
-			mWriter.Write(data, desc.mDataSize);
+			void* frameData = mAllocator->Allocate(desc.mDataSize);
+			memcpy(frameData, data, desc.mDataSize);
+			mWriter.Write(Memory{ frameData, desc.mDataSize });
 		}
 	}
 
@@ -482,7 +511,7 @@ FrameBuffer FrameEncoder::CreateFrameBuffer(const FrameBufferDescription& desc)
 		}
 
 		mWriter.Write(result.mTextures[i]);
-		WriteCreateTexture2D(desc.mTextures[i].mDescription, mWriter);
+		WriteCreateTexture2D(desc.mTextures[i].mDescription, mWriter, *mAllocator);
 		mWriter.Write(desc.mTextures[i].mAttachment);
 	}
 

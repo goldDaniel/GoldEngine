@@ -3,6 +3,7 @@
 #include "core/Core.h"
 
 #include "memory/BinaryWriter.h"
+#include "memory/LinearAllocator.h"
 
 #include "RenderTypes.h"
 #include "RenderResources.h"
@@ -15,6 +16,7 @@ namespace gold
 		bool mRecording = false;
 		u8* mMemory;
 
+		LinearAllocator* mAllocator;
 		ClientResources& mResources;
 		BinaryWriter mWriter;
 
@@ -28,7 +30,7 @@ namespace gold
 
 		bool ReadyForRead() const { return !mRecording && mWriter.GetOffset() > 0; };
 
-		void Begin();
+		void Begin(LinearAllocator* allocator);
 
 		void End();
 

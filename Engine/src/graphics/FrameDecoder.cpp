@@ -9,7 +9,7 @@
 using namespace graphics;
 using namespace gold;
 
-static TextureDescription2D ReadCreateTexture2D(BinaryReader& reader, LinearAllocator& frameAllocator)
+static TextureDescription2D ReadCreateTexture2D(BinaryReader& reader)
 {
 	TextureDescription2D desc;
 	desc.mNameHash = reader.Read<u32>();
@@ -18,8 +18,8 @@ static TextureDescription2D ReadCreateTexture2D(BinaryReader& reader, LinearAllo
 	desc.mDataSize = reader.Read<u32>();
 	if (desc.mDataSize > 0)
 	{
-		desc.mData = frameAllocator.Allocate(desc.mDataSize);
-		reader.Read((u8*)desc.mData, desc.mDataSize);
+		Memory mem = reader.Read<Memory>();
+		desc.mData = mem.data;
 	}
 	desc.mFormat = reader.Read<TextureFormat>();
 	desc.mWrap = reader.Read<TextureWrap>();
@@ -30,7 +30,7 @@ static TextureDescription2D ReadCreateTexture2D(BinaryReader& reader, LinearAllo
 	return desc;
 }
 
-static RenderState ReadRenderState(BinaryReader& reader, LinearAllocator& frameAllocator, ServerResources& resources)
+static RenderState ReadRenderState(BinaryReader& reader, ServerResources& resources)
 {
 	RenderState state;
 
@@ -118,7 +118,7 @@ static RenderState ReadRenderState(BinaryReader& reader, LinearAllocator& frameA
 	return state;
 }
 
-void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, ServerResources& resources, BinaryReader& reader)
+void FrameDecoder::Decode(Renderer& renderer, ServerResources& resources, BinaryReader& reader)
 {
 	std::vector<std::function<void()>> preDrawActions;
 	bool complete = false;
@@ -161,23 +161,19 @@ void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, S
 			UniformBufferHandle clientHandle = reader.Read<UniformBufferHandle>();
 			UniformBufferHandle& serverHandle = resources.get(clientHandle);
 
-			u32 size = reader.Read<u32>();
-			u8* data = (u8*)frameAllocator.Allocate(size);
-			reader.Read(data, size);
-
-			serverHandle = renderer.CreateUniformBuffer(data, size);
+			Memory mem = reader.Read<Memory>();
+			serverHandle = renderer.CreateUniformBuffer(mem.data, mem.size);
 			break;
 		}
 		case RenderCommand::UpdateUniformBuffer:
 		{
 			UniformBufferHandle serverHandle = resources.get(reader.Read<UniformBufferHandle>());
-			u32 size = reader.Read<u32>();
-			u8* const data = (u8*)frameAllocator.Allocate(size);
-			reader.Read(data, size);
+			
+			Memory mem = reader.Read<Memory>();
 			u32 offset = reader.Read<u32>();
-			preDrawActions.push_back([&renderer, data, size, offset, serverHandle]()
+			preDrawActions.push_back([&renderer, mem, offset, serverHandle]()
 			{
-				renderer.UpdateUniformBuffer(data, size, offset, serverHandle);
+				renderer.UpdateUniformBuffer(mem.data, mem.size, offset, serverHandle);
 			});
 
 			break;
@@ -195,23 +191,19 @@ void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, S
 			ShaderBufferHandle clientHandle = reader.Read<ShaderBufferHandle>();
 			ShaderBufferHandle& serverHandle = resources.get(clientHandle);
 
-			u32 size = reader.Read<u32>();
-			u8* data = (u8*)frameAllocator.Allocate(size);
-			reader.Read(data, size);
-
-			serverHandle = renderer.CreateShaderBuffer(data, size);
+			Memory mem = reader.Read<Memory>();
+			serverHandle = renderer.CreateShaderBuffer(mem.data, mem.size);
 			break;
 		}
 		case RenderCommand::UpdateShaderBuffer:
 		{
 			ShaderBufferHandle serverHandle = resources.get(reader.Read<ShaderBufferHandle>());
-			u32 size = reader.Read<u32>();
-			u8* const data = (u8*)frameAllocator.Allocate(size);
-			reader.Read(data, size);
+			
+			Memory mem = reader.Read<Memory>();
 			u32 offset = reader.Read<u32>();
-			preDrawActions.push_back([&renderer, data, size, offset, serverHandle]()
+			preDrawActions.push_back([&renderer, mem, offset, serverHandle]()
 			{
-				renderer.UpdateShaderBuffer(data, size, offset, serverHandle);
+				renderer.UpdateShaderBuffer(mem.data, mem.size, offset, serverHandle);
 			});
 			break;
 		}
@@ -228,23 +220,19 @@ void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, S
 			VertexBufferHandle clientHandle = reader.Read<VertexBufferHandle>();
 			VertexBufferHandle& serverHandle = resources.get(clientHandle);
 
-			u32 size = reader.Read<u32>();
-			u8* data = (u8*)frameAllocator.Allocate(size);
-			reader.Read(data, size);
+			Memory mem = reader.Read<Memory>();
 
-			serverHandle = renderer.CreateVertexBuffer(data, size);
+			serverHandle = renderer.CreateVertexBuffer(mem.data, mem.size);
 			break;
 		}
 		case RenderCommand::UpdateVertexBuffer:
 		{
 			VertexBufferHandle serverHandle = resources.get(reader.Read<VertexBufferHandle>());
-			u32 size = reader.Read<u32>();
-			u8* const data = (u8*)frameAllocator.Allocate(size);
-			reader.Read(data, size);
+			Memory mem = reader.Read<Memory>();
 			u32 offset = reader.Read<u32>();
-			preDrawActions.push_back([&renderer, data, size, offset, serverHandle]()
+			preDrawActions.push_back([&renderer, mem, offset, serverHandle]()
 			{
-				renderer.UpdateVertexBuffer(serverHandle, data, size, offset);
+				renderer.UpdateVertexBuffer(serverHandle, mem.data, mem.size, offset);
 			});
 			break;
 		}
@@ -261,23 +249,20 @@ void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, S
 			IndexBufferHandle clientHandle = reader.Read<IndexBufferHandle>();
 			IndexBufferHandle& serverHandle = resources.get(clientHandle);
 
-			u32 size = reader.Read<u32>();
-			u8* data = (u8*)frameAllocator.Allocate(size);
-			reader.Read(data, size);
+			Memory mem = reader.Read<Memory>();
 
-			serverHandle = renderer.CreateIndexBuffer(data, size);
+			serverHandle = renderer.CreateIndexBuffer(mem.data, mem.size);
 			break;
 		}
 		case RenderCommand::UpdateIndexBuffer:
 		{
 			IndexBufferHandle serverHandle = resources.get(reader.Read<IndexBufferHandle>());
-			u32 size = reader.Read<u32>();
-			u8* const data = (u8*)frameAllocator.Allocate(size);
-			reader.Read(data, size);
+			
+			Memory mem = reader.Read<Memory>();
 			u32 offset = reader.Read<u32>();
-			preDrawActions.push_back([&renderer, data, size, offset, serverHandle]()
+			preDrawActions.push_back([&renderer, mem, offset, serverHandle]()
 			{
-				renderer.UpdateIndexBuffer(serverHandle, data, size, offset);
+				renderer.UpdateIndexBuffer(serverHandle, mem.data, mem.size, offset);
 			});
 			break;
 		}
@@ -293,15 +278,10 @@ void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, S
 		{
 			ShaderHandle clientHandle = reader.Read<ShaderHandle>();
 
-			u32 vertSize = reader.Read<u32>();
-			char* vertSrc = (char*)frameAllocator.Allocate(vertSize);
-			reader.Read((u8*)vertSrc, vertSize);
+			Memory vertex = reader.Read<Memory>();
+			Memory fragment = reader.Read<Memory>();
 
-			u32 fragSize = reader.Read<u32>();
-			char* fragSrc = (char*)frameAllocator.Allocate(fragSize);
-			reader.Read((u8*)fragSrc, fragSize);
-
-			resources.get(clientHandle) = renderer.CreateShader(vertSrc, fragSrc);
+			resources.get(clientHandle) = renderer.CreateShader((char*)vertex.data, (char*)fragment.data);
 			break;
 		}
 		case RenderCommand::DestroyShader:
@@ -316,7 +296,7 @@ void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, S
 			TextureHandle clientHandle = reader.Read<TextureHandle>();
 			TextureHandle& serverHandle = resources.get(clientHandle);
 
-			TextureDescription2D desc = ReadCreateTexture2D(reader, frameAllocator);
+			TextureDescription2D desc = ReadCreateTexture2D(reader);
 			
 			serverHandle = renderer.CreateTexture2D(desc);
 
@@ -337,9 +317,7 @@ void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, S
 				desc.mData.reserve(desc.mDepth);
 				for (u32 i = 0; i < desc.mDepth; ++i)
 				{
-					void* data = frameAllocator.Allocate(desc.mDataSize);
-					reader.Read((u8*)data, desc.mDataSize);
-					desc.mData.push_back(data);
+					desc.mData[i] = reader.Read<Memory>().data;
 				}
 			}
 
@@ -367,8 +345,7 @@ void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, S
 				for (u8 i = 0; i < static_cast<u8>(CubemapFace::COUNT); ++i)
 				{
 					CubemapFace face = reader.Read<CubemapFace>();
-					desc.mData[face] = frameAllocator.Allocate(desc.mDataSize);
-					reader.Read((u8*)desc.mData[face], desc.mDataSize);
+					desc.mData[face] = reader.Read<Memory>().data;
 				}
 			}
 
@@ -395,7 +372,7 @@ void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, S
 			for (u32 i = 0; i < maxAttachments; ++i)
 			{
 				clientTextures[i] = reader.Read<TextureHandle>();
-				desc.mTextures[i].mDescription = ReadCreateTexture2D(reader, frameAllocator);
+				desc.mTextures[i].mDescription = ReadCreateTexture2D(reader);
 				desc.mTextures[i].mAttachment = reader.Read<FramebufferAttachment>();
 			}
 
@@ -479,7 +456,7 @@ void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, S
 			MeshHandle clientHandle = reader.Read<MeshHandle>();
 			MeshHandle serverHandle = resources.get(clientHandle);
 
-			RenderState state = ReadRenderState(reader, frameAllocator, resources);
+			RenderState state = ReadRenderState(reader, resources);
 
 			std::function<void()> preAction = generatePreDrawFunction();
 			renderer.DrawMesh(serverHandle, state, preAction);
@@ -496,7 +473,7 @@ void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, S
 		}
 		case RenderCommand::DispatchCompute:
 		{
-			RenderState state = ReadRenderState(reader, frameAllocator, resources);
+			RenderState state = ReadRenderState(reader, resources);
 			u16 groupsX = reader.Read<u16>();
 			u16 groupsY = reader.Read<u16>();
 			u16 groupsZ = reader.Read<u16>();
@@ -510,9 +487,8 @@ void FrameDecoder::Decode(Renderer& renderer, LinearAllocator& frameAllocator, S
 		{
 			RenderPass pass;
 
-			u32 nameSize = reader.Read<u32>();
-			pass.mName = (char*)frameAllocator.Allocate(nameSize);
-			reader.Read((u8*)pass.mName, nameSize);
+			Memory name = reader.Read<Memory>();
+			pass.mName = (char*)name.data;
 
 			pass.mTarget = remap(reader.Read<FrameBufferHandle>());
 

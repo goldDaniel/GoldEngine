@@ -39,7 +39,7 @@ namespace gold
 		gold::RenderResources mRenderResources;
 		std::unique_ptr<graphics::Renderer> mRenderer;
 
-		std::unique_ptr<gold::LinearAllocator> mFrameAllocator;
+		gold::DoubleBuffered<std::unique_ptr<gold::LinearAllocator>> mFrameAllocators;
 		gold::DoubleBuffered<std::unique_ptr<gold::FrameEncoder>> mEncoders;
 
 		bool mUpdateComplete = false;

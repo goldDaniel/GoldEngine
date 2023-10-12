@@ -32,14 +32,16 @@ Loader::Status Loader::LoadGameObjectFromModel(Scene& scene, gold::FrameEncoder&
 	if (kStatus == Status::None)
 	{
 		index = 0;
-		importer.~Importer();
-		new(&importer)Assimp::Importer();
-
 		kStatus = Status::Loading;
 		filename = file;
 		
 		constexpr unsigned int assimpFlags = 0	| aiProcess_Triangulate
-												| aiProcess_FlipUVs;
+												| aiProcess_FlipUVs
+												| aiProcess_ImproveCacheLocality
+												| aiProcess_RemoveRedundantMaterials
+												| aiProcess_JoinIdenticalVertices
+												| aiProcess_SplitLargeMeshes
+												| aiProcess_OptimizeMeshes;
 
 		assimpScene = importer.ReadFile(filename, assimpFlags);
 		DEBUG_ASSERT(assimpScene && assimpScene->HasMeshes(), "Failed to load mesh file");
@@ -68,6 +70,8 @@ Loader::Status Loader::LoadGameObjectFromModel(Scene& scene, gold::FrameEncoder&
 	else
 	{
 		kStatus = Status::Finished;
+		importer.~Importer();
+		new(&importer)Assimp::Importer();
 	}
 
 	return kStatus;

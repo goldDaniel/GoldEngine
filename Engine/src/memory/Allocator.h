@@ -4,6 +4,12 @@
 
 namespace gold
 {
+	struct Memory
+	{
+		const void* data;
+		u32 size;
+	};
+
 	class Allocator
 	{
 	public:

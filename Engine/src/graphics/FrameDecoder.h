@@ -16,6 +16,6 @@ namespace gold
 	{
 	
 	public:
-		static void Decode(graphics::Renderer& renderer, LinearAllocator& frameAllocator, ServerResources& resources, BinaryReader& reader);
+		static void Decode(graphics::Renderer& renderer, ServerResources& resources, BinaryReader& reader);
 	};
 }
