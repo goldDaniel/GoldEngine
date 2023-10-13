@@ -41,12 +41,16 @@ protected:
 		size.x = glm::max(32.f, size.x);
 		size.y = glm::max(32.f, size.y);
 	
-		TextureHandle& serverHandle = resources.get(TextureHandle{ mClientFrameBuffer });
 
-		size.y -= 24;
+		if (mClientFrameBuffer)
+		{
+			TextureHandle& serverHandle = resources.get(TextureHandle{ mClientFrameBuffer });
 
-		ImGui::BeginChild("Game Render");
-		ImGui::Image((ImTextureID)(uint64_t)serverHandle.idx, size, { 0,1 }, { 1,0 });
-		ImGui::EndChild();
+			size.y -= 24;
+
+			ImGui::BeginChild("Game Render");
+			ImGui::Image((ImTextureID)(uint64_t)serverHandle.idx, size, { 0,1 }, { 1,0 });
+			ImGui::EndChild();
+		}
 	}
 };
