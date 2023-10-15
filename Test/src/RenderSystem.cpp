@@ -1,5 +1,9 @@
 #include "RenderSystem.h"
 
+#include <graphics/Vertex.h>
+
+using namespace graphics;
+
 void RenderSystem::InitRenderData(scene::Scene& scene)
 {
 	mPerFrameConstants.u_proj = glm::perspective(glm::radians(65.f), (float)mGBuffer.mWidth / (float)mGBuffer.mHeight, 1.f, 1000.f);
@@ -13,9 +17,44 @@ void RenderSystem::InitRenderData(scene::Scene& scene)
 	PerDrawConstants perDrawConstants{};
 	mPerDrawConstantsBuffer = mEncoder->CreateUniformBuffer(&perDrawConstants, sizeof(PerDrawConstants));
 
-	std::string vertSrc = util::LoadStringFromFile("shaders/gbuffer_fill.vert.glsl");
-	std::string fragSrc = util::LoadStringFromFile("shaders/gbuffer_fill.frag.glsl");
-	mShader = mEncoder->CreateShader(vertSrc.c_str(), fragSrc.c_str());
+	//GBuffer fill
+	{
+		std::string vertSrc = util::LoadStringFromFile("shaders/gbuffer_fill.vert.glsl");
+		std::string fragSrc = util::LoadStringFromFile("shaders/gbuffer_fill.frag.glsl");
+		mGBufferFillShader = mEncoder->CreateShader(vertSrc.c_str(), fragSrc.c_str());
+	}
+
+	//GBuffer resolve
+	{
+		std::string vertSrc = util::LoadStringFromFile("shaders/gbuffer_resolve.vert.glsl");
+		std::string fragSrc = util::LoadStringFromFile("shaders/gbuffer_resolve.frag.glsl");
+		mGBufferResolveShader = mEncoder->CreateShader(vertSrc.c_str(), fragSrc.c_str());
+	}
+
+	// fullscreen quad
+	{
+		MeshDescription desc;
+		VertexBuffer buffer(std::move(VertexLayout().Push<VertexLayout::Position3>()
+														  .Push<VertexLayout::Texcoord2>()));
+
+		buffer.Emplace(glm::vec3{ -1.0f, -1.0f, 0.0f }, glm::vec2{ 0.0f, 0.0f });
+		buffer.Emplace(glm::vec3{ 1.0f, -1.0f, 0.0f }, glm::vec2{ 1.0f, 0.0f });
+		buffer.Emplace(glm::vec3{ 1.0f,  1.0f, 0.0f }, glm::vec2{ 1.0f, 1.0f });
+		buffer.Emplace(glm::vec3{ -1.0f,  1.0f, 0.0f }, glm::vec2{ 0.0f, 1.0f });
+
+		desc.mInterlacedBuffer = mEncoder->CreateVertexBuffer(buffer.Raw(), buffer.SizeInBytes());
+		desc.mStride = buffer.GetLayout().Size();
+		desc.offsets.mPositionOffset = 0;
+		desc.offsets.mTexCoord0Offset = buffer.GetLayout().Resolve<VertexLayout::Texcoord2>().GetOffset();
+		desc.mVertexCount = 4;
+
+		std::vector<u16> indices{ 0, 1, 2, 3, 0, 2 };
+		desc.mIndicesFormat = IndexFormat::U16;
+		desc.mIndices = mEncoder->CreateIndexBuffer(indices.data(), sizeof(u16) * indices.size());
+		desc.mIndexCount = 6;
+
+		mFullscreenQuad = mEncoder->CreateMesh(desc);
+	}
 }
 
 
@@ -41,7 +80,7 @@ void RenderSystem::FillGBuffer(const Camera& camera, scene::Scene& scene)
 	});
 
 	//GBuffer fill
-	uint8_t pass = mEncoder->AddRenderPass("Default", mGBuffer.mHandle, graphics::ClearColor::YES, graphics::ClearDepth::YES);
+	uint8_t pass = mEncoder->AddRenderPass("Default", mGBuffer.mHandle, ClearColor::YES, ClearDepth::YES);
 	scene.ForEach<TransformComponent, RenderComponent, NotFrustumCulledComponent>([&](const scene::GameObject obj)
 	{
 		const auto& render = obj.GetComponent<RenderComponent>();
@@ -56,10 +95,10 @@ void RenderSystem::FillGBuffer(const Camera& camera, scene::Scene& scene)
 		};
 		mEncoder->UpdateUniformBuffer(mPerDrawConstantsBuffer, &drawConstants, sizeof(PerDrawConstants));
 
-		graphics::RenderState state;
+		RenderState state;
 		state.mRenderPass = pass;
 		state.mAlphaBlendEnabled = false;
-		state.mShader = mShader;
+		state.mShader = mGBufferFillShader;
 		state.SetUniformBlock("PerFrameConstants_UBO", mPerFrameContantsBuffer);
 		state.SetUniformBlock("PerDrawConstants_UBO", mPerDrawConstantsBuffer);
 
@@ -114,6 +153,55 @@ void RenderSystem::Tick(scene::Scene& scene, float dt)
 	}
 
 	FillGBuffer(*camera, scene);
+	ResolveGBuffer();
+	DrawSkybox();
+}
+
+void RenderSystem::ResolveGBuffer()
+{
+	RenderPass pass;
+	pass.mName = "GBuffer Resolve";
+	pass.mTarget = mHDRBuffer.mHandle;
+	pass.mClearColor = true;
+	pass.mClearDepth = true;
+
+	RenderState state;
+	state.mRenderPass = mEncoder->AddRenderPass(pass);
+	state.mShader = mGBufferResolveShader;
+	state.mAlphaBlendEnabled = false;
+
+	state.SetUniformBlock("PerFrameConstants_UBO", mPerFrameContantsBuffer);
+	/*state.SetUniformBlock("Lights", mLightDataBuffer);
+	state.SetUniformBlock("LightSpaceMatrices", mLightMatricesBuffer);
+	state.SetUniformBlock("ShadowPages", mShadowPagesBuffer);*/
+
+	state.SetTexture("albedos", mGBuffer.mTextures[static_cast<uint8_t>(OutputSlot::Color0)]);
+	state.SetTexture("normals", mGBuffer.mTextures[static_cast<uint8_t>(OutputSlot::Color1)]);
+	state.SetTexture("coefficients", mGBuffer.mTextures[static_cast<uint8_t>(OutputSlot::Color2)]);
+	state.SetTexture("depth", mGBuffer.mTextures[static_cast<uint8_t>(OutputSlot::Depth)]);
+
+	//state.SetTexture("shadowMap", ShadowMapService::Get().GetTexture());
+
+	mEncoder->DrawMesh(mFullscreenQuad, state);
+}
+
+void RenderSystem::DrawSkybox()
+{
+	/*RenderPass pass;
+	pass.mName = "skybox_pass";
+	pass.mTarget = mHDRBuffer;
+
+	RenderState state;
+	state.mDepthFunc = DepthFunction::LESS_EQUAL;
+	state.mCullFace = CullFace::FRONT;
+	state.mRenderPass = Renderer::AddRenderPass(pass);
+	state.mShader = &mSkyboxShader;
+
+	Renderer::UpdateUniformBlock(mConstants.mProj * glm::mat4(glm::mat3(mConstants.mView)), mSkyboxBuffer);
+	state.SetUniformBlock("Skybox", mSkyboxBuffer);
+	state.SetCubemap("u_cubemap", mCubemap);
+
+	Renderer::DrawMesh(mCube, state);*/
 }
 
 void RenderSystem::ResizeGBuffer(int width, int height)
@@ -121,6 +209,7 @@ void RenderSystem::ResizeGBuffer(int width, int height)
 	if (mGBuffer.mHandle.idx == 0 ||
 		mGBuffer.mWidth != width || mGBuffer.mHeight != height)
 	{
+		// GBuffer
 		if (mGBuffer.mHandle.idx)
 		{
 			mEncoder->DestroyFrameBuffer(mGBuffer.mHandle);
@@ -128,34 +217,57 @@ void RenderSystem::ResizeGBuffer(int width, int height)
 		}
 
 		{
-			using namespace graphics;
 			FrameBufferDescription fbDesc;
 
 			TextureDescription2D albedoDesc;
 			albedoDesc.mWidth = width;
 			albedoDesc.mHeight = height;
 			albedoDesc.mFormat = TextureFormat::RGB_U8;
-			fbDesc.Put(graphics::OutputSlot::Color0, albedoDesc);
+			fbDesc.Put(OutputSlot::Color0, albedoDesc);
 
 			TextureDescription2D normalDesc;
 			normalDesc.mWidth = width;
 			normalDesc.mHeight = height;
 			normalDesc.mFormat = TextureFormat::RGB_FLOAT;
-			fbDesc.Put(graphics::OutputSlot::Color1, normalDesc);
+			fbDesc.Put(OutputSlot::Color1, normalDesc);
 
 			TextureDescription2D coeffDesc;
 			coeffDesc.mWidth = width;
 			coeffDesc.mHeight = height;
 			coeffDesc.mFormat = TextureFormat::RGB_U8;
-			fbDesc.Put(graphics::OutputSlot::Color2, coeffDesc);
+			fbDesc.Put(OutputSlot::Color2, coeffDesc);
 
 			TextureDescription2D depthDesc;
 			depthDesc.mWidth = width;
 			depthDesc.mHeight = height;
 			depthDesc.mFormat = TextureFormat::DEPTH;
-			fbDesc.Put(graphics::OutputSlot::Depth, depthDesc);
+			fbDesc.Put(OutputSlot::Depth, depthDesc);
 
 			mGBuffer = mEncoder->CreateFrameBuffer(fbDesc);
+		}
+
+		// HDR Buffer
+		if (mHDRBuffer.mHandle.idx)
+		{
+			mEncoder->DestroyFrameBuffer(mHDRBuffer.mHandle);
+		}
+		{
+			FrameBufferDescription fbDesc;
+
+			TextureDescription2D colorDesc;
+			colorDesc.mWidth = width;
+			colorDesc.mHeight = height;
+			colorDesc.mFormat = TextureFormat::RGBA_U8;
+			colorDesc.mWrap = TextureWrap::CLAMP;
+			fbDesc.mTextures[static_cast<uint8_t>(OutputSlot::Color0)] = FrameBufferDescription::FrameBufferTexture{ colorDesc, FramebufferAttachment::COLOR0 };
+
+			TextureDescription2D depthDesc;
+			depthDesc.mWidth = width;
+			depthDesc.mHeight = height;
+			depthDesc.mFormat = TextureFormat::DEPTH;
+			fbDesc.mTextures[static_cast<uint8_t>(OutputSlot::Depth)] = FrameBufferDescription::FrameBufferTexture{ depthDesc, FramebufferAttachment::DEPTH };
+
+			mHDRBuffer = mEncoder->CreateFrameBuffer(fbDesc);
 		}
 	}
 }

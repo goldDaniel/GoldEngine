@@ -17,64 +17,39 @@ using namespace scene;
 static void CreateMaterial(const std::string& filepath, unsigned int index, aiMaterial** const materials, gold::FrameEncoder& encoder, RenderComponent& render);
 static void CreateMesh(const aiMesh* mesh, gold::FrameEncoder& encoder, RenderComponent& render);
 
-static u32 index = 0;
-static Assimp::Importer importer;
-static const aiScene* assimpScene = nullptr;
-static GameObject parentObject;
-static std::string filename;
-static std::string filepath;
-static Loader::Status kStatus = Loader::Status::None;
-
 static std::unordered_map<u32, graphics::TextureHandle> kTextureCache;
 
-Loader::Status Loader::LoadGameObjectFromModel(Scene& scene, gold::FrameEncoder& encoder, const std::string& file)
+void Loader::LoadGameObjectFromModel(Scene& scene, gold::FrameEncoder& encoder, const std::string& file)
 {
-	if (kStatus == Status::None)
+	constexpr unsigned int assimpFlags = 0	| aiProcess_Triangulate
+											| aiProcess_FlipUVs
+											| aiProcess_ImproveCacheLocality
+											| aiProcess_RemoveRedundantMaterials
+											| aiProcess_JoinIdenticalVertices
+											| aiProcess_SplitLargeMeshes
+											| aiProcess_OptimizeMeshes;
+
+	Assimp::Importer importer;
+	const aiScene* assimpScene = importer.ReadFile(file, assimpFlags);
+	DEBUG_ASSERT(assimpScene && assimpScene->HasMeshes(), "Failed to load mesh file");
+
+	std::string filepath = file.substr(0, file.find_last_of('/'));
+	filepath += '/';
+
+	
+	GameObject parentObject = scene.CreateGameObject(assimpScene->mName.C_Str());
+	parentObject.GetComponent<TransformComponent>().scale = { 0.05, 0.05, 0.05 };
+	
+
+	for (u32 i = 0; i < assimpScene->mNumMeshes; ++i)
 	{
-		index = 0;
-		kStatus = Status::Loading;
-		filename = file;
-		
-		constexpr unsigned int assimpFlags = 0	| aiProcess_Triangulate
-												| aiProcess_FlipUVs
-												| aiProcess_ImproveCacheLocality
-												| aiProcess_RemoveRedundantMaterials
-												| aiProcess_JoinIdenticalVertices
-												| aiProcess_SplitLargeMeshes
-												| aiProcess_OptimizeMeshes;
-
-		assimpScene = importer.ReadFile(filename, assimpFlags);
-		DEBUG_ASSERT(assimpScene && assimpScene->HasMeshes(), "Failed to load mesh file");
-
-		filepath = filename.substr(0, filename.find_last_of('/'));
-		filepath += '/';
-
-		parentObject = scene.CreateGameObject(assimpScene->mName.C_Str());
-		parentObject.GetComponent<TransformComponent>().scale = { 0.05, 0.05, 0.05 };
-	}
-	else if (kStatus == Status::Loading)
-	{
-		DEBUG_ASSERT(file == filename, "Attempting to load a mesh when previous is not complete");
-	}
-
-	if (index < assimpScene->mNumMeshes)
-	{
-		GameObject child = scene.CreateGameObject(assimpScene->mMeshes[index]->mName.C_Str());
+		GameObject child = scene.CreateGameObject(assimpScene->mMeshes[i]->mName.C_Str());
 		child.SetParent(parentObject);
 		RenderComponent& render = child.AddComponent<RenderComponent>();
 
-		CreateMesh(assimpScene->mMeshes[index], encoder, render);
-		CreateMaterial(filepath, assimpScene->mMeshes[index]->mMaterialIndex, assimpScene->mMaterials, encoder, render);
-		index++;
+		CreateMesh(assimpScene->mMeshes[i], encoder, render);
+		CreateMaterial(filepath, assimpScene->mMeshes[i]->mMaterialIndex, assimpScene->mMaterials, encoder, render);
 	}
-	else
-	{
-		kStatus = Status::Finished;
-		importer.~Importer();
-		new(&importer)Assimp::Importer();
-	}
-
-	return kStatus;
 }
 
 static void CreateMesh(const aiMesh* mesh, gold::FrameEncoder& encoder, RenderComponent& render)

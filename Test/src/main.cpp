@@ -21,7 +21,6 @@
 class TestApp : public gold::Application
 {
 private:
-	scene::Loader::Status mStatus = scene::Loader::Status::None;
 	scene::Scene mScene;
 	DebugCameraSystem mCameraSystem;
 	RenderSystem mRenderSystem;
@@ -64,14 +63,13 @@ protected:
 
 	virtual void Update(float delta, gold::FrameEncoder& encoder) override
 	{
-		mScene.FlushDestructionQueue();
-		if (mStatus == scene::Loader::Status::Loading || mStatus == scene::Loader::Status::None)
+		if(mFirstFrame)
 		{
-			mStatus = scene::Loader::LoadGameObjectFromModel(mScene, encoder, "sponza2/sponza.gltf");
+			scene::Loader::LoadGameObjectFromModel(mScene, encoder, "sponza2/sponza.gltf");
+			mFirstFrame = false;
 		}
 
 		mCameraSystem.Tick(mScene, delta);
-
 
 		const graphics::FrameBuffer& fb = mRenderSystem.GetRenderTarget();
 		mViewport->SetTexture(fb.mTextures[0].idx);

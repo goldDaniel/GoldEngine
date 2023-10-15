@@ -9,13 +9,7 @@ namespace scene
 	class Loader
 	{
 	public:
-		enum class Status
-		{
-			None, 
-			Loading,
-			Finished, 
-		};
-
-		static Status LoadGameObjectFromModel(Scene& scene, gold::FrameEncoder& encoder, const std::string& filepath);
+		
+		static void LoadGameObjectFromModel(Scene& scene, gold::FrameEncoder& encoder, const std::string& filepath);
 	};
 }

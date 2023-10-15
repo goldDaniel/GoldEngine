@@ -39,15 +39,21 @@ private:
 	};
 	graphics::UniformBufferHandle mPerDrawConstantsBuffer{};
 
-	graphics::ShaderHandle mShader{};
-
+	graphics::ShaderHandle mGBufferFillShader{};
+	graphics::ShaderHandle mGBufferResolveShader{};
+	
 	graphics::FrameBuffer mGBuffer{};
+	graphics::FrameBuffer mHDRBuffer{};
+
+	graphics::MeshHandle mFullscreenQuad{};
 
 	bool mFirstFrame = true;
 
 	void InitRenderData(scene::Scene& scene);
 
 	void FillGBuffer(const Camera& camera, scene::Scene& scene);
+	void ResolveGBuffer();
+	void DrawSkybox();
 
 public:
 	
@@ -71,7 +77,7 @@ public:
 
 	const graphics::FrameBuffer& GetRenderTarget()
 	{
-		return mGBuffer;
+		return mHDRBuffer;
 	}
 
 	virtual void Tick(scene::Scene& scene, float dt) override;

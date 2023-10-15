@@ -53,7 +53,7 @@ void main()
 	
 
     color0 = albedoColor.xyz;
-    color1 = normalize(Normal).xyz;// * 0.5 + 0.5;
+    color1 = normalize(Normal).xyz;
     color2.r = u_coefficients.r;
     color2.g = u_coefficients.g;
 
