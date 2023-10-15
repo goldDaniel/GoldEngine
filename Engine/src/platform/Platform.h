@@ -19,7 +19,7 @@ namespace gold
 		Platform(std::vector<std::string>&& commandArgs)
 			: mCommandArgs(std::move(commandArgs))
 		{
-			Logging::Init();
+			Singletons::Get()->Register<Logging>([]() { return std::make_shared<Logging>(); });
 			Singletons::Get()->Register<Input>([]() { return std::make_shared<Input>(); });
 		}
 

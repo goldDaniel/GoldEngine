@@ -1,7 +1,10 @@
 #pragma once
 
-#include "Core.h"
 
+#include "Asserts.h"
+
+#include <memory>
+#include <functional>
 #include <any>
 #include <typeindex>
 
@@ -18,7 +21,6 @@ public:
 	void Register(SingletonGenerator<T> generator)
 	{
 		DEBUG_ASSERT(mSingletonMap.find(typeid(T)) == mSingletonMap.end(), "Singleton already registered for type!");
-
 		mSingletonMap[typeid(T)] = { EntryState::Generator, generator };
 	}
 

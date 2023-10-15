@@ -17,12 +17,12 @@ protected:
 	{
 		if (ImGui::Button("Clear Log"))
 		{
-			gold::Logging::ClearLog();
+			Singletons::Get()->Resolve<gold::Logging>()->ClearLog();
 		}
 
 		ImGui::BeginChild("LogScrollWindow");
 
-		const auto& messages = gold::Logging::GetLogHistory();
+		const auto& messages = Singletons::Get()->Resolve<gold::Logging>()->GetLogHistory();
 		
 		for (const auto& message : messages)
 		{

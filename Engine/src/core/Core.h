@@ -2,7 +2,6 @@
 
 #include "Asserts.h"
 #include "Types.h"
-#include "Logging.h"
 
 #include <array>
 #include <vector>
@@ -12,6 +11,7 @@
 #include <memory>
 #include <functional>
 
+#include "Singletons.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtx/quaternion.hpp>
