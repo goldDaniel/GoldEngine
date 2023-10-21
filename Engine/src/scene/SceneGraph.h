@@ -40,10 +40,21 @@ namespace scene
 		template<class... Filters>
 		void ForEach(std::function<void(const GameObject)>&& func) const
 		{
-			mRegistry.view<Filters...>().each([&](entt::entity entity, Filters&...)
+			mRegistry.view<Filters...>().each([&](const entt::entity entity, const Filters&...)
 			{
 				func({ &mRegistry, entity });
 			});
+		}
+
+		template<class... Filters>
+		u32 Count() const
+		{
+			u32 result = 0;
+			mRegistry.view<Filters...>().each([&result](const entt::entity entity, const Filters&...)
+			{
+				result++;
+			});
+			return result;
 		}
 	};
 }

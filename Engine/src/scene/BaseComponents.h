@@ -110,6 +110,40 @@ struct ShadowMapComponent
 	std::array<int, 6> shadowMapIndex{ -1,-1,-1,-1,-1,-1 };
 };
 
+struct LightBufferComponent
+{
+	// 1 per directional light
+	// 6 per point light 
+	static constexpr u32 MAX_CASTERS = 64;
+
+	struct DirectionalLight
+	{
+		glm::vec4 direction{};
+		glm::vec4 color{};
+
+		glm::ivec4 params{}; // ?, ?, ?, shadowMapIndex
+	};
+
+	struct PointLight
+	{
+		glm::vec4 position;
+		glm::vec4 color;
+		glm::ivec4 params0; // falloff, ?, shadowMapIndex+X, shadowMapIndex-X
+		glm::ivec4 params1; // shadowMapIndex+Y, shadowMapIndex-Y, shadowMapIndex+Z, shadowMapIndex-Z
+	};
+
+	struct LightShaderBuffer
+	{
+		glm::ivec4 lightCounts{}; //directional, point, ?, ?
+
+		DirectionalLight directionalLights[MAX_CASTERS]{};
+		PointLight pointLights[MAX_CASTERS]{};
+	};
+
+	LightShaderBuffer lightBuffer{};
+	bool isDirty = true;
+};
+
 struct RenderComponent
 {
 	graphics::MeshHandle mesh{};

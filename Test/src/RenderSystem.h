@@ -39,6 +39,9 @@ private:
 	};
 	graphics::UniformBufferHandle mPerDrawConstantsBuffer{};
 
+
+	graphics::UniformBufferHandle mLightingBuffer{};
+
 	graphics::ShaderHandle mGBufferFillShader{};
 	graphics::ShaderHandle mGBufferResolveShader{};
 	
@@ -52,7 +55,7 @@ private:
 	void InitRenderData(scene::Scene& scene);
 
 	void FillGBuffer(const Camera& camera, scene::Scene& scene);
-	void ResolveGBuffer();
+	void ResolveGBuffer(scene::Scene& scene);
 	void DrawSkybox();
 
 public:

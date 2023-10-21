@@ -14,8 +14,8 @@
 #include "ui/PerformanceWindow.h"
 
 #include "RenderSystem.h"
+#include "LightingSystem.h"
 #include "DebugCameraSystem.h"
-
 
 
 class TestApp : public gold::Application
@@ -23,6 +23,7 @@ class TestApp : public gold::Application
 private:
 	scene::Scene mScene;
 	DebugCameraSystem mCameraSystem;
+	LightingSystem mLightingSystem;
 	RenderSystem mRenderSystem;
 
 	graphics::FrameBuffer mGBuffer;
@@ -66,6 +67,13 @@ protected:
 		if(mFirstFrame)
 		{
 			scene::Loader::LoadGameObjectFromModel(mScene, encoder, "sponza2/sponza.gltf");
+			
+			auto lightObj = mScene.CreateGameObject("Directional Light");
+			auto& light = lightObj.AddComponent<DirectionalLightComponent>();
+			
+			light.direction = { 0.1f, -0.8f, 0.1f, 0.0f };
+			light.color = { 1,1,1,1 };
+
 			mFirstFrame = false;
 		}
 
@@ -83,6 +91,8 @@ protected:
 			width  = GetScreenSize().x;
 			height = GetScreenSize().y;
 		}
+
+		mLightingSystem.Tick(mScene, delta);
 
 		mRenderSystem.ResizeGBuffer(width, height);
 		mRenderSystem.Tick(mScene, delta);

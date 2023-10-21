@@ -7,6 +7,9 @@
 
 using namespace gold;
 
+
+
+
 void Application::Run()
 {
 	Init();
@@ -22,7 +25,6 @@ void Application::Run()
 	mFrameAllocators.Init([this, size]() {return  std::make_unique<LinearAllocator>(malloc(size), size); });
 
 	std::thread updateThread = std::thread(&Application::UpdateThread, this);
-
 	RenderThread(); 
 
 	// assures we don't wait on a condition that wont get signaled

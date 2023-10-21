@@ -6,16 +6,29 @@ using namespace graphics;
 
 void RenderSystem::InitRenderData(scene::Scene& scene)
 {
-	mPerFrameConstants.u_proj = glm::perspective(glm::radians(65.f), (float)mGBuffer.mWidth / (float)mGBuffer.mHeight, 1.f, 1000.f);
-	mPerFrameConstants.u_projInv = glm::inverse(mPerFrameConstants.u_proj);
 
-	mPerFrameConstants.u_view = glm::lookAt(glm::vec3{ 0, 0, 5 }, glm::vec3{ 0,0,0 }, glm::vec3{ 0,1,0 });
-	mPerFrameConstants.u_viewInv = glm::inverse(mPerFrameConstants.u_view);
-	mPerFrameConstants.u_time = { 0,0,0,0 };
-	mPerFrameContantsBuffer = mEncoder->CreateUniformBuffer(&mPerFrameConstants, sizeof(PerFrameConstants));
+	// Per frame constants
+	{
+		mPerFrameConstants.u_proj = glm::perspective(glm::radians(65.f), (float)mGBuffer.mWidth / (float)mGBuffer.mHeight, 1.f, 1000.f);
+		mPerFrameConstants.u_projInv = glm::inverse(mPerFrameConstants.u_proj);
 
-	PerDrawConstants perDrawConstants{};
-	mPerDrawConstantsBuffer = mEncoder->CreateUniformBuffer(&perDrawConstants, sizeof(PerDrawConstants));
+		mPerFrameConstants.u_view = glm::lookAt(glm::vec3{ 0, 0, 5 }, glm::vec3{ 0,0,0 }, glm::vec3{ 0,1,0 });
+		mPerFrameConstants.u_viewInv = glm::inverse(mPerFrameConstants.u_view);
+		mPerFrameConstants.u_time = { 0,0,0,0 };
+		mPerFrameContantsBuffer = mEncoder->CreateUniformBuffer(&mPerFrameConstants, sizeof(PerFrameConstants));
+	}
+
+	// Per Draw constants
+	{
+		PerDrawConstants perDrawConstants{};
+		mPerDrawConstantsBuffer = mEncoder->CreateUniformBuffer(&perDrawConstants, sizeof(PerDrawConstants));
+	}
+
+	// Lighting data constants
+	{
+		LightBufferComponent::LightShaderBuffer lightBuffer{};
+		mLightingBuffer = mEncoder->CreateUniformBuffer(&lightBuffer, sizeof(LightBufferComponent::LightShaderBuffer));
+	}
 
 	//GBuffer fill
 	{
@@ -110,7 +123,6 @@ void RenderSystem::FillGBuffer(const Camera& camera, scene::Scene& scene)
 		mEncoder->DrawMesh(render.mesh, state);
 	});
 
-
 	// remove cull component for other passes
 	//NOTE (danielg): instead, NotFrustumCulledComponent should use a bitset to
 	//				  tell which camera the object has been culled from
@@ -153,12 +165,28 @@ void RenderSystem::Tick(scene::Scene& scene, float dt)
 	}
 
 	FillGBuffer(*camera, scene);
-	ResolveGBuffer();
+	ResolveGBuffer(scene);
 	DrawSkybox();
 }
 
-void RenderSystem::ResolveGBuffer()
+void RenderSystem::ResolveGBuffer(scene::Scene& scene)
 {
+	// update lighting buffers 
+	// NOTE (danielg): mutable lambda to assert if there is more than 1 iteration
+	// we only want one of these components, holds ALL lighting info
+	scene.ForEach<LightBufferComponent>([this, onlyOneBuffer = true](scene::GameObject obj) mutable
+	{
+		DEBUG_ASSERT(onlyOneBuffer, "More than 1 LightBufferComponent found!");
+
+		auto& buffer = obj.GetComponent<LightBufferComponent>();
+		if (buffer.isDirty)
+		{
+			mEncoder->UpdateUniformBuffer(mLightingBuffer, &buffer.lightBuffer, sizeof(LightBufferComponent::LightShaderBuffer));
+			buffer.isDirty = false;
+		}
+		onlyOneBuffer = false;
+	});
+
 	RenderPass pass;
 	pass.mName = "GBuffer Resolve";
 	pass.mTarget = mHDRBuffer.mHandle;
@@ -171,8 +199,8 @@ void RenderSystem::ResolveGBuffer()
 	state.mAlphaBlendEnabled = false;
 
 	state.SetUniformBlock("PerFrameConstants_UBO", mPerFrameContantsBuffer);
-	/*state.SetUniformBlock("Lights", mLightDataBuffer);
-	state.SetUniformBlock("LightSpaceMatrices", mLightMatricesBuffer);
+	state.SetUniformBlock("Lights_UBO", mLightingBuffer);
+	/*state.SetUniformBlock("LightSpaceMatrices", mLightMatricesBuffer);
 	state.SetUniformBlock("ShadowPages", mShadowPagesBuffer);*/
 
 	state.SetTexture("albedos", mGBuffer.mTextures[static_cast<uint8_t>(OutputSlot::Color0)]);
