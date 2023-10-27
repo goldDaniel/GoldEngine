@@ -217,17 +217,17 @@ void RenderSystem::DrawSkybox()
 {
 	/*RenderPass pass;
 	pass.mName = "skybox_pass";
-	pass.mTarget = mHDRBuffer;
+	pass.mTarget = mHDRBuffer.mHandle;
 
 	RenderState state;
 	state.mDepthFunc = DepthFunction::LESS_EQUAL;
 	state.mCullFace = CullFace::FRONT;
-	state.mRenderPass = Renderer::AddRenderPass(pass);
+	state.mRenderPass = mEncoder->AddRenderPass(pass);
 	state.mShader = &mSkyboxShader;
 
 	Renderer::UpdateUniformBlock(mConstants.mProj * glm::mat4(glm::mat3(mConstants.mView)), mSkyboxBuffer);
 	state.SetUniformBlock("Skybox", mSkyboxBuffer);
-	state.SetCubemap("u_cubemap", mCubemap);
+	state.SetTexture("u_cubemap", mCubemap);
 
 	Renderer::DrawMesh(mCube, state);*/
 }

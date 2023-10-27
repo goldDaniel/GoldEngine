@@ -39,7 +39,37 @@ PropertyWindow::PropertyWindow(scene::Scene& scene, std::function<scene::GameObj
 		}
 	});
 
+	AddComponentControl<DirectionalLightComponent>("Directional Light", [this](auto& l)
+	{
+		static glm::vec3 direction;
+		direction = glm::normalize(glm::vec3{ l.direction.x, l.direction.y, l.direction.z });
+		DrawVec3Control("Direction", direction);
 
+		glm::vec3 color = l.color;
+		DrawVec3Control("Color", color);
+		
+		// set the w component to 1 marks the light dirty, needing to be updated on GPU 
+		if (direction != glm::vec3{ l.direction.x, l.direction.y, l.direction.z })
+		{
+			direction = glm::clamp(direction, { -1, -1, -1 }, { 1,1,1 });
+			if (glm::length2(direction) > 0)
+			{
+				l.direction = glm::vec4(glm::normalize(direction), 1.0f);
+			}
+			
+		}
+
+		// set the w component to 1 marks the light dirty, needing to be updated on GPU 
+		if (color != glm::vec3{ l.color.r, l.color.g, l.color.b })
+		{	
+			color = glm::clamp(color, { 0,0,0 }, { 1,1,1 });
+
+			l.color = { color, 1 };
+			l.direction.w = 1;
+		}
+
+		
+	});
 
 	AddComponentControl<RenderComponent>("Render", [this](auto& render)
 	{

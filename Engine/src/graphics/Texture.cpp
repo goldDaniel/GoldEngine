@@ -16,6 +16,7 @@ Texture2D::Texture2D(const std::string& filepath)
 
 	if (extension == ".dds")
 	{
+		DEBUG_ASSERT(false, "DDS currently unsupported!");
 		// TODO (danielg: DDS support here
 		
 		//dds_image* image = dds_load_from_file(filepath.c_str());

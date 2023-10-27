@@ -61,13 +61,13 @@ struct NotFrustumCulledComponent
 
 struct DirectionalLightComponent
 {
-	glm::vec4 direction{ 0 };
+	glm::vec4 direction{ 0 }; // xyz, dirty flag
 	glm::vec4 color{ 0 };
 };
 
 struct PointLightComponent
 {
-	glm::vec4 color{ 0 };
+	glm::vec4 color{ 0 }; //rgb, dirty flag
 	float falloff = 0;
 };
 

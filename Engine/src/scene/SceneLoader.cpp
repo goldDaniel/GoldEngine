@@ -19,7 +19,7 @@ static void CreateMesh(const aiMesh* mesh, gold::FrameEncoder& encoder, RenderCo
 
 static std::unordered_map<u32, graphics::TextureHandle> kTextureCache;
 
-void Loader::LoadGameObjectFromModel(Scene& scene, gold::FrameEncoder& encoder, const std::string& file)
+GameObject Loader::LoadGameObjectFromModel(Scene& scene, gold::FrameEncoder& encoder, const std::string& file)
 {
 	constexpr unsigned int assimpFlags = 0	| aiProcess_Triangulate
 											| aiProcess_FlipUVs
@@ -38,7 +38,6 @@ void Loader::LoadGameObjectFromModel(Scene& scene, gold::FrameEncoder& encoder, 
 
 	
 	GameObject parentObject = scene.CreateGameObject(assimpScene->mName.C_Str());
-	parentObject.GetComponent<TransformComponent>().scale = { 0.05, 0.05, 0.05 };
 	
 
 	for (u32 i = 0; i < assimpScene->mNumMeshes; ++i)
@@ -50,6 +49,8 @@ void Loader::LoadGameObjectFromModel(Scene& scene, gold::FrameEncoder& encoder, 
 		CreateMesh(assimpScene->mMeshes[i], encoder, render);
 		CreateMaterial(filepath, assimpScene->mMeshes[i]->mMaterialIndex, assimpScene->mMaterials, encoder, render);
 	}
+
+	return parentObject;
 }
 
 static void CreateMesh(const aiMesh* mesh, gold::FrameEncoder& encoder, RenderComponent& render)
@@ -151,45 +152,28 @@ static void CreateMaterial(const std::string& filepath, unsigned int index, aiMa
 	aiString metalic;
 	aiString roughness;
 	
-	std::vector<std::future<void>> futures;
-	if (material->GetTexture(AI_MATKEY_BASE_COLOR_TEXTURE, &albedo) == AI_SUCCESS)
+	if (material->GetTexture(AI_MATKEY_BASE_COLOR_TEXTURE, &albedo) == AI_SUCCESS || 
+		material->GetTexture(aiTextureType_DIFFUSE,0, &albedo) || 
+		material->GetTexture(aiTextureType_AMBIENT, 0, &albedo))
 	{
-		futures.emplace_back(std::async(std::launch::async, [&]
-		{
-			render.albedoMap = FindOrAddTexture(filepath + albedo.C_Str(), encoder);
-		}));
-		
+		render.albedoMap = FindOrAddTexture(filepath + albedo.C_Str(), encoder);	
 	}
 
 	if (material->GetTexture(aiTextureType_NORMALS, 0, &normal) == AI_SUCCESS)
 	{
-		futures.emplace_back(std::async(std::launch::async, [&]
-		{
-			render.normalMap = FindOrAddTexture(filepath + normal.C_Str(), encoder);
-		}));
+		render.normalMap = FindOrAddTexture(filepath + normal.C_Str(), encoder);
 	}
 
 	if (material->GetTexture(AI_MATKEY_METALLIC_TEXTURE, &metalic) == AI_SUCCESS)
 	{
-		futures.emplace_back(std::async(std::launch::async, [&]
-		{
-			render.metallicMap = FindOrAddTexture(filepath + metalic.C_Str(), encoder);
-		}));
+		render.metallicMap = FindOrAddTexture(filepath + metalic.C_Str(), encoder);
 	}
 
 	if (material->GetTexture(AI_MATKEY_ROUGHNESS_TEXTURE, &roughness) == AI_SUCCESS)
 	{
-		futures.emplace_back(std::async(std::launch::async, [&]
-		{
-			render.roughnessMap = FindOrAddTexture(filepath + roughness.C_Str(), encoder);
-		}));
+		render.roughnessMap = FindOrAddTexture(filepath + roughness.C_Str(), encoder);	
 	}
 	
-	for (auto& future : futures)
-	{
-		future.get();
-	}
-
 	if (!render.albedoMap.idx)
 	{
 		aiColor4D albedoVal;

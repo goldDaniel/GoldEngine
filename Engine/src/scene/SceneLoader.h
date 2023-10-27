@@ -10,6 +10,6 @@ namespace scene
 	{
 	public:
 		
-		static void LoadGameObjectFromModel(Scene& scene, gold::FrameEncoder& encoder, const std::string& filepath);
+		static GameObject LoadGameObjectFromModel(Scene& scene, gold::FrameEncoder& encoder, const std::string& filepath);
 	};
 }
