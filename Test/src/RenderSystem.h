@@ -39,14 +39,15 @@ private:
 	};
 	graphics::UniformBufferHandle mPerDrawConstantsBuffer{};
 
-
 	graphics::UniformBufferHandle mLightingBuffer{};
 
 	graphics::ShaderHandle mGBufferFillShader{};
 	graphics::ShaderHandle mGBufferResolveShader{};
+	graphics::ShaderHandle mTonemapShader{};
 	
 	graphics::FrameBuffer mGBuffer{};
 	graphics::FrameBuffer mHDRBuffer{};
+	graphics::FrameBuffer mTonemapResultBuffer{};
 
 	graphics::MeshHandle mFullscreenQuad{};
 
@@ -81,7 +82,7 @@ public:
 
 	const graphics::FrameBuffer& GetRenderTarget()
 	{
-		return mHDRBuffer;
+		return mTonemapResultBuffer;
 	}
 
 	virtual void Tick(scene::Scene& scene, float dt) override;

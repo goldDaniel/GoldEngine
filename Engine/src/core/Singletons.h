@@ -7,6 +7,7 @@
 #include <functional>
 #include <any>
 #include <typeindex>
+#include <mutex>
 
 class Singletons
 {
@@ -20,6 +21,8 @@ public:
 	template<typename T> 
 	void Register(SingletonGenerator<T> generator)
 	{
+		std::scoped_lock lock(mMutex);
+
 		DEBUG_ASSERT(mSingletonMap.find(typeid(T)) == mSingletonMap.end(), "Singleton already registered for type!");
 		mSingletonMap[typeid(T)] = { EntryState::Generator, generator };
 	}
@@ -27,12 +30,16 @@ public:
 	template<typename T>
 	std::shared_ptr<T> Resolve()
 	{
+		std::scoped_lock lock(mMutex);
+
 		return _Resolve<T, SingletonGenerator<T>>();
 	}
 
 	template<typename T>
 	void Erase()
 	{
+		std::scoped_lock lock(mMutex);
+
 		DEBUG_ASSERT(mSingletonMap.find(typeid(T)) != mSingletonMap.end(), "Singleton not registered for type!");
 		mSingletonMap.erase(typeid(T));
 	}
@@ -52,6 +59,8 @@ private:
 		EntryState mState = EntryState::Invalid;
 		std::any mValue{};
 	};
+
+	std::mutex mMutex;
 
 	std::unordered_map<std::type_index, MapEntry> mSingletonMap;
 

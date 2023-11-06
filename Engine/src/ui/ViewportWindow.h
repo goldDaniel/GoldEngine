@@ -14,7 +14,7 @@ private:
 public:
 	ViewportWindow() : ImGuiWindow("Game Viewport", true)
 	{
-		SetFlags(ImGuiWindowFlags_NoInputs);
+		
 	}
 
 	void SetTexture(u32 output)
@@ -38,8 +38,9 @@ protected:
 		using namespace graphics;
 
 		auto size = ImGui::GetWindowSize();
-		size.x = glm::max(32.f, size.x);
-		size.y = glm::max(32.f, size.y);
+		size.x = glm::max(128.f, size.x);
+		size.y = glm::max(128.f, size.y);
+		ImGui::SetWindowSize(size, ImGuiCond_None);
 	
 
 		if (mClientFrameBuffer)

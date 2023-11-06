@@ -44,6 +44,13 @@ void RenderSystem::InitRenderData(scene::Scene& scene)
 		mGBufferResolveShader = mEncoder->CreateShader(vertSrc.c_str(), fragSrc.c_str());
 	}
 
+	//Tonemap
+	{
+		std::string vertSrc = util::LoadStringFromFile("shaders/tonemap.vert.glsl");
+		std::string fragSrc = util::LoadStringFromFile("shaders/tonemap.frag.glsl");
+		mTonemapShader = mEncoder->CreateShader(vertSrc.c_str(), fragSrc.c_str());
+	}
+
 	// fullscreen quad
 	{
 		MeshDescription desc;
@@ -93,7 +100,7 @@ void RenderSystem::FillGBuffer(const Camera& camera, scene::Scene& scene)
 	});
 
 	//GBuffer fill
-	uint8_t pass = mEncoder->AddRenderPass("Default", mGBuffer.mHandle, ClearColor::YES, ClearDepth::YES);
+	uint8_t pass = mEncoder->AddRenderPass("GBuffer Fill", mGBuffer.mHandle, ClearColor::YES, ClearDepth::YES);
 	scene.ForEach<TransformComponent, RenderComponent, NotFrustumCulledComponent>([&](const scene::GameObject obj)
 	{
 		const auto& render = obj.GetComponent<RenderComponent>();
@@ -108,7 +115,7 @@ void RenderSystem::FillGBuffer(const Camera& camera, scene::Scene& scene)
 		};
 		mEncoder->UpdateUniformBuffer(mPerDrawConstantsBuffer, &drawConstants, sizeof(PerDrawConstants));
 
-		RenderState state;
+		RenderState state{};
 		state.mRenderPass = pass;
 		state.mAlphaBlendEnabled = false;
 		state.mShader = mGBufferFillShader;
@@ -142,14 +149,14 @@ void RenderSystem::Tick(scene::Scene& scene, float dt)
 
 	// retrieve camera
 	Camera* camera = nullptr;
-	bool retrievedCamera = false;
-	scene.ForEach<TransformComponent, DebugCameraComponent>([&](scene::GameObject obj)
+	scene.ForEach<TransformComponent, DebugCameraComponent>([&, retrievedCamera = false](scene::GameObject obj) mutable
 	{
 		DEBUG_ASSERT(!retrievedCamera, "Currently only support one debug camera!");
+		retrievedCamera = true;
+
 		auto& cam = obj.GetComponent<DebugCameraComponent>();
 		cam.mCamera.Aspect = (float)mGBuffer.mWidth / (float)mGBuffer.mHeight;
 		camera = &cam.mCamera;
-		retrievedCamera = true;
 	});
 
 	// update per frame buffer
@@ -235,7 +242,14 @@ void RenderSystem::DrawSkybox()
 
 void RenderSystem::Tonemap()
 {
+	RenderState state;
+	state.mDepthFunc = DepthFunction::ALWAYS;
+	state.mAlphaBlendEnabled = false;
+	state.mShader = mTonemapShader;
+	state.mRenderPass = mEncoder->AddRenderPass("Tonemapping", mTonemapResultBuffer.mHandle, ClearColor::YES, ClearDepth::NO);
+	state.SetTexture("hdrBuffer", mHDRBuffer.mTextures[static_cast<uint32_t>(OutputSlot::Color0)]);
 
+	mEncoder->DrawMesh(mFullscreenQuad, state);
 }
 
 void RenderSystem::ResizeGBuffer(int width, int height)
@@ -244,12 +258,11 @@ void RenderSystem::ResizeGBuffer(int width, int height)
 		mGBuffer.mWidth != width || mGBuffer.mHeight != height)
 	{
 		// GBuffer
-		if (mGBuffer.mHandle.idx)
+		if (IsValid(mGBuffer.mHandle))
 		{
 			mEncoder->DestroyFrameBuffer(mGBuffer.mHandle);
 			mGBuffer.mHandle.idx = 0;
 		}
-
 		{
 			FrameBufferDescription fbDesc;
 
@@ -281,7 +294,7 @@ void RenderSystem::ResizeGBuffer(int width, int height)
 		}
 
 		// HDR Buffer
-		if (mHDRBuffer.mHandle.idx)
+		if (IsValid(mHDRBuffer.mHandle))
 		{
 			mEncoder->DestroyFrameBuffer(mHDRBuffer.mHandle);
 		}
@@ -291,17 +304,35 @@ void RenderSystem::ResizeGBuffer(int width, int height)
 			TextureDescription2D colorDesc;
 			colorDesc.mWidth = width;
 			colorDesc.mHeight = height;
-			colorDesc.mFormat = TextureFormat::RGBA_HALF;
+			colorDesc.mFormat = TextureFormat::RGBA_FLOAT;
 			colorDesc.mWrap = TextureWrap::CLAMP;
-			fbDesc.mTextures[static_cast<uint8_t>(OutputSlot::Color0)] = FrameBufferDescription::FrameBufferTexture{ colorDesc, FramebufferAttachment::COLOR0 };
+			fbDesc.Put(OutputSlot::Color0, colorDesc);
 
 			TextureDescription2D depthDesc;
 			depthDesc.mWidth = width;
 			depthDesc.mHeight = height;
 			depthDesc.mFormat = TextureFormat::DEPTH;
-			fbDesc.mTextures[static_cast<uint8_t>(OutputSlot::Depth)] = FrameBufferDescription::FrameBufferTexture{ depthDesc, FramebufferAttachment::DEPTH };
+			fbDesc.Put(OutputSlot::Depth, depthDesc);
 
 			mHDRBuffer = mEncoder->CreateFrameBuffer(fbDesc);
+		}
+
+		// Tinemap result Buffer
+		if (IsValid(mTonemapResultBuffer.mHandle))
+		{
+			mEncoder->DestroyFrameBuffer(mTonemapResultBuffer.mHandle);
+		}
+		{
+			FrameBufferDescription fbDesc{};
+
+			TextureDescription2D colorDesc;
+			colorDesc.mWidth = width;
+			colorDesc.mHeight = height;
+			colorDesc.mFormat = TextureFormat::RGBA_U8;
+			colorDesc.mWrap = TextureWrap::CLAMP;
+			fbDesc.Put(OutputSlot::Color0, colorDesc);
+
+			mTonemapResultBuffer = mEncoder->CreateFrameBuffer(fbDesc);
 		}
 	}
 }

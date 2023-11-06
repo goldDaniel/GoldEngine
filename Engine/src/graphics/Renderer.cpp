@@ -575,12 +575,6 @@ void Renderer::BeginFrame()
 	drawCalls.clear();
 	renderPasses.clear();
 	deletions.clear();
-
-	// NOTE (danielg):	We reset the state at the start of the frame 
-	//					because we use the default ImGui GL implementation
-	//					which modifies state external to this backend. 
-	//					TODO: Implement ImGui rendering using our renderer
-	stateCache = {};
 }
 
 void Renderer::ClearBackBuffer()

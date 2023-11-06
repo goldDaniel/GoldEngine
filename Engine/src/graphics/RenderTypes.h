@@ -10,6 +10,11 @@
 			void operator=(const name &rhs) { idx = rhs.idx; } \
 			bool operator==(const name &other) const { return idx == other.idx; } \
 		}; \
+		\
+		inline bool IsValid(const name& handle)\
+		{ \
+			return handle.idx != 0; \
+		} \
 	} \
 	template <> struct std::hash<graphics::##name> {  \
 		u64 operator()(const graphics::##name& data) const noexcept { \

@@ -110,10 +110,10 @@ static RenderState ReadRenderState(BinaryReader& reader, ServerResources& resour
 
 	u8 toggles = reader.Read<u8>();
 
-	state.mDepthWriteEnabled = (toggles & depthWriteBit) > 0;
-	state.mColorWriteEnabled = (toggles & colorWriteBit) > 0;
-	state.mAlphaBlendEnabled = (toggles & alphaBlendBit) > 0;
-	state.mWireFrame = (toggles & wireframeBit) > 0;
+	state.mDepthWriteEnabled = (toggles & depthWriteBit) != 0;
+	state.mColorWriteEnabled = (toggles & colorWriteBit) != 0;
+	state.mAlphaBlendEnabled = (toggles & alphaBlendBit) != 0;
+	state.mWireFrame = (toggles & wireframeBit) != 0;
 
 	return state;
 }
