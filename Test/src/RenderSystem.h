@@ -57,6 +57,7 @@ private:
 	void FillGBuffer(const Camera& camera, scene::Scene& scene);
 	void ResolveGBuffer(scene::Scene& scene);
 	void DrawSkybox();
+	void Tonemap();
 
 public:
 	

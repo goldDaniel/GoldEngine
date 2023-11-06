@@ -344,7 +344,7 @@ void main()
 //        }
 //    }
 	
-	vec3 ambient = vec3(5.0/255.0) * albedo.rgb;
+	vec3 ambient = vec3(50.0/255.0) * albedo.rgb;
 	vec3 color = ambient + (Lo);
 
 	gl_FragDepth = d;

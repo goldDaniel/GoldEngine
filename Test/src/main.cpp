@@ -66,8 +66,9 @@ protected:
 	{
 		if(mFirstFrame)
 		{
-			scene::Loader::LoadGameObjectFromModel(mScene, encoder, "sponza2/sponza.gltf");
-			
+			auto obj = scene::Loader::LoadGameObjectFromModel(mScene, encoder, "sponza2/sponza.gltf");
+			obj.GetComponent<TransformComponent>().scale = { 0.05f, 0.05f, 0.05f };
+
 			auto lightObj = mScene.CreateGameObject("Directional Light");
 			auto& light = lightObj.AddComponent<DirectionalLightComponent>();
 			

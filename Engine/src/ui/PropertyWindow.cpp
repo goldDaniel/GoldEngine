@@ -4,7 +4,7 @@
 
 #include "scene/BaseComponents.h"
 
-static void DrawVec3Control(const std::string& label, glm::vec3& values, float resetValue = 0.0f, float columnWidth = 100.0f);
+static void DrawVec3Control(const std::string& label, glm::vec3& values, bool isColor = false, float resetValue = 0.0f, float columnWidth = 100.0f);
 
 PropertyWindow::PropertyWindow(scene::Scene& scene, std::function<scene::GameObject(void)>&& selectedFunc)
 	: ImGuiWindow("Properties", true)
@@ -46,7 +46,7 @@ PropertyWindow::PropertyWindow(scene::Scene& scene, std::function<scene::GameObj
 		DrawVec3Control("Direction", direction);
 
 		glm::vec3 color = l.color;
-		DrawVec3Control("Color", color);
+		DrawVec3Control("Color", color, true);
 		
 		// set the w component to 1 marks the light dirty, needing to be updated on GPU 
 		if (direction != glm::vec3{ l.direction.x, l.direction.y, l.direction.z })
@@ -62,7 +62,7 @@ PropertyWindow::PropertyWindow(scene::Scene& scene, std::function<scene::GameObj
 		// set the w component to 1 marks the light dirty, needing to be updated on GPU 
 		if (color != glm::vec3{ l.color.r, l.color.g, l.color.b })
 		{	
-			color = glm::clamp(color, { 0,0,0 }, { 1,1,1 });
+			color = glm::max({ 0,0,0 }, color);
 
 			l.color = { color, 1 };
 			l.direction.w = 1;
@@ -173,7 +173,7 @@ void PropertyWindow::DrawWindow(graphics::Renderer& renderer, gold::ServerResour
 }
 
 
-static void DrawVec3Control(const std::string& label, glm::vec3& values, float resetValue, float columnWidth)
+static void DrawVec3Control(const std::string& label, glm::vec3& values, bool isColor, float resetValue, float columnWidth)
 {
 	ImGuiIO& io = ImGui::GetIO();
 	auto font = io.Fonts->Fonts[0];
@@ -197,7 +197,7 @@ static void DrawVec3Control(const std::string& label, glm::vec3& values, float r
 	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.9f, 0.2f, 0.2f, 1.0f });
 	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.8f, 0.1f, 0.15f, 1.0f });
 	ImGui::PushFont(font);
-	if (ImGui::Button("X", buttonSize))
+	if (ImGui::Button(isColor ? "R" : "X", buttonSize))
 	{
 		values.x = resetValue;
 	}
@@ -206,7 +206,7 @@ static void DrawVec3Control(const std::string& label, glm::vec3& values, float r
 	ImGui::PopStyleColor(3);
 
 	ImGui::SameLine();
-	ImGui::DragFloat("##X", &values.x, 0.1f, 0.0f, 0.0f, "%.2f");
+	ImGui::DragFloat(isColor ? "##R" : "##X", &values.x, 0.1f, 0.0f, 0.0f, "%.2f");
 	ImGui::PopItemWidth();
 	ImGui::SameLine();
 
@@ -215,7 +215,7 @@ static void DrawVec3Control(const std::string& label, glm::vec3& values, float r
 	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.3f, 0.8f, 0.3f, 1.0f });
 	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.2f, 0.7f, 0.2f, 1.0f });
 	ImGui::PushFont(font);
-	if (ImGui::Button("Y", buttonSize))
+	if (ImGui::Button(isColor ? "G" : "Y", buttonSize))
 	{
 		values.y = resetValue;
 	}
@@ -223,7 +223,7 @@ static void DrawVec3Control(const std::string& label, glm::vec3& values, float r
 	ImGui::PopStyleColor(3);
 
 	ImGui::SameLine();
-	ImGui::DragFloat("##Y", &values.y, 0.1f, 0.0f, 0.0f, "%.2f");
+	ImGui::DragFloat(isColor ? "##G" : "##Y", &values.y, 0.1f, 0.0f, 0.0f, "%.2f");
 	ImGui::PopItemWidth();
 	ImGui::SameLine();
 
@@ -232,7 +232,7 @@ static void DrawVec3Control(const std::string& label, glm::vec3& values, float r
 	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.2f, 0.35f, 0.9f, 1.0f });
 	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.1f, 0.25f, 0.8f, 1.0f });
 	ImGui::PushFont(font);
-	if (ImGui::Button("Z", buttonSize))
+	if (ImGui::Button(isColor ? "B" : "Z", buttonSize))
 	{
 		values.z = resetValue;
 	}
@@ -240,7 +240,7 @@ static void DrawVec3Control(const std::string& label, glm::vec3& values, float r
 	ImGui::PopStyleColor(3);
 
 	ImGui::SameLine();
-	ImGui::DragFloat("##Z", &values.z, 0.1f, 0.0f, 0.0f, "%.2f");
+	ImGui::DragFloat(isColor ? "##B" : "##Z", &values.z, 0.1f, 0.0f, 0.0f, "%.2f");
 	ImGui::PopItemWidth();
 
 	ImGui::PopStyleVar();

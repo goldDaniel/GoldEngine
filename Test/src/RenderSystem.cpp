@@ -167,6 +167,7 @@ void RenderSystem::Tick(scene::Scene& scene, float dt)
 	FillGBuffer(*camera, scene);
 	ResolveGBuffer(scene);
 	DrawSkybox();
+	Tonemap();
 }
 
 void RenderSystem::ResolveGBuffer(scene::Scene& scene)
@@ -232,6 +233,11 @@ void RenderSystem::DrawSkybox()
 	Renderer::DrawMesh(mCube, state);*/
 }
 
+void RenderSystem::Tonemap()
+{
+
+}
+
 void RenderSystem::ResizeGBuffer(int width, int height)
 {
 	if (mGBuffer.mHandle.idx == 0 ||
@@ -285,7 +291,7 @@ void RenderSystem::ResizeGBuffer(int width, int height)
 			TextureDescription2D colorDesc;
 			colorDesc.mWidth = width;
 			colorDesc.mHeight = height;
-			colorDesc.mFormat = TextureFormat::RGBA_U8;
+			colorDesc.mFormat = TextureFormat::RGBA_HALF;
 			colorDesc.mWrap = TextureWrap::CLAMP;
 			fbDesc.mTextures[static_cast<uint8_t>(OutputSlot::Color0)] = FrameBufferDescription::FrameBufferTexture{ colorDesc, FramebufferAttachment::COLOR0 };
 
