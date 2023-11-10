@@ -353,6 +353,8 @@ void FrameDecoder::Decode(Renderer& renderer, ServerResources& resources, Binary
 			desc.mWrap = reader.Read<TextureWrap>();
 			desc.mFilter = reader.Read<TextureFilter>();
 
+			serverHandle = renderer.CreateCubemap(desc);
+
 			break;
 		}
 		case RenderCommand::DestroyTexture:

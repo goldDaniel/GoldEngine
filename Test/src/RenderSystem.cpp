@@ -44,6 +44,13 @@ void RenderSystem::InitRenderData(scene::Scene& scene)
 		mGBufferResolveShader = mEncoder->CreateShader(vertSrc.c_str(), fragSrc.c_str());
 	}
 
+	// Skybox
+	{
+		std::string vertSrc = util::LoadStringFromFile("shaders/skybox.vert.glsl");
+		std::string fragSrc = util::LoadStringFromFile("shaders/skybox.frag.glsl");
+		mSkyboxShader = mEncoder->CreateShader(vertSrc.c_str(), fragSrc.c_str());
+	}
+
 	//Tonemap
 	{
 		std::string vertSrc = util::LoadStringFromFile("shaders/tonemap.vert.glsl");
@@ -74,6 +81,94 @@ void RenderSystem::InitRenderData(scene::Scene& scene)
 		desc.mIndexCount = 6;
 
 		mFullscreenQuad = mEncoder->CreateMesh(desc);
+	}
+
+	// cube
+	{
+		VertexBuffer posBuffer(std::move(VertexLayout().Push<VertexLayout::Position3>()));
+		VertexBuffer norBuffer(std::move(VertexLayout().Push<VertexLayout::Normal>()));
+		VertexBuffer uvBuffer(std::move(VertexLayout().Push<VertexLayout::Texcoord2>()));
+
+		std::vector<glm::vec3> frontFace =
+		{
+			glm::vec3{ -0.5f, -0.5f, 0.5f },
+			glm::vec3{  0.5f, -0.5f, 0.5f },
+			glm::vec3{  0.5f,  0.5f, 0.5f },
+			glm::vec3{ -0.5f,  0.5f, 0.5f },
+			glm::vec3{ -0.5f, -0.5f, 0.5f },
+			glm::vec3{  0.5f,  0.5f, 0.5f }
+		};
+		std::vector<glm::vec3> frontNor =
+		{
+			glm::vec3{ 0.0f, 0.0f, 1.0f },
+			glm::vec3{ 0.0f, 0.0f, 1.0f },
+			glm::vec3{ 0.0f, 0.0f, 1.0f },
+			glm::vec3{ 0.0f, 0.0f, 1.0f },
+			glm::vec3{ 0.0f, 0.0f, 1.0f },
+			glm::vec3{ 0.0f, 0.0f, 1.0f }
+		};
+
+		std::vector<glm::vec2> frontUV =
+		{
+			glm::vec2{ 0.0f, 0.0f },
+			glm::vec2{ 1.0f, 0.0f },
+			glm::vec2{ 1.0f, 1.0f },
+			glm::vec2{ 0.0f, 1.0f },
+			glm::vec2{ 0.0f, 0.0f },
+			glm::vec2{ 1.0f, 1.0f }
+		};
+
+		std::vector<glm::mat4> rotations;
+		rotations.push_back(glm::rotate(glm::mat4(1.0f), glm::radians(0.f), glm::vec3(0.f, 1.f, 0.f)));
+		rotations.push_back(glm::rotate(glm::mat4(1.0f), glm::radians(90.f), glm::vec3(0.f, 1.f, 0.f)));
+		rotations.push_back(glm::rotate(glm::mat4(1.0f), glm::radians(180.f), glm::vec3(0.f, 1.f, 0.f)));
+		rotations.push_back(glm::rotate(glm::mat4(1.0f), glm::radians(270.f), glm::vec3(0.f, 1.f, 0.f)));
+		rotations.push_back(glm::rotate(glm::mat4(1.0f), glm::radians(90.f), glm::vec3(1.f, 0.f, 0.f)));
+		rotations.push_back(glm::rotate(glm::mat4(1.0f), glm::radians(-90.f), glm::vec3(1.f, 0.f, 0.f)));
+
+		for (const auto& rot : rotations)
+		{
+			for (const auto& vert : frontFace)
+			{
+				posBuffer.Emplace(glm::vec3(rot * glm::vec4(vert, 1.0)));
+			}
+			for (const auto& nor : frontNor)
+			{
+				norBuffer.Emplace(glm::vec3(rot * glm::vec4(nor, 0.0)));
+			}
+			for (const auto& uv : frontUV)
+			{
+				uvBuffer.Emplace(uv);
+			}
+		}
+
+		MeshDescription desc;
+		desc.handles.mPositions = mEncoder->CreateVertexBuffer(posBuffer.Raw(), posBuffer.SizeInBytes());
+		desc.handles.mNormals = mEncoder->CreateVertexBuffer(norBuffer.Raw(), norBuffer.SizeInBytes());
+		desc.handles.mTexCoords0 = mEncoder->CreateVertexBuffer(uvBuffer.Raw(), uvBuffer.SizeInBytes());
+		desc.mVertexCount = posBuffer.VertexCount();
+
+		mCube = mEncoder->CreateMesh(desc);
+	}
+
+	// cubemap texture
+	{
+		std::unordered_map<CubemapFace, Texture2D&> faces;
+		auto right = Texture2D("textures/cubemap/posx.jpg");
+		auto left = Texture2D("textures/cubemap/negx.jpg");
+		auto top = Texture2D("textures/cubemap/posy.jpg");
+		auto bottom = Texture2D("textures/cubemap/negy.jpg");
+		auto back = Texture2D("textures/cubemap/posz.jpg");
+		auto front = Texture2D("textures/cubemap/negz.jpg");
+		faces.emplace(CubemapFace::POSITIVE_X, right);
+		faces.emplace(CubemapFace::NEGATIVE_X, left);
+		faces.emplace(CubemapFace::POSITIVE_Y, top);
+		faces.emplace(CubemapFace::NEGATIVE_Y, bottom);
+		faces.emplace(CubemapFace::POSITIVE_Z, front);
+		faces.emplace(CubemapFace::NEGATIVE_Z, back);
+
+		CubemapDescription desc(faces);
+		mCubemap = mEncoder->CreateCubemap(desc);
 	}
 }
 
@@ -223,27 +318,33 @@ void RenderSystem::ResolveGBuffer(scene::Scene& scene)
 
 void RenderSystem::DrawSkybox()
 {
-	/*RenderPass pass;
-	pass.mName = "skybox_pass";
+	RenderPass pass;
+	pass.mName = "skybox";
 	pass.mTarget = mHDRBuffer.mHandle;
 
 	RenderState state;
 	state.mDepthFunc = DepthFunction::LESS_EQUAL;
 	state.mCullFace = CullFace::FRONT;
 	state.mRenderPass = mEncoder->AddRenderPass(pass);
-	state.mShader = &mSkyboxShader;
+	state.mShader = mSkyboxShader;
 
-	Renderer::UpdateUniformBlock(mConstants.mProj * glm::mat4(glm::mat3(mConstants.mView)), mSkyboxBuffer);
-	state.SetUniformBlock("Skybox", mSkyboxBuffer);
+	// Reuse PerDrawConstants so we dont need to declare another block
+	// We will only use the model matrix entry
+	PerDrawConstants cb;
+	cb.u_model = mPerFrameConstants.u_proj * glm::mat4(glm::mat3(mPerFrameConstants.u_view));
+	mEncoder->UpdateUniformBuffer(mPerDrawConstantsBuffer, &cb, sizeof(PerDrawConstants));
+
+	state.SetUniformBlock("PerDrawConstants_UBO", mPerDrawConstantsBuffer);
 	state.SetTexture("u_cubemap", mCubemap);
 
-	Renderer::DrawMesh(mCube, state);*/
+	mEncoder->DrawMesh(mCube, state);
 }
 
 void RenderSystem::Tonemap()
 {
 	RenderState state;
-	state.mDepthFunc = DepthFunction::ALWAYS;
+	state.mDepthFunc = DepthFunction::LESS_EQUAL;
+
 	state.mAlphaBlendEnabled = false;
 	state.mShader = mTonemapShader;
 	state.mRenderPass = mEncoder->AddRenderPass("Tonemapping", ClearColor::YES, ClearDepth::NO);
@@ -308,25 +409,14 @@ void RenderSystem::ResizeGBuffer(int width, int height)
 			colorDesc.mWrap = TextureWrap::CLAMP;
 			fbDesc.Put(OutputSlot::Color0, colorDesc);
 
+			TextureDescription2D depthDesc;
+			depthDesc.mWidth = width;
+			depthDesc.mHeight = height;
+			depthDesc.mFormat = TextureFormat::DEPTH;
+			fbDesc.Put(OutputSlot::Depth, depthDesc);
+
+
 			mHDRBuffer = mEncoder->CreateFrameBuffer(fbDesc);
-		}
-
-		// Tinemap result Buffer
-		if (IsValid(mTonemapResultBuffer.mHandle))
-		{
-			mEncoder->DestroyFrameBuffer(mTonemapResultBuffer.mHandle);
-		}
-		{
-			FrameBufferDescription fbDesc{};
-
-			TextureDescription2D colorDesc;
-			colorDesc.mWidth = width;
-			colorDesc.mHeight = height;
-			colorDesc.mFormat = TextureFormat::RGBA_U8;
-			colorDesc.mWrap = TextureWrap::CLAMP;
-			fbDesc.Put(OutputSlot::Color0, colorDesc);
-
-			mTonemapResultBuffer = mEncoder->CreateFrameBuffer(fbDesc);
 		}
 	}
 }

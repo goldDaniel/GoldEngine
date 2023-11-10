@@ -21,7 +21,7 @@ void Application::Run()
 	mEncoders.Init([this, size]() { return std::make_unique<FrameEncoder>(mRenderResources, size); });
 
 	// frame allocator size 
-	size = 256 * 1024 * 1024;
+	size = 512 * 1024 * 1024;
 	mFrameAllocators.Init([this, size]() {return  std::make_unique<LinearAllocator>(malloc(size), size); });
 
 	std::thread updateThread = std::thread(&Application::UpdateThread, this);

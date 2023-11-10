@@ -24,6 +24,7 @@ void* LinearAllocator::Allocate(size_t size, u8 alignment)
 
 	if (mUsed + adjustment + size > mSize)
 	{
+		DEBUG_ASSERT(false, "Allocator out of memory!");
 		return nullptr;
 	}
 

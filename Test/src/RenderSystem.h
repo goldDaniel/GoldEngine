@@ -29,7 +29,7 @@ private:
 	struct PerDrawConstants
 	{
 		glm::mat4 u_model{};
-		
+
 		// for use when maps are not present
 		glm::vec4 u_albedo{};
 		glm::vec4 u_emissive{};
@@ -43,13 +43,16 @@ private:
 
 	graphics::ShaderHandle mGBufferFillShader{};
 	graphics::ShaderHandle mGBufferResolveShader{};
+	graphics::ShaderHandle mSkyboxShader{};
 	graphics::ShaderHandle mTonemapShader{};
-	
+
 	graphics::FrameBuffer mGBuffer{};
 	graphics::FrameBuffer mHDRBuffer{};
-	graphics::FrameBuffer mTonemapResultBuffer{};
 
 	graphics::MeshHandle mFullscreenQuad{};
+	graphics::MeshHandle mCube{};
+
+	graphics::TextureHandle mCubemap{};
 
 	bool mFirstFrame = true;
 
@@ -78,11 +81,6 @@ public:
 	{
 		DEBUG_ASSERT(frameEncoder, "Frame Encoder should never be null!");
 		mEncoder = frameEncoder;
-	}
-
-	const graphics::FrameBuffer& GetRenderTarget()
-	{
-		return mTonemapResultBuffer;
 	}
 
 	virtual void Tick(scene::Scene& scene, float dt) override;
