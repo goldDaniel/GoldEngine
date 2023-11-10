@@ -54,7 +54,7 @@ protected:
 			{
 				return sceneWindow->GetSelected();
 			}));
-		mViewport = AddEditorWindow(std::make_unique<ViewportWindow>());
+		// mViewport = AddEditorWindow(std::make_unique<ViewportWindow>());
 
 		auto camera = mScene.CreateGameObject("Camera");
 		camera.AddComponent<DebugCameraComponent>();
@@ -80,18 +80,18 @@ protected:
 
 		mCameraSystem.Tick(mScene, delta);
 
-		const graphics::FrameBuffer& fb = mRenderSystem.GetRenderTarget();
-		mViewport->SetTexture(fb.mTextures[0].idx);
+		/*const graphics::FrameBuffer& fb = mRenderSystem.GetRenderTarget();
+		mViewport->SetTexture(fb.mTextures[0].idx);*/
 
 		mRenderSystem.SetEncoder(&encoder);
 
-		u32 width = mViewport->GetSize().x;
+		/*u32 width = mViewport->GetSize().x;
 		u32 height = mViewport->GetSize().y;
-		if (width == 0 || height == 0)
-		{
-			width  = GetScreenSize().x;
-			height = GetScreenSize().y;
-		}
+		if (width == 0 || height == 0)*/
+		//{
+			u32 width  = GetScreenSize().x;
+			u32 height = GetScreenSize().y;
+		//}
 
 		mLightingSystem.Tick(mScene, delta);
 

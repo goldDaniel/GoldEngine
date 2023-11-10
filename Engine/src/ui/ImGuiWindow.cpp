@@ -34,7 +34,7 @@ void ImGuiWindow::Draw(graphics::Renderer& renderer, gold::ServerResources& reso
 
 		ImGui::End();
 		StylePop();
-	}	
+	}
 }
 
 void ImGuiWindow::SetFlags(int flags)

@@ -246,7 +246,7 @@ void RenderSystem::Tonemap()
 	state.mDepthFunc = DepthFunction::ALWAYS;
 	state.mAlphaBlendEnabled = false;
 	state.mShader = mTonemapShader;
-	state.mRenderPass = mEncoder->AddRenderPass("Tonemapping", mTonemapResultBuffer.mHandle, ClearColor::YES, ClearDepth::NO);
+	state.mRenderPass = mEncoder->AddRenderPass("Tonemapping", ClearColor::YES, ClearDepth::NO);
 	state.SetTexture("hdrBuffer", mHDRBuffer.mTextures[static_cast<uint32_t>(OutputSlot::Color0)]);
 
 	mEncoder->DrawMesh(mFullscreenQuad, state);
@@ -307,12 +307,6 @@ void RenderSystem::ResizeGBuffer(int width, int height)
 			colorDesc.mFormat = TextureFormat::RGBA_FLOAT;
 			colorDesc.mWrap = TextureWrap::CLAMP;
 			fbDesc.Put(OutputSlot::Color0, colorDesc);
-
-			TextureDescription2D depthDesc;
-			depthDesc.mWidth = width;
-			depthDesc.mHeight = height;
-			depthDesc.mFormat = TextureFormat::DEPTH;
-			fbDesc.Put(OutputSlot::Depth, depthDesc);
 
 			mHDRBuffer = mEncoder->CreateFrameBuffer(fbDesc);
 		}

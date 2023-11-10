@@ -15,7 +15,7 @@ void EditorUI::OnImguiRender(graphics::Renderer& renderer, gold::RenderResources
 		firstFrame = false;
 	}
 
-	_DrawDockSpace();
+	//_DrawDockSpace();
 	_DrawMainMenuBar();
 
 	for (const auto& window : mWindows)
@@ -23,8 +23,8 @@ void EditorUI::OnImguiRender(graphics::Renderer& renderer, gold::RenderResources
 		window->Draw(renderer, resources);
 	}
 
-	// begin is called in _DrawDockSpace()
-	ImGui::End();
+	//// begin is called in _DrawDockSpace()
+	//ImGui::End();
 }
 
 void EditorUI::_DrawDockSpace()

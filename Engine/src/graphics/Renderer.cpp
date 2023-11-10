@@ -641,10 +641,6 @@ void Renderer::EndFrame()
 				}
 			
 			}
-			if (!foundBinding)
-			{
-				glBindBufferBase(GL_UNIFORM_BUFFER, static_cast<GLuint>(i), 0);
-			}
 		}
 
 		// shader storage blocks
@@ -665,10 +661,6 @@ void Renderer::EndFrame()
 					foundBinding = true;
 					break;
 				}
-			}
-			if (!foundBinding)
-			{
-				glBindBufferBase(GL_SHADER_STORAGE_BUFFER, static_cast<GLuint>(i), 0);
 			}
 		}
 
