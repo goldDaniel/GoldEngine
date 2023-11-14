@@ -46,11 +46,11 @@ private:
 	};
 	LightMatrices mLightMatrices;
 	graphics::UniformBufferHandle mLightMatricesBuffer{};
-
+	
 	struct ShadowMapPages
 	{
 		glm::vec4 mPage[LightBufferComponent::MAX_CASTERS];
-		float mBias[LightBufferComponent::MAX_CASTERS]{ 0 };
+		glm::vec4 mParams[LightBufferComponent::MAX_CASTERS]; // ?, ?, PCF filter size, bias
 	};
 	ShadowMapPages mShadowPages{};
 	graphics::UniformBufferHandle mShadowPagesBuffer{};

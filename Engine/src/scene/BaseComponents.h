@@ -61,8 +61,8 @@ struct NotFrustumCulledComponent
 
 struct DirectionalLightComponent
 {
-	glm::vec4 direction{ 0 }; // xyz, dirty flag
-	glm::vec4 color{ 0 };
+	glm::vec4 direction{ 0,0,0,1 }; // xyz, dirty flag
+	glm::vec4 color{ 1,1,1,1 };
 };
 
 struct PointLightComponent
@@ -98,6 +98,8 @@ struct ShadowMapComponent
 	float nearPlane;
 	float farPlane;
 
+	int PCFSize{ 1 };
+
 	bool dirty{ true };
 
 	// NOTE (danielg): 0 is used for directional lights. Otherwise: 
@@ -109,6 +111,7 @@ struct ShadowMapComponent
 		4 - shadowMapIndex+Z,
 		5 - shadowMapIndex-Z
 	*/
+
 	std::array<float, 6> shadowMapBias{ 0,0,0,0,0,0 };
 	std::array<int, 6> shadowMapIndex{ -1,-1,-1,-1,-1,-1 };
 };

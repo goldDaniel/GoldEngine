@@ -75,16 +75,17 @@ protected:
 			auto lightObj = mScene.CreateGameObject("Directional Light");
 			
 			auto& light = lightObj.AddComponent<DirectionalLightComponent>();
-			light.direction = { 0.1f, -0.8f, 0.1f, 0.0f };
+			light.direction = { 0.1f, -0.8f, 0.1f, 1.0f };
 			light.color = { 1,1,1,1 };
 
 			auto& shadow = lightObj.AddComponent<ShadowMapComponent>();
-			shadow.left = -100;
-			shadow.right = 100;
-			shadow.bottom = -100;
-			shadow.top = 100;
-			shadow.nearPlane = -100;
-			shadow.farPlane = 100;
+			shadow.left = -90;
+			shadow.right = 90;
+			shadow.bottom = -90;
+			shadow.top = 90;
+			shadow.nearPlane = -90;
+			shadow.farPlane = 90;
+			shadow.dirty = true;
 
 			mFirstFrame = false;
 		}

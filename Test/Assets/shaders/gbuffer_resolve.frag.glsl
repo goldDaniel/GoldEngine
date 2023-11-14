@@ -38,7 +38,7 @@ layout(std140) uniform LightSpaceMatrices_UBO
 layout(std140) uniform ShadowPages_UBO
 {
 	vec4 shadowMapPage[MAX_LIGHTS];
-	float shadowBias[MAX_LIGHTS];
+	vec4 shadowMapParams[MAX_LIGHTS]; // ?, ?, PCF Size, bias
 };
 
 layout(std140) uniform PerFrameConstants_UBO
@@ -179,7 +179,38 @@ vec3 getLighting(vec3 L, vec3 N, vec3 V, vec3 H, vec3 F0, vec3 radiance, vec3 al
 	return (kD * albedo.rgb / PI + specular) * radiance * NdotL;
 }
 
-float getDirectionalShadow(int index, vec4 posLightSpace, vec3 normal, vec3 lightDir)
+float getShadowPCF(vec3 projCoords, float NdotL, int shadowMapIndex)
+{
+	float bias = max(shadowMapParams[shadowMapIndex].w * (1.0 - NdotL), 0.001);
+	vec2 shadowMapSize = textureSize(shadowMap, 0);
+	vec2 texelSize = 1.0 / shadowMapSize.xy;
+	vec4 bounds = shadowMapPage[shadowMapIndex];
+	
+	vec4 uvBounds = vec4(0,0,0,0);
+	uvBounds.xz =  bounds.xz / shadowMapSize.x;  
+	uvBounds.yw =  bounds.yw / shadowMapSize.y;  
+
+	int pcfSize = int(shadowMapParams[shadowMapIndex].z);
+	int halfPCFSize = int(pcfSize / 2.0);
+
+	// PCF
+	float shadow = 0.0;
+	for(int x = -halfPCFSize; x < -halfPCFSize + pcfSize; ++x)
+	{
+		for(int y = -halfPCFSize; y < -halfPCFSize + pcfSize; ++y)
+		{
+			vec2 texCoords = projCoords.xy + vec2(x, y) * texelSize;
+			vec2 uv = mapValue(texCoords.xy, vec2(0.0 ,0.0), vec2(1.0, 1.0), uvBounds.xy, uvBounds.xy + uvBounds.zw);
+
+			float pcfDepth = texture(shadowMap, uv).r; 
+			shadow += (projCoords.z - bias) > pcfDepth  ? 1.0 : 0.0;
+		}
+	}
+	shadow /= max(1.0, pcfSize*pcfSize);
+	return shadow;
+}
+
+float getDirectionalShadow(int index, vec4 posLightSpace, float NdotL)
 {
 	// perspective divide
 	vec3 projCoords = posLightSpace.xyz / posLightSpace.w;
@@ -189,31 +220,7 @@ float getDirectionalShadow(int index, vec4 posLightSpace, vec3 normal, vec3 ligh
 		return 0.0;
 	}
 
-	float thisDepth = projCoords.z;
-	float bias = max(shadowBias[index] * (1.0 - dot(normal, lightDir)), 0.001);  
-	vec2 shadowMapSize = textureSize(shadowMap, 0);
-	vec2 texelSize = 1.0 / shadowMapSize.xy;
-	vec4 bounds = shadowMapPage[index];
-	
-	vec4 uvBounds = vec4(0,0,0,0);
-	uvBounds.xz =  bounds.xz / shadowMapSize.x;  
-	uvBounds.yw =  bounds.yw / shadowMapSize.y;  
-	// PCF
-	float shadow = 0.0;
-	for(int x = -1; x <= 1; ++x)
-	{
-		for(int y = -1; y <= 1; ++y)
-		{
-
-			vec2 texCoords = projCoords.xy + vec2(x, y) * texelSize;
-			vec2 uv = mapValue(texCoords.xy, vec2(0.0 ,0.0), vec2(1.0, 1.0), uvBounds.xy, uvBounds.xy + uvBounds.zw);
-
-			float pcfDepth = texture(shadowMap, uv).r; 
-			shadow += (thisDepth - bias) > pcfDepth  ? 1.0 : 0.0;
-		}    
-	}   
-	shadow /= 9.0;
-	return shadow;
+	return getShadowPCF(projCoords, NdotL, index);
 }
 
 float getPointShadow(int pointLightIndex, vec4 fragmentPosWorldSpace, vec3 normal)
@@ -260,33 +267,8 @@ float getPointShadow(int pointLightIndex, vec4 fragmentPosWorldSpace, vec3 norma
 	projCoords = projCoords * 0.5 + 0.5;
 	projCoords.xy = 1.0 - projCoords.xy;
 
-	float thisDepth = projCoords.z;
-
-	float bias = max(shadowBias[shadowMapIndex] * (1.0 - dot(normal, normalize(fragPosToLightPos))), 0.00025); 
-	vec2 shadowMapSize = textureSize(shadowMap, 0);
-	vec2 texelSize = 1.0 / shadowMapSize.xy;
-	vec4 bounds = shadowMapPage[shadowMapIndex];
-	
-	vec4 uvBounds = vec4(0,0,0,0);
-	uvBounds.xz =  bounds.xz / shadowMapSize.x;  
-	uvBounds.yw =  bounds.yw / shadowMapSize.y;  
-
-	// PCF
-	float shadow = 0.0;
-	for(int x = -1; x <= 1; ++x)
-	{
-		for(int y = -1; y <= 1; ++y)
-		{
-			vec2 texCoords = uv + vec2(x, y) * texelSize;
-			vec2 uvFinal = mapValue(texCoords.xy, vec2(0.0 ,0.0), vec2(1.0, 1.0), uvBounds.xy, uvBounds.xy + uvBounds.zw);
-
-			float pcfDepth = texture(shadowMap, uvFinal).r; 
-			shadow += (thisDepth - bias) > pcfDepth  ? 1.0 : 0.0;
-		}
-	}
-	shadow /= 9.0;
-
-   return shadow;
+	float NdotL = dot(normal, normalize(fragPosToLightPos));
+	return getShadowPCF(projCoords, NdotL, shadowMapIndex);
 }
 
 void main()
@@ -316,7 +298,8 @@ void main()
 		vec3 lighting = getLighting(L, normal, V, H, F0, radiance, albedo.rgb, roughness, metallic);
 		if(directionalLights[i].params.w != -1)
 		{
-			float shadow = getDirectionalShadow(shadowMapIndex, mLightSpace[shadowMapIndex] * vec4(position, 1.0), normal, directionalLights[i].direction.xyz);
+			float NdotL = dot(normal, normalize(directionalLights[i].direction.xyz));
+			float shadow = getDirectionalShadow(shadowMapIndex, mLightSpace[shadowMapIndex] * vec4(position, 1.0), NdotL);
 			lighting *= (1.0 - shadow);
 		}
 

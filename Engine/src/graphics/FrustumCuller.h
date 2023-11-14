@@ -66,19 +66,16 @@ public:
 		return true;
 	}
 
-	static bool FrustumCulled(const Camera& camera, const AABB& aabb)
+	static bool FrustumCulled(const glm::mat4& viewProj , const glm::mat4& viewProjTrans, const AABB& aabb)
 	{
-		glm::mat4 viewProj = camera.GetProjectionMatrix() * camera.GetViewMatrix();
-		glm::mat4 transposeViewProj = glm::transpose(viewProj);
-
 		std::array<glm::vec4, 6> frustumPlanes =
 		{
-			transposeViewProj[3] + transposeViewProj[0],
-			transposeViewProj[3] - transposeViewProj[0],
-			transposeViewProj[3] + transposeViewProj[1],
-			transposeViewProj[3] - transposeViewProj[1],
-			transposeViewProj[3] + transposeViewProj[2],
-			transposeViewProj[3] - transposeViewProj[2],
+			viewProjTrans[3] + viewProjTrans[0],
+			viewProjTrans[3] - viewProjTrans[0],
+			viewProjTrans[3] + viewProjTrans[1],
+			viewProjTrans[3] - viewProjTrans[1],
+			viewProjTrans[3] + viewProjTrans[2],
+			viewProjTrans[3] - viewProjTrans[2],
 		};
 
 		std::array<glm::vec4, 8> frustumCorners =

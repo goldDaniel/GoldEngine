@@ -5,6 +5,40 @@
 
 using namespace graphics;
 
+static void PushFrustumCull(scene::Scene& scene, const glm::mat4& viewProj)
+{
+	// frustum cull
+	const glm::mat4 transViewProj = glm::transpose(viewProj);
+	scene.ForEach<RenderComponent>([&viewProj, &transViewProj](scene::GameObject obj)
+	{
+		auto aabb = obj.GetAABB();
+
+		// invalid AABB? Add to draw list just in case
+		if (aabb.min.x > aabb.max.x || aabb.min.y > aabb.max.y || aabb.min.z > aabb.max.z)
+		{
+			DEBUG_ASSERT(false, "Invalid AABB");
+			obj.AddComponent<NotFrustumCulledComponent>();
+			return;
+		}
+
+		if (!FrustumCuller::FrustumCulled(viewProj, transViewProj, aabb))
+		{
+			obj.AddComponent<NotFrustumCulledComponent>();
+		}
+	});
+}
+
+static void PopFrustumCull(scene::Scene& scene)
+{
+	// remove cull component for other passes
+	//NOTE (danielg): instead, NotFrustumCulledComponent should use a bitset to
+	//				  tell which camera the object has been culled from
+	scene.ForEach<NotFrustumCulledComponent>([](scene::GameObject obj)
+	{
+		obj.RemoveComponent<NotFrustumCulledComponent>();
+	});
+}
+
 void RenderSystem::InitRenderData(scene::Scene& scene)
 {
 
@@ -301,7 +335,8 @@ void RenderSystem::FillShadowAtlas(scene::Scene& scene)
 
 		// data for shadow pages uniform buffer
 		mShadowPages.mPage[shadowIndex] = { page.x, page.y, page.width, page.height };
-		mShadowPages.mBias[shadowIndex] = shadow.shadowMapBias[0];
+		mShadowPages.mParams[shadowIndex].w = shadow.shadowMapBias[0];
+		mShadowPages.mParams[shadowIndex].z = shadow.PCFSize + 1;
 
 		// data for light matrices uniform buffer
 		// NOTE (danielg): adds support for light to follow a position
@@ -313,7 +348,9 @@ void RenderSystem::FillShadowAtlas(scene::Scene& scene)
 		//the section of our paged shadowMap to render to 
 		shadowState.mViewport = { page.x, page.y, page.width, page.height };
 
-		scene.ForEach<TransformComponent, RenderComponent>(
+		PushFrustumCull(scene, mLightMatrices.mLightSpace[shadowIndex]);
+
+		scene.ForEach<TransformComponent, RenderComponent, NotFrustumCulledComponent>(
 		[&](scene::GameObject obj)
 		{
 			// reusing the perDrawConstantsBuffer for the model matrix slot
@@ -326,6 +363,8 @@ void RenderSystem::FillShadowAtlas(scene::Scene& scene)
 			const auto& render = obj.GetComponent<RenderComponent>();
 			mEncoder->DrawMesh(render.mesh, shadowState);
 		});
+
+		PopFrustumCull(scene);
 	});
 
 	mEncoder->UpdateUniformBuffer(mLightMatricesBuffer, &mLightMatrices, sizeof(LightMatrices));
@@ -334,24 +373,7 @@ void RenderSystem::FillShadowAtlas(scene::Scene& scene)
 
 void RenderSystem::FillGBuffer(const Camera& camera, scene::Scene& scene)
 {
-	// frustum cull
-	scene.ForEach<RenderComponent>([&camera](scene::GameObject obj)
-	{
-		auto aabb = obj.GetAABB();
-
-		// invalid AABB? Add to draw list just in case
-		if (aabb.min.x > aabb.max.x || aabb.min.y > aabb.max.y || aabb.min.z > aabb.max.z)
-		{
-			DEBUG_ASSERT(false, "Invalid AABB");
-			obj.AddComponent<NotFrustumCulledComponent>();
-			return;
-		}
-
-		if (!FrustumCuller::FrustumCulled(camera, aabb))
-		{
-			obj.AddComponent<NotFrustumCulledComponent>();
-		}
-	});
+	PushFrustumCull(scene, camera.GetProjectionMatrix() * camera.GetViewMatrix());
 
 	//GBuffer fill
 	uint8_t pass = mEncoder->AddRenderPass("GBuffer Fill", mGBuffer.mHandle, ClearColor::YES, ClearDepth::YES);
@@ -384,13 +406,7 @@ void RenderSystem::FillGBuffer(const Camera& camera, scene::Scene& scene)
 		mEncoder->DrawMesh(render.mesh, state);
 	});
 
-	// remove cull component for other passes
-	//NOTE (danielg): instead, NotFrustumCulledComponent should use a bitset to
-	//				  tell which camera the object has been culled from
-	scene.ForEach<NotFrustumCulledComponent>([](scene::GameObject obj)
-	{
-		obj.RemoveComponent<NotFrustumCulledComponent>();
-	});
+	PopFrustumCull(scene);
 }
 
 void RenderSystem::ResolveGBuffer(scene::Scene& scene)

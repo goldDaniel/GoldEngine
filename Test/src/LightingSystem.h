@@ -16,16 +16,17 @@ private:
 
 	bool CheckSetDirectionalLightsDirty(scene::Scene& scene)
 	{
-		bool result = false;
-
+		bool result = (mPrevDirectionalLightCount == 0);
+		
 		u32 dirLightCount = 0;
-		scene.ForEach<DirectionalLightComponent>([&result, &dirLightCount](scene::GameObject& obj)
+		scene.ForEach<DirectionalLightComponent>([&result, &dirLightCount](scene::GameObject obj)
 		{
 			auto& light = obj.GetComponent<DirectionalLightComponent>();
-			if (light.direction.w > 0)
+			if (light.direction.w > 0 || light.color.w > 0)
 			{
 				result = true;
 				light.direction.w = 0;
+				light.color.w = 0;
 			}
 
 			dirLightCount++;
@@ -48,6 +49,7 @@ public:
 		{
 			mLightBuffer = scene.CreateGameObject("Light data buffer");
 			mLightBuffer.AddComponent<LightBufferComponent>();
+			Singletons::Get()->Resolve<ShadowMapService>()->Reset();
 		}
 
 		if (CheckSetDirectionalLightsDirty(scene))

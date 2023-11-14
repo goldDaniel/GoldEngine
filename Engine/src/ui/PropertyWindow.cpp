@@ -67,8 +67,47 @@ PropertyWindow::PropertyWindow(scene::Scene& scene, std::function<scene::GameObj
 			l.color = { color, 1 };
 			l.direction.w = 1;
 		}
+	});
 
-		
+	AddComponentControl<ShadowMapComponent>("Shadow Map", [this](auto& shadow)
+	{
+		auto obj = mGetSelected();
+		if (obj.HasComponent<DirectionalLightComponent>())
+		{
+			auto check = [&shadow](bool changed)
+			{
+				shadow.dirty = shadow.dirty || changed;
+			};
+
+			auto& light = obj.GetComponent<DirectionalLightComponent>();
+			
+			ImGui::Text("Ortho Projection");
+			
+			check(ImGui::SliderFloat("Left", &shadow.left, -200, 200));
+			check(ImGui::SliderFloat("Right", &shadow.right, -200, 200));
+
+			check(ImGui::SliderFloat("Bottom", &shadow.bottom, -200, 200));
+			check(ImGui::SliderFloat("top", &shadow.top, -200, 200));
+
+			check(ImGui::SliderFloat("Near", &shadow.nearPlane, -200, 200));
+			check(ImGui::SliderFloat("Far", &shadow.farPlane, -200, 200));
+
+			ImGui::Text("Bias");
+			ImGui::SameLine();
+			check(ImGui::SliderFloat("Bias", &shadow.shadowMapBias[0], 0.0f, 0.1f));
+
+			ImGui::Text("PCF Size");
+			ImGui::SameLine();
+			check(ImGui::SliderInt("PCF size", &shadow.PCFSize, 0, 9));
+		}
+		else if (obj.HasComponent<DirectionalLightComponent>())
+		{
+			// TODO (danielg): implement when adding dirlights back in
+		}
+		else
+		{
+			DEBUG_ASSERT(false, "ShadowMap with no light!?");
+		}
 	});
 
 	AddComponentControl<RenderComponent>("Render", [this](auto& render)
