@@ -1,6 +1,7 @@
 #include "RenderSystem.h"
 
 #include <graphics/Vertex.h>
+#include "ShadowMapService.h"
 
 using namespace graphics;
 
@@ -28,6 +29,39 @@ void RenderSystem::InitRenderData(scene::Scene& scene)
 	{
 		LightBufferComponent::LightShaderBuffer lightBuffer{};
 		mLightingBuffer = mEncoder->CreateUniformBuffer(&lightBuffer, sizeof(LightBufferComponent::LightShaderBuffer));
+	}
+
+	// shadow map atlas framebuffer
+	{
+		TextureDescription2D texDesc;
+		texDesc.mWidth = ShadowMapService::kTextureWidth;
+		texDesc.mHeight = ShadowMapService::kTextureHeight;
+
+		// TODO (danielg): point sampling to avoid blending between pages. eventually figure out linear blending? border color?
+		texDesc.mFilter = TextureFilter::POINT;
+		texDesc.mFormat = TextureFormat::DEPTH;
+		texDesc.mMipmaps = false;
+
+		FrameBufferDescription fbDesc;
+		fbDesc.mTextures[static_cast<uint32_t>(OutputSlot::Depth)] = { texDesc, FramebufferAttachment::DEPTH };
+		mShadowMapFrameBuffer = mEncoder->CreateFrameBuffer(fbDesc);
+	}
+
+	// Light matrices
+	{
+		mLightMatricesBuffer = mEncoder->CreateUniformBuffer(&mLightMatrices, sizeof(LightMatrices));
+	}
+
+	// Shadow atlas pages
+	{
+		mShadowPagesBuffer = mEncoder->CreateUniformBuffer(&mShadowPages, sizeof(ShadowMapPages));
+	}
+
+	//Shadow Atlas Fill
+	{
+		std::string vertSrc = util::LoadStringFromFile("shaders/shadow.vert.glsl");
+		std::string fragSrc = util::LoadStringFromFile("shaders/shadow.frag.glsl");
+		mShadowAtlasFillShader = mEncoder->CreateShader(vertSrc.c_str(), fragSrc.c_str());
 	}
 
 	//GBuffer fill
@@ -173,6 +207,131 @@ void RenderSystem::InitRenderData(scene::Scene& scene)
 }
 
 
+void RenderSystem::Tick(scene::Scene& scene, float dt)
+{
+	if (mFirstFrame)
+	{
+		InitRenderData(scene);
+		mFirstFrame = false;
+	}
+
+	// retrieve camera
+	Camera* camera = nullptr;
+	scene.ForEach<TransformComponent, DebugCameraComponent>([&, retrievedCamera = false](scene::GameObject obj) mutable
+	{
+		DEBUG_ASSERT(!retrievedCamera, "Currently only support one debug camera!");
+		retrievedCamera = true;
+
+		auto& cam = obj.GetComponent<DebugCameraComponent>();
+		cam.mCamera.Aspect = (float)mGBuffer.mWidth / (float)mGBuffer.mHeight;
+		camera = &cam.mCamera;
+	});
+
+	// update per frame buffer
+	{
+		mPerFrameConstants.u_proj = camera->GetProjectionMatrix();
+		mPerFrameConstants.u_projInv = glm::inverse(mPerFrameConstants.u_proj);
+
+		mPerFrameConstants.u_view = camera->GetViewMatrix();
+		mPerFrameConstants.u_viewInv = glm::inverse(mPerFrameConstants.u_view);
+		mPerFrameConstants.u_time.x += dt;
+
+		mEncoder->UpdateUniformBuffer(mPerFrameContantsBuffer, &mPerFrameConstants, sizeof(PerFrameConstants));
+	}
+
+	// update lighting buffers 
+	// NOTE (danielg): mutable lambda to assert if there is more than 1 iteration
+	// we only want one of these components, holds ALL lighting info
+	scene.ForEach<LightBufferComponent>([this, onlyOneBuffer = true](scene::GameObject obj) mutable
+	{
+		DEBUG_ASSERT(onlyOneBuffer, "More than 1 LightBufferComponent found!");
+
+		auto& buffer = obj.GetComponent<LightBufferComponent>();
+		if (buffer.isDirty)
+		{
+			mEncoder->UpdateUniformBuffer(mLightingBuffer, &buffer.lightBuffer, sizeof(LightBufferComponent::LightShaderBuffer));
+			buffer.isDirty = false;
+		}
+		onlyOneBuffer = false;
+	});
+
+	FillShadowAtlas(scene);
+	FillGBuffer(*camera, scene);
+	ResolveGBuffer(scene);
+	DrawSkybox();
+	Tonemap();
+}
+
+void RenderSystem::FillShadowAtlas(scene::Scene& scene)
+{
+	RenderPass shadowPass;
+	shadowPass.mName = "shadow_pass";
+	shadowPass.mClearDepth = true;
+	shadowPass.mTarget = mShadowMapFrameBuffer.mHandle;
+
+	RenderState shadowState;
+	shadowState.mCullFace = CullFace::DISABLED;
+	shadowState.mColorWriteEnabled = false;
+	shadowState.mRenderPass = mEncoder->AddRenderPass(shadowPass);
+	shadowState.mShader = mShadowAtlasFillShader;
+
+	// directional light shadows
+	scene.ForEach<DirectionalLightComponent, ShadowMapComponent>(
+	[&scene, &shadowState, this](scene::GameObject obj) 
+	{
+		auto& shadow = obj.GetComponent<ShadowMapComponent>(); // not const so we can modify the dirty flag
+		const auto& light = obj.GetComponent<DirectionalLightComponent>();
+		const auto& pages = Singletons::Get()->Resolve<ShadowMapService>()->GetPages();
+
+		if (!shadow.dirty) return;
+		shadow.dirty = false;
+
+		int shadowIndex = -1;
+		for (const auto& page : pages)
+		{
+			if (page.shadowMapIndex == shadow.shadowMapIndex[0])
+			{
+				shadowIndex = page.shadowMapIndex;
+				break;
+			}
+		}
+		DEBUG_ASSERT(shadowIndex != -1, "Shadow map page ID assignment logic broken");
+
+		const auto& page = Singletons::Get()->Resolve<ShadowMapService>()->GetPage(shadowIndex);
+
+		// data for shadow pages uniform buffer
+		mShadowPages.mPage[shadowIndex] = { page.x, page.y, page.width, page.height };
+		mShadowPages.mBias[shadowIndex] = shadow.shadowMapBias[0];
+
+		// data for light matrices uniform buffer
+		// NOTE (danielg): adds support for light to follow a position
+		glm::mat4 lightView = glm::lookAt(-glm::vec3(light.direction), glm::vec3(0,0,0), glm::vec3(0.0f, 1.0f, 0.0f));
+
+		mLightMatrices.mLightSpace[shadowIndex] = glm::ortho(shadow.left, shadow.right, shadow.bottom, shadow.top, shadow.nearPlane, shadow.farPlane) * lightView;
+		mLightMatrices.mLightInv[shadowIndex] = glm::inverse(mLightMatrices.mLightSpace[shadowIndex]);
+
+		//the section of our paged shadowMap to render to 
+		shadowState.mViewport = { page.x, page.y, page.width, page.height };
+
+		scene.ForEach<TransformComponent, RenderComponent>(
+		[&](scene::GameObject obj)
+		{
+			// reusing the perDrawConstantsBuffer for the model matrix slot
+			PerDrawConstants draw;
+			draw.u_model = mLightMatrices.mLightSpace[shadowIndex] * obj.GetWorldSpaceTransform();
+			mEncoder->UpdateUniformBuffer(mPerDrawConstantsBuffer, &draw, sizeof(PerDrawConstants));
+
+			shadowState.SetUniformBlock("ShadowMap_UBO", mPerDrawConstantsBuffer);
+			
+			const auto& render = obj.GetComponent<RenderComponent>();
+			mEncoder->DrawMesh(render.mesh, shadowState);
+		});
+	});
+
+	mEncoder->UpdateUniformBuffer(mLightMatricesBuffer, &mLightMatrices, sizeof(LightMatrices));
+	mEncoder->UpdateUniformBuffer(mShadowPagesBuffer, &mShadowPages, sizeof(ShadowMapPages));
+}
+
 void RenderSystem::FillGBuffer(const Camera& camera, scene::Scene& scene)
 {
 	// frustum cull
@@ -230,66 +389,12 @@ void RenderSystem::FillGBuffer(const Camera& camera, scene::Scene& scene)
 	//				  tell which camera the object has been culled from
 	scene.ForEach<NotFrustumCulledComponent>([](scene::GameObject obj)
 	{
-		obj.RemoveComponent<NotFrustumCulledComponent>(); 
+		obj.RemoveComponent<NotFrustumCulledComponent>();
 	});
-}
-
-void RenderSystem::Tick(scene::Scene& scene, float dt)
-{
-	if (mFirstFrame)
-	{
-		InitRenderData(scene);
-		mFirstFrame = false;
-	}
-
-	// retrieve camera
-	Camera* camera = nullptr;
-	scene.ForEach<TransformComponent, DebugCameraComponent>([&, retrievedCamera = false](scene::GameObject obj) mutable
-	{
-		DEBUG_ASSERT(!retrievedCamera, "Currently only support one debug camera!");
-		retrievedCamera = true;
-
-		auto& cam = obj.GetComponent<DebugCameraComponent>();
-		cam.mCamera.Aspect = (float)mGBuffer.mWidth / (float)mGBuffer.mHeight;
-		camera = &cam.mCamera;
-	});
-
-	// update per frame buffer
-	{
-		mPerFrameConstants.u_proj = camera->GetProjectionMatrix();
-		mPerFrameConstants.u_projInv = glm::inverse(mPerFrameConstants.u_proj);
-
-		mPerFrameConstants.u_view = camera->GetViewMatrix();
-		mPerFrameConstants.u_viewInv = glm::inverse(mPerFrameConstants.u_view);
-		mPerFrameConstants.u_time.x += dt;
-
-		mEncoder->UpdateUniformBuffer(mPerFrameContantsBuffer, &mPerFrameConstants, sizeof(PerFrameConstants));
-	}
-
-	FillGBuffer(*camera, scene);
-	ResolveGBuffer(scene);
-	DrawSkybox();
-	Tonemap();
 }
 
 void RenderSystem::ResolveGBuffer(scene::Scene& scene)
 {
-	// update lighting buffers 
-	// NOTE (danielg): mutable lambda to assert if there is more than 1 iteration
-	// we only want one of these components, holds ALL lighting info
-	scene.ForEach<LightBufferComponent>([this, onlyOneBuffer = true](scene::GameObject obj) mutable
-	{
-		DEBUG_ASSERT(onlyOneBuffer, "More than 1 LightBufferComponent found!");
-
-		auto& buffer = obj.GetComponent<LightBufferComponent>();
-		if (buffer.isDirty)
-		{
-			mEncoder->UpdateUniformBuffer(mLightingBuffer, &buffer.lightBuffer, sizeof(LightBufferComponent::LightShaderBuffer));
-			buffer.isDirty = false;
-		}
-		onlyOneBuffer = false;
-	});
-
 	RenderPass pass;
 	pass.mName = "GBuffer Resolve";
 	pass.mTarget = mHDRBuffer.mHandle;
@@ -303,15 +408,15 @@ void RenderSystem::ResolveGBuffer(scene::Scene& scene)
 
 	state.SetUniformBlock("PerFrameConstants_UBO", mPerFrameContantsBuffer);
 	state.SetUniformBlock("Lights_UBO", mLightingBuffer);
-	/*state.SetUniformBlock("LightSpaceMatrices", mLightMatricesBuffer);
-	state.SetUniformBlock("ShadowPages", mShadowPagesBuffer);*/
+	state.SetUniformBlock("LightSpaceMatrices_UBO", mLightMatricesBuffer);
+	state.SetUniformBlock("ShadowPages_UBO", mShadowPagesBuffer);
 
-	state.SetTexture("albedos", mGBuffer.mTextures[static_cast<uint8_t>(OutputSlot::Color0)]);
-	state.SetTexture("normals", mGBuffer.mTextures[static_cast<uint8_t>(OutputSlot::Color1)]);
-	state.SetTexture("coefficients", mGBuffer.mTextures[static_cast<uint8_t>(OutputSlot::Color2)]);
-	state.SetTexture("depth", mGBuffer.mTextures[static_cast<uint8_t>(OutputSlot::Depth)]);
+	state.SetTexture("albedos", mGBuffer.AsTexture(OutputSlot::Color0));
+	state.SetTexture("normals", mGBuffer.AsTexture(OutputSlot::Color1));
+	state.SetTexture("coefficients", mGBuffer.AsTexture(OutputSlot::Color2));
+	state.SetTexture("depth", mGBuffer.AsTexture(OutputSlot::Depth));
 
-	//state.SetTexture("shadowMap", ShadowMapService::Get().GetTexture());
+	state.SetTexture("shadowMap", mShadowMapFrameBuffer.AsTexture(OutputSlot::Depth));
 
 	mEncoder->DrawMesh(mFullscreenQuad, state);
 }

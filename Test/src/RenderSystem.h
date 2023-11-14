@@ -39,14 +39,33 @@ private:
 	};
 	graphics::UniformBufferHandle mPerDrawConstantsBuffer{};
 
+	struct LightMatrices
+	{
+		glm::mat4 mLightSpace[LightBufferComponent::MAX_CASTERS];
+		glm::mat4 mLightInv[LightBufferComponent::MAX_CASTERS];
+	};
+	LightMatrices mLightMatrices;
+	graphics::UniformBufferHandle mLightMatricesBuffer{};
+
+	struct ShadowMapPages
+	{
+		glm::vec4 mPage[LightBufferComponent::MAX_CASTERS];
+		float mBias[LightBufferComponent::MAX_CASTERS]{ 0 };
+	};
+	ShadowMapPages mShadowPages{};
+	graphics::UniformBufferHandle mShadowPagesBuffer{};
+
+	// holds LightBufferComponent::LightShaderBuffer
 	graphics::UniformBufferHandle mLightingBuffer{};
 
+	graphics::ShaderHandle mShadowAtlasFillShader{};
 	graphics::ShaderHandle mGBufferFillShader{};
 	graphics::ShaderHandle mGBufferResolveShader{};
 	graphics::ShaderHandle mSkyboxShader{};
 	graphics::ShaderHandle mTonemapShader{};
 
 	graphics::FrameBuffer mGBuffer{};
+	graphics::FrameBuffer mShadowMapFrameBuffer{};
 	graphics::FrameBuffer mHDRBuffer{};
 
 	graphics::MeshHandle mFullscreenQuad{};
@@ -58,6 +77,7 @@ private:
 
 	void InitRenderData(scene::Scene& scene);
 
+	void FillShadowAtlas(scene::Scene& scene);
 	void FillGBuffer(const Camera& camera, scene::Scene& scene);
 	void ResolveGBuffer(scene::Scene& scene);
 	void DrawSkybox();

@@ -355,6 +355,11 @@ namespace graphics
 
 		u32 mWidth = 0;
 		u32 mHeight = 0;
+
+		TextureHandle AsTexture(OutputSlot slot)
+		{
+			return mTextures[static_cast<u8>(slot)];
+		}
 	};
 
 	struct FrameBufferDescription

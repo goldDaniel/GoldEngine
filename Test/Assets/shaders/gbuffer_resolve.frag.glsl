@@ -29,13 +29,13 @@ layout(std140) uniform Lights_UBO
 	PointLight pointLights[MAX_LIGHTS];
 };
 
-layout(std140) uniform LightSpaceMatrices
+layout(std140) uniform LightSpaceMatrices_UBO
 {
 	mat4 mLightSpace[MAX_LIGHTS];
 	mat4 mLightInv[MAX_LIGHTS];
 };
 
-layout(std140) uniform ShadowPages
+layout(std140) uniform ShadowPages_UBO
 {
 	vec4 shadowMapPage[MAX_LIGHTS];
 	float shadowBias[MAX_LIGHTS];

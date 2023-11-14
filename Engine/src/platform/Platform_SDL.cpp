@@ -116,19 +116,19 @@ void Platform_SDL::PlatformEvents(Application& app)
 			break;
 		}
 		case SDL_KEYDOWN:
-			//if (!io.WantCaptureKeyboard)
+			if (!io.WantCaptureKeyboard)
 			{
 				Singletons::Get()->Resolve<Input>()->SetKeyState(static_cast<KeyCode>(event.key.keysym.sym), true);
 			}
 			break;
 		case SDL_KEYUP:
-			//if (!io.WantCaptureKeyboard)
+			if (!io.WantCaptureKeyboard)
 			{
 				Singletons::Get()->Resolve<Input>()->SetKeyState(static_cast<KeyCode>(event.key.keysym.sym), false);
 			}
 			break;
 		case SDL_MOUSEMOTION:
-			//if (!io.WantCaptureMouse)
+			if (!io.WantCaptureMouse)
 			{
 				int x;
 				int y;
@@ -138,14 +138,14 @@ void Platform_SDL::PlatformEvents(Application& app)
 			break;
 
 		case SDL_MOUSEBUTTONDOWN:
-			//if (!io.WantCaptureMouse)
+			if (!io.WantCaptureMouse)
 			{
 				Singletons::Get()->Resolve<Input>()->SetMouseState(static_cast<MouseButton>(event.button.button), true);
 			}
 			break;
 
 		case SDL_MOUSEBUTTONUP:
-			//if (!io.WantCaptureMouse)
+			if (!io.WantCaptureMouse)
 			{
 				Singletons::Get()->Resolve<Input>()->SetMouseState(static_cast<MouseButton>(event.button.button), false);
 			}

@@ -17,6 +17,7 @@
 #include "LightingSystem.h"
 #include "DebugCameraSystem.h"
 
+#include "ShadowMapService.h"
 
 class TestApp : public gold::Application
 {
@@ -25,6 +26,7 @@ private:
 	DebugCameraSystem mCameraSystem;
 	LightingSystem mLightingSystem;
 	RenderSystem mRenderSystem;
+
 
 	graphics::FrameBuffer mGBuffer;
 
@@ -51,15 +53,16 @@ protected:
 		AddEditorWindow(std::make_unique<PerformanceWindow>(true));
 		auto sceneWindow = AddEditorWindow(std::make_unique<SceneWindow>(&mScene));
 		auto propertyWindow = AddEditorWindow(std::make_unique<PropertyWindow>(mScene, [sceneWindow]()
-			{
-				return sceneWindow->GetSelected();
-			}));
-		// mViewport = AddEditorWindow(std::make_unique<ViewportWindow>());
+		{
+			return sceneWindow->GetSelected();
+		}));
 
 		auto camera = mScene.CreateGameObject("Camera");
 		camera.AddComponent<DebugCameraComponent>();
 
 		mCameraSystem = DebugCameraSystem(this);
+
+		Singletons::Get()->Register<ShadowMapService>([]() { return std::make_shared<ShadowMapService>(); });
 	}
 
 	virtual void Update(float delta, gold::FrameEncoder& encoder) override
@@ -70,10 +73,18 @@ protected:
 			obj.GetComponent<TransformComponent>().scale = { 0.05f, 0.05f, 0.05f };
 
 			auto lightObj = mScene.CreateGameObject("Directional Light");
-			auto& light = lightObj.AddComponent<DirectionalLightComponent>();
 			
+			auto& light = lightObj.AddComponent<DirectionalLightComponent>();
 			light.direction = { 0.1f, -0.8f, 0.1f, 0.0f };
 			light.color = { 1,1,1,1 };
+
+			auto& shadow = lightObj.AddComponent<ShadowMapComponent>();
+			shadow.left = -100;
+			shadow.right = 100;
+			shadow.bottom = -100;
+			shadow.top = 100;
+			shadow.nearPlane = -100;
+			shadow.farPlane = 100;
 
 			mFirstFrame = false;
 		}

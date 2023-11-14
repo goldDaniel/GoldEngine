@@ -94,8 +94,11 @@ struct ShadowMapComponent
 		};
 	};
 
+	
 	float nearPlane;
 	float farPlane;
+
+	bool dirty{ true };
 
 	// NOTE (danielg): 0 is used for directional lights. Otherwise: 
 	/*
@@ -106,7 +109,7 @@ struct ShadowMapComponent
 		4 - shadowMapIndex+Z,
 		5 - shadowMapIndex-Z
 	*/
-	std::array<float, 6> shadowMapBias{ -1,-1,-1,-1,-1,-1 };
+	std::array<float, 6> shadowMapBias{ 0,0,0,0,0,0 };
 	std::array<int, 6> shadowMapIndex{ -1,-1,-1,-1,-1,-1 };
 };
 

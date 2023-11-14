@@ -17,7 +17,6 @@ public:
 	template<typename T>
 	using SingletonGenerator = std::function<std::shared_ptr<T>(void)>;
 
-
 	template<typename T> 
 	void Register(SingletonGenerator<T> generator)
 	{
