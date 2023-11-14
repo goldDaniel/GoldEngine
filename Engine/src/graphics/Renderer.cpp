@@ -842,11 +842,11 @@ void Renderer::EndFrame()
 	{
 		const RenderPass& pass = renderPasses[passID];
 		glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, -1, pass.mName);
-		glBeginQuery(GL_TIME_ELAPSED, renderPassTimerQueries[passID]);
+		glBeginQuery(GL_TIME_ELAPSED, renderPassTimerQueries[perfStats.numPasses]);
+		perfStats.mPassNames[perfStats.numPasses] = pass.mName;
+		perfStats.mPassDrawCalls[perfStats.numPasses] = 0;
+		perfStats.mPassTimeNS[perfStats.numPasses] = 0;
 		perfStats.numPasses++;
-		perfStats.mPassNames[passID] = pass.mName;
-		perfStats.mPassDrawCalls[passID] = 0;
-		perfStats.mPassTimeNS[passID] = 0;
 
 		const FrameBuffer& framebuffer = frameBuffers[pass.mTarget];
 
@@ -1038,8 +1038,8 @@ void Renderer::EndFrame()
 			{
 				drawCallSingle(draw, prim);
 			}
-			perfStats.mPassDrawCalls[passIndex]++;
 		}
+		perfStats.mPassDrawCalls[perfStats.numPasses - 1]++;
 	}
 	
 	if (passIndex != std::numeric_limits<u8>::max())
@@ -1050,7 +1050,7 @@ void Renderer::EndFrame()
 
 	currentFrame++;
 
-	for (u8 i = 0; i < renderPasses.size(); ++i)
+	for (u8 i = 0; i < perfStats.numPasses; ++i)
 	{
 		u32 timerAvailable = 0;
 		while (!timerAvailable && perfStats.mPassDrawCalls[i] > 0)

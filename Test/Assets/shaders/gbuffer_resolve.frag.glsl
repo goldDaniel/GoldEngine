@@ -181,7 +181,7 @@ vec3 getLighting(vec3 L, vec3 N, vec3 V, vec3 H, vec3 F0, vec3 radiance, vec3 al
 
 float getShadowPCF(vec3 projCoords, float NdotL, int shadowMapIndex)
 {
-	float bias = max(shadowMapParams[shadowMapIndex].w * (1.0 - NdotL), 0.001);
+	float bias = max(shadowMapParams[shadowMapIndex].w * (1.0 - NdotL), 0.005);
 	vec2 shadowMapSize = textureSize(shadowMap, 0);
 	vec2 texelSize = 1.0 / shadowMapSize.xy;
 	vec4 bounds = shadowMapPage[shadowMapIndex];

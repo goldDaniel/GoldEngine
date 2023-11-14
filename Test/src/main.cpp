@@ -75,7 +75,7 @@ protected:
 			auto lightObj = mScene.CreateGameObject("Directional Light");
 			
 			auto& light = lightObj.AddComponent<DirectionalLightComponent>();
-			light.direction = { 0.1f, -0.8f, 0.1f, 1.0f };
+			light.direction = { 0.05f, -0.7f, 0.25f, 1.0f };
 			light.color = { 1,1,1,1 };
 
 			auto& shadow = lightObj.AddComponent<ShadowMapComponent>();
