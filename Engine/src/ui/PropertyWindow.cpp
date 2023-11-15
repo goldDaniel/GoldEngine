@@ -83,22 +83,18 @@ PropertyWindow::PropertyWindow(scene::Scene& scene, std::function<scene::GameObj
 			
 			ImGui::Text("Ortho Projection");
 			
-			check(ImGui::SliderFloat("Left", &shadow.left, -200, 200));
-			check(ImGui::SliderFloat("Right", &shadow.right, -200, 200));
+			ImGui::Text("Left"); ImGui::SameLine(); check(ImGui::SliderFloat("Left", &shadow.left, -200, 200));
+			ImGui::Text("Right"); ImGui::SameLine(); check(ImGui::SliderFloat("Right", &shadow.right, -200, 200));
 
-			check(ImGui::SliderFloat("Bottom", &shadow.bottom, -200, 200));
-			check(ImGui::SliderFloat("top", &shadow.top, -200, 200));
+			ImGui::Text("Bottom"); ImGui::SameLine(); check(ImGui::SliderFloat("Bottom", &shadow.bottom, -200, 200));
+			ImGui::Text("Top"); ImGui::SameLine(); check(ImGui::SliderFloat("top", &shadow.top, -200, 200));
 
-			check(ImGui::SliderFloat("Near", &shadow.nearPlane, -200, 200));
-			check(ImGui::SliderFloat("Far", &shadow.farPlane, -200, 200));
+			ImGui::Text("Near"); ImGui::SameLine(); check(ImGui::SliderFloat("Near", &shadow.nearPlane, -200, 200));
+			ImGui::Text("Far"); ImGui::SameLine(); check(ImGui::SliderFloat("Far", &shadow.farPlane, -200, 200));
 
-			ImGui::Text("Bias");
-			ImGui::SameLine();
-			check(ImGui::SliderFloat("Bias", &shadow.shadowMapBias[0], 0.0f, 0.1f));
+			ImGui::Text("Bias"); ImGui::SameLine(); check(ImGui::SliderFloat("Bias", &shadow.shadowMapBias[0], 0.0f, 0.1f));
 
-			ImGui::Text("PCF Size");
-			ImGui::SameLine();
-			check(ImGui::SliderInt("PCF size", &shadow.PCFSize, 0, 9));
+			ImGui::Text("PCF Size"); ImGui::SameLine();  check(ImGui::SliderInt("PCF size", &shadow.PCFSize, 0, 9));
 		}
 		else if (obj.HasComponent<DirectionalLightComponent>())
 		{
