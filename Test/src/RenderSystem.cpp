@@ -9,7 +9,8 @@ static void PushFrustumCull(scene::Scene& scene, const glm::mat4& viewProj)
 {
 	// frustum cull
 	const glm::mat4 transViewProj = glm::transpose(viewProj);
-	scene.ForEach<RenderComponent>([&viewProj, &transViewProj](scene::GameObject obj)
+	const glm::mat4 invViewProj = glm::inverse(viewProj);
+	scene.ForEach<RenderComponent>([&invViewProj, &transViewProj](scene::GameObject obj)
 	{
 		auto aabb = obj.GetAABB();
 
@@ -21,7 +22,7 @@ static void PushFrustumCull(scene::Scene& scene, const glm::mat4& viewProj)
 			return;
 		}
 
-		if (!FrustumCuller::FrustumCulled(viewProj, transViewProj, aabb))
+		if (!FrustumCuller::FrustumCulled(invViewProj, transViewProj, aabb))
 		{
 			obj.AddComponent<NotFrustumCulledComponent>();
 		}

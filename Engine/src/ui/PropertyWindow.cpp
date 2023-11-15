@@ -42,7 +42,7 @@ PropertyWindow::PropertyWindow(scene::Scene& scene, std::function<scene::GameObj
 	AddComponentControl<DirectionalLightComponent>("Directional Light", [this](auto& l)
 	{
 		static glm::vec3 direction;
-		direction = glm::normalize(glm::vec3{ l.direction.x, l.direction.y, l.direction.z });
+		direction = glm::vec3{ l.direction.x, l.direction.y, l.direction.z };
 		DrawVec3Control("Direction", direction);
 
 		glm::vec3 color = l.color;
@@ -54,7 +54,7 @@ PropertyWindow::PropertyWindow(scene::Scene& scene, std::function<scene::GameObj
 			direction = glm::clamp(direction, { -1, -1, -1 }, { 1,1,1 });
 			if (glm::length2(direction) > 0)
 			{
-				l.direction = glm::vec4(glm::normalize(direction), 1.0f);
+				l.direction = glm::vec4(direction, 1.0f);
 			}
 			
 		}
@@ -245,7 +245,7 @@ static void DrawVec3Control(const std::string& label, glm::vec3& values, bool is
 	ImGui::PopStyleColor(3);
 
 	ImGui::SameLine();
-	ImGui::DragFloat(isColor ? "##R" : "##X", &values.x, 0.1f, 0.0f, 0.0f, "%.2f");
+	ImGui::DragFloat(isColor ? "##R" : "##X", &values.x, 0.01f, 0.0f, 0.0f, "%.2f");
 	ImGui::PopItemWidth();
 	ImGui::SameLine();
 
@@ -262,7 +262,7 @@ static void DrawVec3Control(const std::string& label, glm::vec3& values, bool is
 	ImGui::PopStyleColor(3);
 
 	ImGui::SameLine();
-	ImGui::DragFloat(isColor ? "##G" : "##Y", &values.y, 0.1f, 0.0f, 0.0f, "%.2f");
+	ImGui::DragFloat(isColor ? "##G" : "##Y", &values.y, 0.01f, 0.0f, 0.0f, "%.2f");
 	ImGui::PopItemWidth();
 	ImGui::SameLine();
 
@@ -279,7 +279,7 @@ static void DrawVec3Control(const std::string& label, glm::vec3& values, bool is
 	ImGui::PopStyleColor(3);
 
 	ImGui::SameLine();
-	ImGui::DragFloat(isColor ? "##B" : "##Z", &values.z, 0.1f, 0.0f, 0.0f, "%.2f");
+	ImGui::DragFloat(isColor ? "##B" : "##Z", &values.z, 0.01f, 0.0f, 0.0f, "%.2f");
 	ImGui::PopItemWidth();
 
 	ImGui::PopStyleVar();

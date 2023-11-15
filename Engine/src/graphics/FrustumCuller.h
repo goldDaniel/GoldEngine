@@ -66,7 +66,7 @@ public:
 		return true;
 	}
 
-	static bool FrustumCulled(const glm::mat4& viewProj , const glm::mat4& viewProjTrans, const AABB& aabb)
+	static bool FrustumCulled(const glm::mat4& viewProjInv, const glm::mat4& viewProjTrans, const AABB& aabb)
 	{
 		std::array<glm::vec4, 6> frustumPlanes =
 		{
@@ -90,10 +90,9 @@ public:
 			glm::vec4(-1,  1,  1, 1)
 		};
 
-		glm::mat4 invViewProj = glm::inverse(viewProj);
 		for (auto& corner : frustumCorners)
 		{
-			glm::vec4 q = invViewProj * corner;
+			glm::vec4 q = viewProjInv * corner;
 			corner = q / q.w;
 		}
 
