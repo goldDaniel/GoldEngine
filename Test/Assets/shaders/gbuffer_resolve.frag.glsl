@@ -206,6 +206,7 @@ float getShadowPCF(vec3 projCoords, float NdotL, int shadowMapIndex)
 			shadow += (projCoords.z - bias) > pcfDepth  ? 1.0 : 0.0;
 		}
 	}
+	// just in case zero is sent down. but PCFSize should always be >= 1
 	shadow /= max(1.0, pcfSize*pcfSize);
 	return shadow;
 }
