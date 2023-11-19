@@ -1,5 +1,6 @@
 #include "RenderSystem.h"
 
+#include <core/Core.h>
 #include <graphics/Vertex.h>
 #include "ShadowMapService.h"
 
@@ -78,7 +79,7 @@ void RenderSystem::InitRenderData(scene::Scene& scene)
 		texDesc.mMipmaps = false;
 
 		FrameBufferDescription fbDesc;
-		fbDesc.mTextures[static_cast<uint32_t>(OutputSlot::Depth)] = { texDesc, FramebufferAttachment::DEPTH };
+		fbDesc.Put<OutputSlot::Depth>(texDesc);
 		mShadowMapFrameBuffer = mEncoder->CreateFrameBuffer(fbDesc);
 	}
 
@@ -309,6 +310,7 @@ void RenderSystem::FillShadowAtlas(scene::Scene& scene)
 	shadowState.mColorWriteEnabled = false;
 	shadowState.mRenderPass = mEncoder->AddRenderPass(shadowPass);
 	shadowState.mShader = mShadowAtlasFillShader;
+	shadowState.SetUniformBlock("ShadowMap_UBO", mPerDrawConstantsBuffer);
 
 	// directional light shadows
 	scene.ForEach<DirectionalLightComponent, ShadowMapComponent>(
@@ -354,18 +356,82 @@ void RenderSystem::FillShadowAtlas(scene::Scene& scene)
 		scene.ForEach<TransformComponent, RenderComponent, NotFrustumCulledComponent>(
 		[&](scene::GameObject obj)
 		{
+			const auto& render = obj.GetComponent<RenderComponent>();
+		
 			// reusing the perDrawConstantsBuffer for the model matrix slot
 			PerDrawConstants draw;
 			draw.u_model = mLightMatrices.mLightSpace[shadowIndex] * obj.GetWorldSpaceTransform();
 			mEncoder->UpdateUniformBuffer(mPerDrawConstantsBuffer, &draw, sizeof(PerDrawConstants));
 
-			shadowState.SetUniformBlock("ShadowMap_UBO", mPerDrawConstantsBuffer);
-			
-			const auto& render = obj.GetComponent<RenderComponent>();
 			mEncoder->DrawMesh(render.mesh, shadowState);
 		});
 
 		PopFrustumCull(scene);
+	});
+
+	// directional lights
+	scene.ForEach<PointLightComponent, ShadowMapComponent>([this, &shadowState, &scene](scene::GameObject& obj)
+	{
+		const auto& transform = obj.GetComponent<TransformComponent>();
+		const auto& light = obj.GetComponent<PointLightComponent>();
+		const auto& shadow = obj.GetComponent<ShadowMapComponent>();
+
+		const auto& pages = Singletons::Get()->Resolve<ShadowMapService>()->GetPages();
+
+		const std::array<glm::mat4, 6> lightViews
+		{
+			glm::lookAt(transform.position, transform.position + glm::vec3(1,0,0), glm::vec3(0,-1,0)), // +X
+			glm::lookAt(transform.position, transform.position - glm::vec3(1,0,0), glm::vec3(0,-1,0)), // -X
+
+			glm::lookAt(transform.position, transform.position + glm::vec3(0,1,0), glm::vec3(0,0,1)), // +Y
+			glm::lookAt(transform.position, transform.position - glm::vec3(0,1,0), glm::vec3(0,0,-1)), // -Y
+
+			glm::lookAt(transform.position, transform.position + glm::vec3(0,0,1), glm::vec3(0,-1,0)), // +Z
+			glm::lookAt(transform.position, transform.position - glm::vec3(0,0,1), glm::vec3(0,-1,0)), // -Z
+		};
+
+		// for every face in the virtual cube map
+		for (uint32_t i = 0; i < shadow.shadowMapIndex.size(); ++i)
+		{
+			int shadowIndex = -1;
+			for (const auto& page : pages)
+			{
+				if (page.shadowMapIndex == shadow.shadowMapIndex[i])
+				{
+					shadowIndex = page.shadowMapIndex;
+					break;
+				}
+			}
+
+			DEBUG_ASSERT(shadowIndex != -1, "Shadow map page ID assignment logic broken");
+
+			const auto& page = Singletons::Get()->Resolve<ShadowMapService>()->GetPage(shadowIndex);
+
+			// data for shadow pages uniform buffer
+			if (shadowIndex < LightBufferComponent::MAX_CASTERS) // should never happen, but compiler warnings
+			{
+				mShadowPages.mPage[shadowIndex] = { page.x, page.y, page.width, page.height };
+				mShadowPages.mParams[shadowIndex].w = shadow.shadowMapBias[i];
+				mShadowPages.mParams[shadowIndex].z = shadow.PCFSize + 1;
+
+				mLightMatrices.mLightSpace[shadowIndex] = glm::perspective(shadow.FOV, shadow.aspect, shadow.nearPlane, shadow.farPlane) * lightViews[i];
+				mLightMatrices.mLightInv[shadowIndex] = glm::inverse(mLightMatrices.mLightSpace[shadowIndex]);
+			}
+
+			//the section of our paged shadowMap to render to 
+			shadowState.mViewport = { page.x, page.y, page.width, page.height };
+			scene.ForEach<TransformComponent, RenderComponent>([&](scene::GameObject obj)
+			{
+				const auto& render = obj.GetComponent<RenderComponent>();
+
+				// reusing the perDrawConstantsBuffer for the model matrix slot
+				PerDrawConstants draw;
+				draw.u_model = mLightMatrices.mLightSpace[shadowIndex] * obj.GetWorldSpaceTransform();
+				mEncoder->UpdateUniformBuffer(mPerDrawConstantsBuffer, &draw, sizeof(PerDrawConstants));
+
+				mEncoder->DrawMesh(render.mesh, shadowState);
+			});
+		}
 	});
 
 	mEncoder->UpdateUniformBuffer(mLightMatricesBuffer, &mLightMatrices, sizeof(LightMatrices));
@@ -428,12 +494,12 @@ void RenderSystem::ResolveGBuffer(scene::Scene& scene)
 	state.SetUniformBlock("LightSpaceMatrices_UBO", mLightMatricesBuffer);
 	state.SetUniformBlock("ShadowPages_UBO", mShadowPagesBuffer);
 
-	state.SetTexture("albedos", mGBuffer.AsTexture(OutputSlot::Color0));
-	state.SetTexture("normals", mGBuffer.AsTexture(OutputSlot::Color1));
-	state.SetTexture("coefficients", mGBuffer.AsTexture(OutputSlot::Color2));
-	state.SetTexture("depth", mGBuffer.AsTexture(OutputSlot::Depth));
+	state.SetTexture("albedos", mGBuffer.AsTexture<OutputSlot::Color0>());
+	state.SetTexture("normals", mGBuffer.AsTexture<OutputSlot::Color1>());
+	state.SetTexture("coefficients", mGBuffer.AsTexture<OutputSlot::Color2>());
+	state.SetTexture("depth", mGBuffer.AsTexture<OutputSlot::Depth>());
 
-	state.SetTexture("shadowMap", mShadowMapFrameBuffer.AsTexture(OutputSlot::Depth));
+	state.SetTexture("shadowMap", mShadowMapFrameBuffer.AsTexture<OutputSlot::Depth>());
 
 	mEncoder->DrawMesh(mFullscreenQuad, state);
 }
@@ -470,7 +536,7 @@ void RenderSystem::Tonemap()
 	state.mAlphaBlendEnabled = false;
 	state.mShader = mTonemapShader;
 	state.mRenderPass = mEncoder->AddRenderPass("Tonemapping", ClearColor::YES, ClearDepth::NO);
-	state.SetTexture("hdrBuffer", mHDRBuffer.mTextures[static_cast<uint32_t>(OutputSlot::Color0)]);
+	state.SetTexture("hdrBuffer", mHDRBuffer.AsTexture<OutputSlot::Color0>());
 
 	mEncoder->DrawMesh(mFullscreenQuad, state);
 }
@@ -493,25 +559,25 @@ void RenderSystem::ResizeGBuffer(int width, int height)
 			albedoDesc.mWidth = width;
 			albedoDesc.mHeight = height;
 			albedoDesc.mFormat = TextureFormat::RGB_U8;
-			fbDesc.Put(OutputSlot::Color0, albedoDesc);
+			fbDesc.Put<OutputSlot::Color0>(albedoDesc);
 
 			TextureDescription2D normalDesc;
 			normalDesc.mWidth = width;
 			normalDesc.mHeight = height;
 			normalDesc.mFormat = TextureFormat::RGB_FLOAT;
-			fbDesc.Put(OutputSlot::Color1, normalDesc);
+			fbDesc.Put<OutputSlot::Color1>(normalDesc);
 
 			TextureDescription2D coeffDesc;
 			coeffDesc.mWidth = width;
 			coeffDesc.mHeight = height;
 			coeffDesc.mFormat = TextureFormat::RGB_U8;
-			fbDesc.Put(OutputSlot::Color2, coeffDesc);
+			fbDesc.Put<OutputSlot::Color2>(coeffDesc);
 
 			TextureDescription2D depthDesc;
 			depthDesc.mWidth = width;
 			depthDesc.mHeight = height;
 			depthDesc.mFormat = TextureFormat::DEPTH;
-			fbDesc.Put(OutputSlot::Depth, depthDesc);
+			fbDesc.Put<OutputSlot::Depth>(depthDesc);
 
 			mGBuffer = mEncoder->CreateFrameBuffer(fbDesc);
 		}
@@ -529,13 +595,13 @@ void RenderSystem::ResizeGBuffer(int width, int height)
 			colorDesc.mHeight = height;
 			colorDesc.mFormat = TextureFormat::RGBA_FLOAT;
 			colorDesc.mWrap = TextureWrap::CLAMP;
-			fbDesc.Put(OutputSlot::Color0, colorDesc);
+			fbDesc.Put<OutputSlot::Color0>(colorDesc);
 
 			TextureDescription2D depthDesc;
 			depthDesc.mWidth = width;
 			depthDesc.mHeight = height;
 			depthDesc.mFormat = TextureFormat::DEPTH;
-			fbDesc.Put(OutputSlot::Depth, depthDesc);
+			fbDesc.Put<OutputSlot::Depth>(depthDesc);
 
 
 			mHDRBuffer = mEncoder->CreateFrameBuffer(fbDesc);

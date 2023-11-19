@@ -181,7 +181,7 @@ vec3 getLighting(vec3 L, vec3 N, vec3 V, vec3 H, vec3 F0, vec3 radiance, vec3 al
 
 float getShadowPCF(vec3 projCoords, float NdotL, int shadowMapIndex)
 {
-	float bias = max(shadowMapParams[shadowMapIndex].w * (1.0 - NdotL), 0.005);
+	float bias = max(0.005 * (1.0 - NdotL), shadowMapParams[shadowMapIndex].w);
 	vec2 shadowMapSize = textureSize(shadowMap, 0);
 	vec2 texelSize = 1.0 / shadowMapSize.xy;
 	vec4 bounds = shadowMapPage[shadowMapIndex];
@@ -265,7 +265,7 @@ float getPointShadow(int pointLightIndex, vec4 fragmentPosWorldSpace, vec3 norma
 
 	vec3 projCoords = posLightSpace.xyz / posLightSpace.w;
 	projCoords = projCoords * 0.5 + 0.5;
-	projCoords.xy = 1.0 - projCoords.xy;
+	///projCoords.xy = 1.0 projCoords.xy;
 
 	float NdotL = dot(normal, normalize(fragPosToLightPos));
 	return getShadowPCF(projCoords, NdotL, shadowMapIndex);
@@ -305,27 +305,28 @@ void main()
 
 		Lo +=  lighting;
 	}
-//
-//    for(int i = 0; i < lightCounts.y; ++i) 
-//    {
-//        vec3 L = normalize(pointLights[i].position.xyz - position);
-//        vec3 H = normalize(V + L);
-//        float dist = length(pointLights[i].position.xyz - position);
-//
-//        if(dist < pointLights[i].params0.x)
-//        {
-//            float attenuation = pointLights[i].params0.x / (dist * dist);
-//            vec3 radiance = clamp(pointLights[i].color.rgb * attenuation, 0, 1);
-//        
-//            vec3 lighting = getLighting(L, normal, V, H, F0, radiance, albedo.rgb, roughness, metallic);
-//            if(pointLights[i].params0.z != -1)
-//            {
-//                float shadow = getPointShadow(i, vec4(position, 1.0), normal);
-//                lighting *= (1.0 - shadow);
-//            }
-//            Lo +=  lighting;
-//        }
-//    }
+
+	for(int i = 0; i < lightCounts.y; ++i) 
+	{
+		vec3 L = normalize(pointLights[i].position.xyz - position);
+		vec3 H = normalize(V + L);
+		float dist = length(pointLights[i].position.xyz - position);
+
+		
+		//if(dist < pointLights[i].params0.x) // is this needed?
+		{
+			float attenuation = pointLights[i].params0.x / (dist * dist);
+			vec3 radiance = clamp(pointLights[i].color.rgb * attenuation, 0, 1);
+		
+			vec3 lighting = getLighting(L, normal, V, H, F0, radiance, albedo.rgb, roughness, metallic);
+			if(pointLights[i].params0.z != -1)
+			{
+				float shadow = getPointShadow(i, vec4(position, 1.0), normal);
+				lighting *= (1.0 - shadow);
+			}
+			Lo +=  lighting;
+		}
+	}
 	
 	vec3 ambient = vec3(0.001) * albedo.rgb;
 	vec3 color = ambient + (Lo);

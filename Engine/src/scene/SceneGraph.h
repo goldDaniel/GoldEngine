@@ -46,6 +46,7 @@ namespace scene
 			});
 		}
 
+		// TODO (danielg): there MUST be a faster way to do this
 		template<class... Filters>
 		u32 Count() const
 		{

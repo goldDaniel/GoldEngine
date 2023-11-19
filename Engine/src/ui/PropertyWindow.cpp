@@ -4,21 +4,28 @@
 
 #include "scene/BaseComponents.h"
 
-static void DrawVec3Control(const std::string& label, glm::vec3& values, bool isColor = false, float resetValue = 0.0f, float columnWidth = 100.0f);
+static bool DrawVec3Control(const std::string& label, glm::vec3& values, bool isColor = false, float resetValue = 0.0f, float columnWidth = 100.0f);
 
 PropertyWindow::PropertyWindow(scene::Scene& scene, std::function<scene::GameObject(void)>&& selectedFunc)
 	: ImGuiWindow("Properties", true)
 	, mScene(scene)
 	, mGetSelected(std::move(selectedFunc))
 {
-	AddComponentControl<TransformComponent>("Transform", [](auto& t)
+	AddComponentControl<TransformComponent>("Transform", [this](auto& t)
 	{
-		DrawVec3Control("Position", t.position);
+		
+		bool updated = DrawVec3Control("Position", t.position);
 
 		DrawVec3Control("Rotation", t.rotation);
 
 		DrawVec3Control("Scale", t.scale, 1.0f);
 		t.scale = glm::max(t.scale, { 0,0,0 });
+
+		// HACK: dirty flags needed for transforms
+		if (updated && mGetSelected().HasComponent<PointLightComponent>())
+		{
+			mGetSelected().GetComponent<PointLightComponent>().color.w = 1;
+		}
 	});
 
 	AddComponentControl<ParentComponent>("Parent", [this](auto& parentID)
@@ -69,27 +76,63 @@ PropertyWindow::PropertyWindow(scene::Scene& scene, std::function<scene::GameObj
 		}
 	});
 
+	AddComponentControl<PointLightComponent>("Point Light", [this](auto& l)
+	{
+		glm::vec3 color = l.color;
+		DrawVec3Control("Color", color, true);
+
+		// set the w component to 1 marks the light dirty, needing to be updated on GPU 
+		if (color != glm::vec3{ l.color.r, l.color.g, l.color.b })
+		{
+			color = glm::max({ 0,0,0 }, color);
+
+			l.color = { color, 1 };
+		}
+
+		ImGui::Text("Falloff");
+		ImGui::SameLine();
+		if (ImGui::SliderFloat("Falloff", &l.falloff, 0.0f, 1000.0f))
+		{
+			l.color.w = 1;
+		}
+	});
+
 	AddComponentControl<ShadowMapComponent>("Shadow Map", [this](auto& shadow)
 	{
+		auto check = [&shadow](bool changed)
+		{
+			shadow.dirty = shadow.dirty || changed;
+		};
+
 		auto obj = mGetSelected();
 		if (obj.HasComponent<DirectionalLightComponent>())
 		{
-			auto check = [&shadow](bool changed)
-			{
-				shadow.dirty = shadow.dirty || changed;
-			};
-
 			auto& light = obj.GetComponent<DirectionalLightComponent>();
 			
-			ImGui::Text("Ortho Projection");
+			ImGui::Text("Directional Light Ortho Projection");
 			
+			ImGui::Text("Left");
+			ImGui::SameLine();
 			check(ImGui::SliderFloat("Left", &shadow.left, -200, 200));
+			
+			ImGui::Text("Right");
+			ImGui::SameLine();
 			check(ImGui::SliderFloat("Right", &shadow.right, -200, 200));
 
+			ImGui::Text("Bottom");
+			ImGui::SameLine();
 			check(ImGui::SliderFloat("Bottom", &shadow.bottom, -200, 200));
+			
+			ImGui::Text("Top");
+			ImGui::SameLine();
 			check(ImGui::SliderFloat("top", &shadow.top, -200, 200));
 
+			ImGui::Text("Near");
+			ImGui::SameLine();
 			check(ImGui::SliderFloat("Near", &shadow.nearPlane, -200, 200));
+
+			ImGui::Text("Far");
+			ImGui::SameLine();
 			check(ImGui::SliderFloat("Far", &shadow.farPlane, -200, 200));
 
 			ImGui::Text("Bias");
@@ -100,9 +143,41 @@ PropertyWindow::PropertyWindow(scene::Scene& scene, std::function<scene::GameObj
 			ImGui::SameLine();
 			check(ImGui::SliderInt("PCF size", &shadow.PCFSize, 0, 9));
 		}
-		else if (obj.HasComponent<DirectionalLightComponent>())
+		else if (obj.HasComponent<PointLightComponent>())
 		{
-			// TODO (danielg): implement when adding dirlights back in
+			ImGui::Text("Point Light Perspective Projection");
+
+
+			ImGui::Text("FOV");
+			ImGui::SameLine();
+
+			float fov = glm::degrees(shadow.FOV);
+			check(ImGui::SliderFloat("FOV", &fov, 35, 120));
+			shadow.FOV = glm::radians(fov);
+
+			ImGui::Text("Aspect");
+			ImGui::SameLine();
+			check(ImGui::SliderFloat("Aspect", &shadow.aspect, 0.1, 2));
+
+			ImGui::Text("Near");
+			ImGui::SameLine();
+			check(ImGui::SliderFloat("Near", &shadow.nearPlane, 0.001, 5));
+
+			ImGui::Text("Far");
+			ImGui::SameLine();
+			check(ImGui::SliderFloat("Far", &shadow.farPlane, 5, 5000));
+
+			ImGui::Text("Bias");
+			ImGui::SameLine();
+			check(ImGui::SliderFloat("Bias", &shadow.shadowMapBias[0], 0.0f, 0.1f));
+			
+			// gross
+			shadow.shadowMapBias[1] = shadow.shadowMapBias[2] = shadow.shadowMapBias[3] =
+			shadow.shadowMapBias[4] = shadow.shadowMapBias[5] = shadow.shadowMapBias[0];
+
+			ImGui::Text("PCF Size");
+			ImGui::SameLine();
+			check(ImGui::SliderInt("PCF size", &shadow.PCFSize, 0, 9));
 		}
 		else
 		{
@@ -212,8 +287,9 @@ void PropertyWindow::DrawWindow(graphics::Renderer& renderer, gold::ServerResour
 }
 
 
-static void DrawVec3Control(const std::string& label, glm::vec3& values, bool isColor, float resetValue, float columnWidth)
+static bool DrawVec3Control(const std::string& label, glm::vec3& values, bool isColor, float resetValue, float columnWidth)
 {
+	bool result = false;
 	ImGuiIO& io = ImGui::GetIO();
 	auto font = io.Fonts->Fonts[0];
 
@@ -236,7 +312,7 @@ static void DrawVec3Control(const std::string& label, glm::vec3& values, bool is
 	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.9f, 0.2f, 0.2f, 1.0f });
 	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.8f, 0.1f, 0.15f, 1.0f });
 	ImGui::PushFont(font);
-	if (ImGui::Button(isColor ? "R" : "X", buttonSize))
+	if (result = result || ImGui::Button(isColor ? "R" : "X", buttonSize))
 	{
 		values.x = resetValue;
 	}
@@ -245,7 +321,7 @@ static void DrawVec3Control(const std::string& label, glm::vec3& values, bool is
 	ImGui::PopStyleColor(3);
 
 	ImGui::SameLine();
-	ImGui::DragFloat(isColor ? "##R" : "##X", &values.x, 0.01f, 0.0f, 0.0f, "%.2f");
+	result = result || ImGui::DragFloat(isColor ? "##R" : "##X", &values.x, 0.01f, 0.0f, 0.0f, "%.2f");
 	ImGui::PopItemWidth();
 	ImGui::SameLine();
 
@@ -254,7 +330,7 @@ static void DrawVec3Control(const std::string& label, glm::vec3& values, bool is
 	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.3f, 0.8f, 0.3f, 1.0f });
 	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.2f, 0.7f, 0.2f, 1.0f });
 	ImGui::PushFont(font);
-	if (ImGui::Button(isColor ? "G" : "Y", buttonSize))
+	if (result = result || ImGui::Button(isColor ? "G" : "Y", buttonSize))
 	{
 		values.y = resetValue;
 	}
@@ -262,7 +338,7 @@ static void DrawVec3Control(const std::string& label, glm::vec3& values, bool is
 	ImGui::PopStyleColor(3);
 
 	ImGui::SameLine();
-	ImGui::DragFloat(isColor ? "##G" : "##Y", &values.y, 0.01f, 0.0f, 0.0f, "%.2f");
+	result = result || ImGui::DragFloat(isColor ? "##G" : "##Y", &values.y, 0.01f, 0.0f, 0.0f, "%.2f");
 	ImGui::PopItemWidth();
 	ImGui::SameLine();
 
@@ -271,7 +347,7 @@ static void DrawVec3Control(const std::string& label, glm::vec3& values, bool is
 	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.2f, 0.35f, 0.9f, 1.0f });
 	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.1f, 0.25f, 0.8f, 1.0f });
 	ImGui::PushFont(font);
-	if (ImGui::Button(isColor ? "B" : "Z", buttonSize))
+	if (result = result || ImGui::Button(isColor ? "B" : "Z", buttonSize))
 	{
 		values.z = resetValue;
 	}
@@ -279,7 +355,7 @@ static void DrawVec3Control(const std::string& label, glm::vec3& values, bool is
 	ImGui::PopStyleColor(3);
 
 	ImGui::SameLine();
-	ImGui::DragFloat(isColor ? "##B" : "##Z", &values.z, 0.01f, 0.0f, 0.0f, "%.2f");
+	result = result || ImGui::DragFloat(isColor ? "##B" : "##Z", &values.z, 0.01f, 0.0f, 0.0f, "%.2f");
 	ImGui::PopItemWidth();
 
 	ImGui::PopStyleVar();
@@ -287,4 +363,6 @@ static void DrawVec3Control(const std::string& label, glm::vec3& values, bool is
 	ImGui::Columns(1);
 
 	ImGui::PopID();
+
+	return result;
 }

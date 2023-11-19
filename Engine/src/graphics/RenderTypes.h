@@ -356,7 +356,8 @@ namespace graphics
 		u32 mWidth = 0;
 		u32 mHeight = 0;
 
-		TextureHandle AsTexture(OutputSlot slot)
+		template<OutputSlot slot>
+		TextureHandle AsTexture()
 		{
 			return mTextures[static_cast<u8>(slot)];
 		}
@@ -372,7 +373,8 @@ namespace graphics
 
 		std::array<FrameBufferTexture, static_cast<u64>(OutputSlot::Count)> mTextures = {};
 
-		inline void Put(OutputSlot slot, TextureDescription2D desc)
+		template<OutputSlot slot>
+		inline void Put(TextureDescription2D desc)
 		{
 			mTextures[static_cast<size_t>(slot)] = { desc, static_cast<FramebufferAttachment>(slot) };
 		}
