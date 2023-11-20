@@ -40,11 +40,8 @@ void Logging::AddCallback(std::function<void(const spdlog::details::log_msg& msg
 {
 	auto logCallback = std::make_shared<spdlog::sinks::callback_sink_mt>(std::move(callback));
 
-#if defined(GOLD_ENGINE)
 	mEngineLogger->sinks().push_back(logCallback);
-#else
-	kClientLogger->sinks().push_back(logCallback);
-#endif
+	mClientLogger->sinks().push_back(logCallback);
 }
 
 void Logging::ClearLog()

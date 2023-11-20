@@ -134,9 +134,9 @@ PropertyWindow::PropertyWindow(scene::Scene& scene, std::function<scene::GameObj
 
 			ImGui::Text("Aspect"); ImGui::SameLine(); check(ImGui::SliderFloat("Aspect", &shadow.aspect, 0.1, 2));
 
-			ImGui::Text("Near"); ImGui::SameLine(); check(ImGui::SliderFloat("Near", &shadow.nearPlane, 0.001, 5));
+			ImGui::Text("Near"); ImGui::SameLine(); check(ImGui::SliderFloat("Near", &shadow.nearPlane, 1, 10));
 
-			ImGui::Text("Far"); ImGui::SameLine(); check(ImGui::SliderFloat("Far", &shadow.farPlane, 5, 5000));
+			ImGui::Text("Far"); ImGui::SameLine(); check(ImGui::SliderFloat("Far", &shadow.farPlane, 50, 5000));
 
 			ImGui::Text("Bias"); ImGui::SameLine(); check(ImGui::SliderFloat("Bias", &shadow.shadowMapBias[0], 0.0f, 0.1f));
 			

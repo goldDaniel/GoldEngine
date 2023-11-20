@@ -306,7 +306,7 @@ void RenderSystem::FillShadowAtlas(scene::Scene& scene)
 	shadowPass.mTarget = mShadowMapFrameBuffer.mHandle;
 
 	RenderState shadowState;
-	shadowState.mCullFace = CullFace::DISABLED;
+	shadowState.mCullFace = CullFace::BACK;
 	shadowState.mColorWriteEnabled = false;
 	shadowState.mRenderPass = mEncoder->AddRenderPass(shadowPass);
 	shadowState.mShader = mShadowAtlasFillShader;
@@ -333,6 +333,8 @@ void RenderSystem::FillShadowAtlas(scene::Scene& scene)
 			}
 		}
 		DEBUG_ASSERT(shadowIndex != -1, "Shadow map page ID assignment logic broken");
+		
+		G_INFO("Rebuilding Directional ShadowMap with index: {}", shadowIndex);
 
 		const auto& page = Singletons::Get()->Resolve<ShadowMapService>()->GetPage(shadowIndex);
 
@@ -374,9 +376,12 @@ void RenderSystem::FillShadowAtlas(scene::Scene& scene)
 	{
 		const auto& transform = obj.GetComponent<TransformComponent>();
 		const auto& light = obj.GetComponent<PointLightComponent>();
-		const auto& shadow = obj.GetComponent<ShadowMapComponent>();
+		auto& shadow = obj.GetComponent<ShadowMapComponent>();
 
 		const auto& pages = Singletons::Get()->Resolve<ShadowMapService>()->GetPages();
+
+		if (!shadow.dirty) return;
+		shadow.dirty = false;
 
 		const std::array<glm::mat4, 6> lightViews
 		{
@@ -405,21 +410,23 @@ void RenderSystem::FillShadowAtlas(scene::Scene& scene)
 
 			DEBUG_ASSERT(shadowIndex != -1, "Shadow map page ID assignment logic broken");
 
+			G_INFO("Rebuilding Cube ShadowMap with index: {}", shadowIndex);
+
 			const auto& page = Singletons::Get()->Resolve<ShadowMapService>()->GetPage(shadowIndex);
 
-			// data for shadow pages uniform buffer
-			if (shadowIndex < LightBufferComponent::MAX_CASTERS) // should never happen, but compiler warnings
-			{
-				mShadowPages.mPage[shadowIndex] = { page.x, page.y, page.width, page.height };
-				mShadowPages.mParams[shadowIndex].w = shadow.shadowMapBias[i];
-				mShadowPages.mParams[shadowIndex].z = shadow.PCFSize + 1;
+			mShadowPages.mPage[shadowIndex] = { page.x, page.y, page.width, page.height };
+			mShadowPages.mParams[shadowIndex].w = shadow.shadowMapBias[i];
+			mShadowPages.mParams[shadowIndex].z = shadow.PCFSize + 1;
 
-				mLightMatrices.mLightSpace[shadowIndex] = glm::perspective(shadow.FOV, shadow.aspect, shadow.nearPlane, shadow.farPlane) * lightViews[i];
-				mLightMatrices.mLightInv[shadowIndex] = glm::inverse(mLightMatrices.mLightSpace[shadowIndex]);
-			}
+			mLightMatrices.mLightSpace[shadowIndex] = glm::perspective(shadow.FOV, shadow.aspect, shadow.nearPlane, shadow.farPlane) * lightViews[i];
+			mLightMatrices.mLightInv[shadowIndex] = glm::inverse(mLightMatrices.mLightSpace[shadowIndex]);
+			
 
 			//the section of our paged shadowMap to render to 
 			shadowState.mViewport = { page.x, page.y, page.width, page.height };
+
+			PushFrustumCull(scene, mLightMatrices.mLightSpace[shadowIndex]);
+			
 			scene.ForEach<TransformComponent, RenderComponent>([&](scene::GameObject obj)
 			{
 				const auto& render = obj.GetComponent<RenderComponent>();
@@ -431,6 +438,8 @@ void RenderSystem::FillShadowAtlas(scene::Scene& scene)
 
 				mEncoder->DrawMesh(render.mesh, shadowState);
 			});
+			
+			PopFrustumCull(scene);
 		}
 	});
 

@@ -179,9 +179,8 @@ vec3 getLighting(vec3 L, vec3 N, vec3 V, vec3 H, vec3 F0, vec3 radiance, vec3 al
 	return (kD * albedo.rgb / PI + specular) * radiance * NdotL;
 }
 
-float getShadowPCF(vec3 projCoords, float NdotL, int shadowMapIndex)
+float getShadowPCF(vec3 projCoords, float NdotL, int shadowMapIndex, float bias)
 {
-	float bias = max(0.005 * (1.0 - NdotL), shadowMapParams[shadowMapIndex].w);
 	vec2 shadowMapSize = textureSize(shadowMap, 0);
 	vec2 texelSize = 1.0 / shadowMapSize.xy;
 	vec4 bounds = shadowMapPage[shadowMapIndex];
@@ -220,8 +219,8 @@ float getDirectionalShadow(int index, vec4 posLightSpace, float NdotL)
 	{
 		return 0.0;
 	}
-
-	return getShadowPCF(projCoords, NdotL, index);
+	float bias = max(0.01 * (1.0 - NdotL), shadowMapParams[index].w);
+	return getShadowPCF(projCoords, NdotL, index, bias);
 }
 
 float getPointShadow(int pointLightIndex, vec4 fragmentPosWorldSpace, vec3 normal)
@@ -268,8 +267,10 @@ float getPointShadow(int pointLightIndex, vec4 fragmentPosWorldSpace, vec3 norma
 	projCoords = projCoords * 0.5 + 0.5;
 	///projCoords.xy = 1.0 projCoords.xy;
 
+
 	float NdotL = dot(normal, normalize(fragPosToLightPos));
-	return getShadowPCF(projCoords, NdotL, shadowMapIndex);
+	float bias = shadowMapParams[shadowMapIndex].w;
+	return getShadowPCF(projCoords, NdotL, shadowMapIndex, bias);
 }
 
 void main()
