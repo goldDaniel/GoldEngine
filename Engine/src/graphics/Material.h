@@ -6,7 +6,7 @@ namespace graphics
 {
 	struct MaterialHandle
 	{
-		u32 idx;
+		u32 idx{};
 	};
 
 	struct Material
@@ -14,19 +14,10 @@ namespace graphics
 		glm::vec4 albedo{ 0.4f, 1.0f, 1.0f, 1.0f };
 		glm::vec4 emissive{ 0.f, 0.f, 0.f, 0.0f };
 
-		float metallic = 0.2f;
-		float roughness = 0.8f;
+		//metallic, roughness, ?, UVScale
+		glm::vec4 coefficients{0.2f, 0.8f, 0.0f, 1.0f};
 
-		bool useAlbedoMap = false;
-		bool useNormalMap = false;
-		bool useMetallicMap = false;
-		bool useRoughnessMap = false;
-
-		float uvScale = 1.0f;
-
-		graphics::TextureHandle albedoMap{};
-		graphics::TextureHandle normalMap{};
-		graphics::TextureHandle metallicMap{};
-		graphics::TextureHandle roughnessMap{};
+		// albedo, normal, metallic, roughness
+		glm::vec4 mapFlags{};
 	};
 }

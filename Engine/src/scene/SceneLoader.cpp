@@ -9,6 +9,7 @@
 #include "graphics/RenderTypes.h"
 #include "graphics/Vertex.h"
 #include "graphics/Texture.h"
+#include "graphics/MaterialManager.h"
 
 #include <future>
 
@@ -145,6 +146,11 @@ static graphics::TextureHandle FindOrAddTexture(const std::string& file, gold::F
 
 static void CreateMaterial(const std::string& filepath, unsigned int index, aiMaterial** const materials, gold::FrameEncoder& encoder, RenderComponent& render)
 {
+	auto materialManager = Singletons::Get()->Resolve<MaterialManager>();
+
+	render.material = materialManager->CreateMaterial();
+	auto bufferMaterial = materialManager->GetMaterial(render.material);
+	
 	const auto material = materials[index];
 
 	aiString albedo;
@@ -152,53 +158,55 @@ static void CreateMaterial(const std::string& filepath, unsigned int index, aiMa
 	aiString metalic;
 	aiString roughness;
 	
+	// albedo
 	if (material->GetTexture(AI_MATKEY_BASE_COLOR_TEXTURE, &albedo) == AI_SUCCESS || 
 		material->GetTexture(aiTextureType_DIFFUSE,0, &albedo) || 
 		material->GetTexture(aiTextureType_AMBIENT, 0, &albedo))
 	{
-		render.albedoMap = FindOrAddTexture(filepath + albedo.C_Str(), encoder);	
+		bufferMaterial.mapFlags.x = FindOrAddTexture(filepath + albedo.C_Str(), encoder).idx;
 	}
-
-	if (material->GetTexture(aiTextureType_NORMALS, 0, &normal) == AI_SUCCESS)
-	{
-		render.normalMap = FindOrAddTexture(filepath + normal.C_Str(), encoder);
-	}
-
-	if (material->GetTexture(AI_MATKEY_METALLIC_TEXTURE, &metalic) == AI_SUCCESS)
-	{
-		render.metallicMap = FindOrAddTexture(filepath + metalic.C_Str(), encoder);
-	}
-
-	if (material->GetTexture(AI_MATKEY_ROUGHNESS_TEXTURE, &roughness) == AI_SUCCESS)
-	{
-		render.roughnessMap = FindOrAddTexture(filepath + roughness.C_Str(), encoder);	
-	}
-	
-	if (!render.albedoMap.idx)
+	else
 	{
 		aiColor4D albedoVal;
 		if (aiGetMaterialColor(material, AI_MATKEY_BASE_COLOR, &albedoVal) == AI_SUCCESS)
 		{
-			render.albedo = glm::vec4(albedoVal.r, albedoVal.g, albedoVal.b, 1.0f);
+			bufferMaterial.albedo = glm::vec4(albedoVal.r, albedoVal.g, albedoVal.b, 1.0f);
 		}
 	}
 
-	if (!render.metallicMap.idx)
+	// normal
+	if (material->GetTexture(aiTextureType_NORMALS, 0, &normal) == AI_SUCCESS)
 	{
+		bufferMaterial.mapFlags.y = FindOrAddTexture(filepath + normal.C_Str(), encoder).idx;
+	}
 
+	// metallic
+	if (material->GetTexture(AI_MATKEY_METALLIC_TEXTURE, &metalic) == AI_SUCCESS)
+	{
+		bufferMaterial.mapFlags.z = FindOrAddTexture(filepath + metalic.C_Str(), encoder).idx;
+	}
+	else
+	{
 		float metalicVal;
 		if (aiGetMaterialFloat(material, AI_MATKEY_METALLIC_FACTOR, &metalicVal) == AI_SUCCESS)
 		{
-			render.metallic = metalicVal;
+			bufferMaterial.coefficients.x = metalicVal;
 		}
 	}
 
-	if (!render.roughnessMap.idx)
+	// roughness
+	if (material->GetTexture(AI_MATKEY_ROUGHNESS_TEXTURE, &roughness) == AI_SUCCESS)
+	{
+		bufferMaterial.mapFlags.w = FindOrAddTexture(filepath + roughness.C_Str(), encoder).idx;
+	}
+	else
 	{
 		float roughnessVal;
 		if (aiGetMaterialFloat(material, AI_MATKEY_ROUGHNESS_FACTOR, &roughnessVal) == AI_SUCCESS)
 		{
-			render.roughness = roughnessVal;
+			bufferMaterial.coefficients.y = roughnessVal;
 		}
 	}
+	
+	materialManager->UpdateMaterial(render.material, bufferMaterial);
 }

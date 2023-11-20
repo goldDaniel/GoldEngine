@@ -11,13 +11,27 @@ in vec2 Texcoord;
 layout(std140) uniform PerDrawConstants_UBO
 {
     mat4 u_model;
-		
-	// for use when maps are not present
-	vec4 u_albedo;
-	vec4 u_emissive;
-	vec4 u_coefficients;// metallic, roughness, ?, uvScale
+	
+	int u_materialID;
+	int pad[3];
+};
 
-	vec4 u_flags; // albedoMap, normalMap, metallicMap, roughnessMap
+struct Material
+{
+	vec4 albedo;
+	vec4 emissive;
+
+    //metallic, roughness, ?, UVScale
+	vec4 coefficients;
+
+	// albedo, normal, metallic, roughness
+	vec4 mapFlags;
+};
+
+#define MAX_MATERIALS 128
+layout(std140) uniform Materials_UBO
+{
+    Material u_materials[MAX_MATERIALS];
 };
 
 uniform sampler2D u_albedoMap;
@@ -44,40 +58,42 @@ vec3 GetWorldSpaceNormal(vec2 texCoords)
 
 void main()
 {
-    vec4 albedoColor = u_albedo;
-    if(u_flags.x > 0)
+    Material material = u_materials[u_materialID];
+
+    vec4 albedoColor = material.albedo;
+    if(material.mapFlags.x > 0)
     {
-        albedoColor = texture(u_albedoMap, Texcoord.xy * u_coefficients.w);
+        albedoColor = texture(u_albedoMap, Texcoord.xy * material.coefficients.w);
     }
     if(albedoColor.a < 0.4) discard;
 	
 
     color0 = albedoColor.xyz;
     color1 = normalize(Normal).xyz;
-    color2.r = u_coefficients.r;
-    color2.g = u_coefficients.g;
+    color2.r = material.coefficients.x;
+    color2.g = material.coefficients.y;
 
-    if(u_flags.y > 0)
+    if(material.mapFlags.y > 0)
     {
-        color1 = GetWorldSpaceNormal(Texcoord.xy * u_coefficients.w).rgb;
+        color1 = GetWorldSpaceNormal(Texcoord.xy * material.coefficients.w).rgb;
     }
 
     //note (danielg): sometimes the textures we get have the values in the g channel? 
-    if(u_flags.z > 0)
+    if(material.mapFlags.z > 0)
     {
-        float value = texture(u_metallicMap, Texcoord.xy * u_coefficients.w).g;
+        float value = texture(u_metallicMap, Texcoord.xy * material.coefficients.w).g;
         if(value <= 0) 
         {
-            value = texture(u_metallicMap, Texcoord.xy * u_coefficients.w).r;
+            value = texture(u_metallicMap, Texcoord.xy * material.coefficients.w).r;
         }
         color2.r = value;
     }
-    if(u_flags.w > 0)
+    if(material.mapFlags.w > 0)
     {
-        float value = texture(u_roughnessMap, Texcoord.xy * u_coefficients.w).g;
+        float value = texture(u_roughnessMap, Texcoord.xy * material.coefficients.w).g;
         if(value <= 0) 
         {
-            value = texture(u_roughnessMap, Texcoord.xy * u_coefficients.w).r;
+            value = texture(u_roughnessMap, Texcoord.xy * material.coefficients.w).r;
         }
         color2.g = value;
     }

@@ -3,6 +3,8 @@
 
 #include "graphics/Vertex.h"
 #include "graphics/FrameEncoder.h"
+#include <graphics/MaterialManager.h>
+
 
 #include "scene/SceneGraph.h"
 #include "scene/SceneLoader.h"
@@ -18,6 +20,7 @@
 #include "DebugCameraSystem.h"
 
 #include "ShadowMapService.h"
+
 
 class TestApp : public gold::Application
 {
@@ -63,6 +66,7 @@ protected:
 		mCameraSystem = DebugCameraSystem(this);
 
 		Singletons::Get()->Register<ShadowMapService>([]() { return std::make_shared<ShadowMapService>(); });
+		Singletons::Get()->Register<MaterialManager>([]() { return std::make_shared<MaterialManager>(); });
 	}
 
 	virtual void Update(float delta, gold::FrameEncoder& encoder) override

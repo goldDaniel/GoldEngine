@@ -19,13 +19,9 @@ layout(std140) uniform PerFrameConstants_UBO
 layout(std140) uniform PerDrawConstants_UBO
 {
     mat4 u_model;
-		
-	// for use when maps are not present
-	vec4 u_albedo;
-	vec4 u_emissive;
-	vec4 u_coefficients;// metallic, roughness, ?, uvScale
-
-	vec4 u_flags; // albedoMap, normalMap, metallicMap, roughnessMap
+	
+	int u_materialID;
+	int pad[3];
 };
 
 out vec3 Position;

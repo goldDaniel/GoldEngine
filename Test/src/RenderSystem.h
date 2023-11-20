@@ -29,13 +29,8 @@ private:
 	struct PerDrawConstants
 	{
 		glm::mat4 u_model{};
-
-		// for use when maps are not present
-		glm::vec4 u_albedo{};
-		glm::vec4 u_emissive{};
-		glm::vec4 u_coefficients{};// metallic, roughness, ?, uvScale
-
-		glm::vec4 u_flags; // albedoMap, normalMap, metallicMap, roughnessMap
+		u32 materialHandle{};
+		u32 pad[3];
 	};
 	graphics::UniformBufferHandle mPerDrawConstantsBuffer{};
 
@@ -54,6 +49,8 @@ private:
 	};
 	ShadowMapPages mShadowPages{};
 	graphics::UniformBufferHandle mShadowPagesBuffer{};
+
+	graphics::UniformBufferHandle mMaterialBuffer{};
 
 	// holds LightBufferComponent::LightShaderBuffer
 	graphics::UniformBufferHandle mLightingBuffer{};

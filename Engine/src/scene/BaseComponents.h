@@ -152,24 +152,9 @@ struct LightBufferComponent
 
 struct RenderComponent
 {
-	graphics::MeshHandle mesh{};
-
-	// TODO (danielg): have material buffer so renderComponent only needs an index/handle
-	//graphics::MaterialHandle material{};
-
 	glm::vec3 aabbMin{};
 	glm::vec3 aabbMax{};
 
-
-	glm::vec4 albedo{ 0.4f, 1.0f, 1.0f, 1.0f };
-	glm::vec4 emissive{ 0.f, 0.f, 0.f, 0.0f };
-
-	float metallic = 0.0f;
-	float roughness = 1.0f;
-	float uvScale = 1.0f;
-
-	graphics::TextureHandle albedoMap{ 0 };
-	graphics::TextureHandle normalMap{ 0 };
-	graphics::TextureHandle metallicMap{ 0 };
-	graphics::TextureHandle roughnessMap{ 0 };
+	graphics::MeshHandle mesh{};
+	graphics::MaterialHandle material{};
 };

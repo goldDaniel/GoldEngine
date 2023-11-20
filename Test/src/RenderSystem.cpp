@@ -1,7 +1,10 @@
 #include "RenderSystem.h"
 
 #include <core/Core.h>
+
 #include <graphics/Vertex.h>
+#include <graphics/MaterialManager.h>
+
 #include "ShadowMapService.h"
 
 using namespace graphics;
@@ -59,6 +62,16 @@ void RenderSystem::InitRenderData(scene::Scene& scene)
 	{
 		PerDrawConstants perDrawConstants{};
 		mPerDrawConstantsBuffer = mEncoder->CreateUniformBuffer(&perDrawConstants, sizeof(PerDrawConstants));
+	}
+
+	// Material buffer
+	{
+		auto& materialManager = Singletons::Get()->Resolve<MaterialManager>();
+
+		auto& materials = materialManager->GetMaterials();
+		u32 materialBufferSize = materials.size() * sizeof(graphics::Material);
+
+		mMaterialBuffer = mEncoder->CreateUniformBuffer(materials.data(), materialBufferSize);
 	}
 
 	// Lighting data constants
@@ -275,6 +288,18 @@ void RenderSystem::Tick(scene::Scene& scene, float dt)
 		mEncoder->UpdateUniformBuffer(mPerFrameContantsBuffer, &mPerFrameConstants, sizeof(PerFrameConstants));
 	}
 
+	// update material buffer
+	{
+		auto materialManager = Singletons::Get()->Resolve<MaterialManager>();
+		if (materialManager->CheckSetDirty())
+		{
+			auto& materials = materialManager->GetMaterials();
+			u32 materialBufferSize = materials.size() * sizeof(graphics::Material);
+
+			mMaterialBuffer = mEncoder->CreateUniformBuffer(materials.data(), materialBufferSize);
+		}
+	}
+
 	// update lighting buffers 
 	// NOTE (danielg): mutable lambda to assert if there is more than 1 iteration
 	// we only want one of these components, holds ALL lighting info
@@ -462,6 +487,8 @@ void RenderSystem::FillShadowAtlas(scene::Scene& scene)
 
 void RenderSystem::FillGBuffer(const Camera& camera, scene::Scene& scene)
 {
+	auto materialManager = Singletons::Get()->Resolve<MaterialManager>();
+
 	PushFrustumCull(scene, camera.GetProjectionMatrix() * camera.GetViewMatrix());
 
 	//GBuffer fill
@@ -473,10 +500,7 @@ void RenderSystem::FillGBuffer(const Camera& camera, scene::Scene& scene)
 		PerDrawConstants drawConstants =
 		{
 			obj.GetWorldSpaceTransform() ,
-			render.albedo,
-			render.emissive,
-			{render.metallic, render.roughness, 0.f, render.uvScale},
-			{render.albedoMap.idx, render.normalMap.idx,render.metallicMap.idx,render.roughnessMap.idx}
+			render.material.idx,
 		};
 		mEncoder->UpdateUniformBuffer(mPerDrawConstantsBuffer, &drawConstants, sizeof(PerDrawConstants));
 
@@ -486,11 +510,14 @@ void RenderSystem::FillGBuffer(const Camera& camera, scene::Scene& scene)
 		state.mShader = mGBufferFillShader;
 		state.SetUniformBlock("PerFrameConstants_UBO", mPerFrameContantsBuffer);
 		state.SetUniformBlock("PerDrawConstants_UBO", mPerDrawConstantsBuffer);
+		state.SetUniformBlock("Materials_UBO", mMaterialBuffer);
 
-		if (render.albedoMap.idx)		state.SetTexture("u_albedoMap", render.albedoMap);
-		if (render.normalMap.idx)		state.SetTexture("u_normalMap", render.normalMap);
-		if (render.metallicMap.idx)		state.SetTexture("u_metallicMap", render.metallicMap);
-		if (render.roughnessMap.idx)	state.SetTexture("u_roughnessMap", render.roughnessMap);
+		auto material = materialManager->GetMaterial(render.material);
+
+		if (material.mapFlags.x > 0) state.SetTexture("u_albedoMap",   { static_cast<u32>(std::round(material.mapFlags.x)) });
+		if (material.mapFlags.y > 0) state.SetTexture("u_normalMap",	{ static_cast<u32>(std::round(material.mapFlags.y)) });
+		if (material.mapFlags.z > 0) state.SetTexture("u_metallicMap",	{ static_cast<u32>(std::round(material.mapFlags.z)) });
+		if (material.mapFlags.w > 0) state.SetTexture("u_roughnessMap",	{ static_cast<u32>(std::round(material.mapFlags.w)) });
 
 		mEncoder->DrawMesh(render.mesh, state);
 	});
