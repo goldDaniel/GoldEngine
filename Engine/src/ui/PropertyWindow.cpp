@@ -147,6 +147,15 @@ PropertyWindow::PropertyWindow(scene::Scene& scene, std::function<scene::GameObj
 			ImGui::Text("PCF Size");
 			ImGui::SameLine();
 			check(ImGui::SliderInt("PCF size", &shadow.PCFSize, 0, 9));
+			if (shadow.dirty)
+			{
+				//HACK: using as a flag to update shadowmaps temporarily
+				mScene.ForEach<LightBufferComponent>([](scene::GameObject obj)
+				{
+					auto& buffer = obj.GetComponent<LightBufferComponent>();
+					buffer.isDirty = false;
+				});
+			}
 		}
 		else
 		{

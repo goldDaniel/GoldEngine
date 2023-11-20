@@ -24,28 +24,20 @@ namespace graphics
 		u8 AddRenderPass(const char* name, ClearColor clearColor = ClearColor::NO, ClearDepth clearDepth = ClearDepth::NO);	
 		u8 AddRenderPass(const char* name, FrameBufferHandle target, ClearColor clearColor = ClearColor::NO, ClearDepth clearDepth = ClearDepth::NO);
 
-		
+		// Uniform Blocks ////////////////////////////////////////
 		UniformBufferHandle CreateUniformBuffer(const void* data, uint32_t size);
 		void UpdateUniformBuffer(const void* data, uint32_t size, uint32_t offset, UniformBufferHandle binding);
 		void DestroyUniformBuffer(UniformBufferHandle handle);
 
-
-		// Shader Storage Blocks ////////////////////
-		
+		// Shader Storage Blocks //////////////////////////////////
 		ShaderBufferHandle CreateShaderBuffer(const void* data, uint32_t size);
 		void UpdateShaderBuffer(const void* data, uint32_t size, uint32_t offset, ShaderBufferHandle binding);
 		void DestroyShaderBuffer(ShaderBufferHandle handle);
 
-		// vertex buffers //////////////////////////
-		template<typename T>
-		VertexBufferHandle CreateVertexBuffer(const std::vector<T>& data, BufferUsage usage = BufferUsage::STATIC)
-		{
-			return CreateVertexBuffer(&data[0], static_cast<uint32_t>(sizeof(T) * data.size()), usage);
-		}
+		// Vertex Buffers ////////////////////////////////////////
 		VertexBufferHandle CreateVertexBuffer(const void* data = nullptr, uint32_t dataSize = 0, BufferUsage usage = BufferUsage::STATIC);
 		void UpdateVertexBuffer(VertexBufferHandle handle, const void* data, uint32_t dataSize, u32 offset);
 		void DestroyVertexBuffer(VertexBufferHandle hanOdle);
-
 
 		// index buffers ////////////////////////////////////////
 		IndexBufferHandle CreateIndexBuffer(const void* data = nullptr, uint32_t dataSize = 0, BufferUsage usage = BufferUsage::STATIC);

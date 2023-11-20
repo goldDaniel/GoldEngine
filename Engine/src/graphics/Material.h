@@ -18,6 +18,6 @@ namespace graphics
 		glm::vec4 coefficients{0.2f, 0.8f, 0.0f, 1.0f};
 
 		// albedo, normal, metallic, roughness
-		glm::vec4 mapFlags{};
+		glm::uvec4 mapFlags{};
 	};
 }

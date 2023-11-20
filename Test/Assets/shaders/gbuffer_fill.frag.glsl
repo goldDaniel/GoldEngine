@@ -25,7 +25,7 @@ struct Material
 	vec4 coefficients;
 
 	// albedo, normal, metallic, roughness
-	vec4 mapFlags;
+	uvec4 mapFlags;
 };
 
 #define MAX_MATERIALS 128

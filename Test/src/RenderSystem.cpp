@@ -311,7 +311,7 @@ void RenderSystem::Tick(scene::Scene& scene, float dt)
 		if (buffer.isDirty)
 		{
 			mEncoder->UpdateUniformBuffer(mLightingBuffer, &buffer.lightBuffer, sizeof(LightBufferComponent::LightShaderBuffer));
-			//buffer.isDirty = false; // HACK: remove flag at end of this function when fixed
+			buffer.isDirty = false; // HACK: remove flag at end of this function when fixed
 		}
 		onlyOneBuffer = false;
 	});
@@ -321,21 +321,14 @@ void RenderSystem::Tick(scene::Scene& scene, float dt)
 	ResolveGBuffer(scene);
 	DrawSkybox();
 	Tonemap();
-
-	//HACK: using as a flag to update shadowmaps temporarily
-	scene.ForEach<LightBufferComponent>([](scene::GameObject obj) 
-	{
-		auto& buffer = obj.GetComponent<LightBufferComponent>();
-		buffer.isDirty = false;
-	});
 }
 
 void RenderSystem::FillShadowAtlas(scene::Scene& scene)
 {
 	bool bufferDirty = false;
-	scene.ForEach<LightBufferComponent>([&bufferDirty](scene::GameObject obj)
+	scene.ForEach<ShadowMapComponent>([&bufferDirty](scene::GameObject obj)
 	{
-		bufferDirty = obj.GetComponent<LightBufferComponent>().isDirty;
+		bufferDirty = bufferDirty || obj.GetComponent<ShadowMapComponent>().dirty;
 	});
 	if (!bufferDirty) return;
 	
@@ -361,8 +354,8 @@ void RenderSystem::FillShadowAtlas(scene::Scene& scene)
 		const auto& pages = Singletons::Get()->Resolve<ShadowMapService>()->GetPages();
 
 		// HACK: need to be able to clear individual pages before re-enabling
-		/*if (!shadow.dirty) return;
-		shadow.dirty = false;*/
+		//if (!shadow.dirty) return;
+		shadow.dirty = false;
 
 		int shadowIndex = -1;
 		for (const auto& page : pages)
@@ -420,8 +413,8 @@ void RenderSystem::FillShadowAtlas(scene::Scene& scene)
 		const auto& pages = Singletons::Get()->Resolve<ShadowMapService>()->GetPages();
 
 		// HACK: need to be able to clear individual pages before re-enabling
-		/*if (!shadow.dirty) return;
-		shadow.dirty = false;*/
+		//if (!shadow.dirty) return;
+		shadow.dirty = false;
 
 		const std::array<glm::mat4, 6> lightViews
 		{
@@ -514,10 +507,11 @@ void RenderSystem::FillGBuffer(const Camera& camera, scene::Scene& scene)
 
 		auto material = materialManager->GetMaterial(render.material);
 
-		if (material.mapFlags.x > 0) state.SetTexture("u_albedoMap",   { static_cast<u32>(std::round(material.mapFlags.x)) });
-		if (material.mapFlags.y > 0) state.SetTexture("u_normalMap",	{ static_cast<u32>(std::round(material.mapFlags.y)) });
-		if (material.mapFlags.z > 0) state.SetTexture("u_metallicMap",	{ static_cast<u32>(std::round(material.mapFlags.z)) });
-		if (material.mapFlags.w > 0) state.SetTexture("u_roughnessMap",	{ static_cast<u32>(std::round(material.mapFlags.w)) });
+		// TODO (danielg): is this a weird way to store textures?
+		if (material.mapFlags.x > 0) state.SetTexture("u_albedoMap",   { material.mapFlags.x });
+		if (material.mapFlags.y > 0) state.SetTexture("u_normalMap",	{ material.mapFlags.y });
+		if (material.mapFlags.z > 0) state.SetTexture("u_metallicMap",	{ material.mapFlags.z });
+		if (material.mapFlags.w > 0) state.SetTexture("u_roughnessMap",	{ material.mapFlags.w });
 
 		mEncoder->DrawMesh(render.mesh, state);
 	});

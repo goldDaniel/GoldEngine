@@ -20,9 +20,8 @@ public:
 	static constexpr uint16_t kTextureWidth = 8192*2;
 	static constexpr uint16_t kTextureHeight = 8192;
 
-	static constexpr uint16_t kPageWidth = 1024;
-	static constexpr uint16_t kPageHeight = 1024;
-
+	static constexpr uint16_t kPageWidth = 2048;
+	static constexpr uint16_t kPageHeight = 2048;
 
 	static constexpr uint32_t kNumPagesX = (kTextureWidth / kPageWidth);
 	static constexpr uint32_t kNumPagesY = (kTextureHeight / kPageHeight);
