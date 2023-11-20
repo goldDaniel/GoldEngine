@@ -17,7 +17,7 @@ private:
 
 	bool CheckSetPointLightsDirty(scene::Scene& scene)
 	{
-		bool result = (mPrevPointLightCount == 0);
+		bool result = false;
 
 		u32 pointLightCount = 0;
 		scene.ForEach<PointLightComponent>([&result, &pointLightCount](scene::GameObject obj)
@@ -44,7 +44,7 @@ private:
 
 	bool CheckSetDirectionalLightsDirty(scene::Scene& scene)
 	{
-		bool result = (mPrevDirectionalLightCount == 0);
+		bool result = false;
 		
 		u32 dirLightCount = 0;
 		scene.ForEach<DirectionalLightComponent>([&result, &dirLightCount](scene::GameObject obj)
@@ -103,8 +103,8 @@ public:
 					{
 						shadowMapIndex = Singletons::Get()->Resolve<ShadowMapService>()->GetNextAvailablePageLocation().shadowMapIndex;
 						shadowMap.shadowMapIndex[0] = shadowMapIndex;
-						shadowMap.dirty = true;
 					}
+					shadowMap.dirty = true; // TODO (danielg): fix this
 				}
 
 				buffer.lightBuffer.directionalLights[dirCount++] = LightBufferComponent::DirectionalLight{ glm::normalize(light.direction), light.color, {0,0,0, shadowMapIndex } };	
@@ -136,9 +136,9 @@ public:
 						{
 							const auto& page = Singletons::Get()->Resolve<ShadowMapService>()->GetNextAvailablePageLocation();
 							index = page.shadowMapIndex;
-							shadow.dirty = true;
 						}
 					}
+					shadow.dirty = true; // TODO (danielg): fix this
 					shadowMapIndices = shadow.shadowMapIndex;
 				}
 

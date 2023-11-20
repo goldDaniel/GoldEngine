@@ -94,7 +94,8 @@ protected:
 				auto& light = lightObj.AddComponent<PointLightComponent>();
 				auto& shadow = lightObj.AddComponent<ShadowMapComponent>();
 
-				transform.position.y = 50;
+				transform.position.x = -20;
+				transform.position.y = 40;
 				light.color = { 2, 0, 0, 1 };
 				light.falloff = 500;
 
@@ -102,6 +103,43 @@ protected:
 				shadow.FOV = glm::radians(90.f);
 				shadow.nearPlane = 5;
 				shadow.farPlane = 500;
+				shadow.shadowMapBias.fill(0.005);
+			}
+			{
+				auto lightObj = mScene.CreateGameObject("Green Light");
+
+				auto& transform = lightObj.GetComponent<TransformComponent>();
+				auto& light = lightObj.AddComponent<PointLightComponent>();
+				auto& shadow = lightObj.AddComponent<ShadowMapComponent>();
+
+				transform.position.x = 0;
+				transform.position.y = 40;
+				light.color = { 0, 2, 0, 1 };
+				light.falloff = 500;
+
+				shadow.aspect = 1;
+				shadow.FOV = glm::radians(90.f);
+				shadow.nearPlane = 5;
+				shadow.farPlane = 500;
+				shadow.shadowMapBias.fill(0.005);
+			}
+			{
+				auto lightObj = mScene.CreateGameObject("Blue Light");
+
+				auto& transform = lightObj.GetComponent<TransformComponent>();
+				auto& light = lightObj.AddComponent<PointLightComponent>();
+				auto& shadow = lightObj.AddComponent<ShadowMapComponent>();
+
+				transform.position.x = 20;
+				transform.position.y = 40;
+				light.color = { 0, 0, 2, 1 };
+				light.falloff = 500;
+
+				shadow.aspect = 1;
+				shadow.FOV = glm::radians(90.f);
+				shadow.nearPlane = 5;
+				shadow.farPlane = 500;
+				shadow.shadowMapBias.fill(0.005);
 			}
 
 			mFirstFrame = false;

@@ -879,6 +879,7 @@ void Renderer::EndFrame()
 			if (mViewport != prevViewport)
 			{
 				glViewport(0, 0, static_cast<GLsizei>(mViewport.z), static_cast<GLsizei>(mViewport.w));
+				prevViewport = mViewport;
 			}
 			
 			if (pass.mClearColor)

@@ -186,8 +186,8 @@ float getShadowPCF(vec3 projCoords, float NdotL, int shadowMapIndex, float bias)
 	vec4 bounds = shadowMapPage[shadowMapIndex];
 	
 	vec4 uvBounds = vec4(0,0,0,0);
-	uvBounds.xz =  bounds.xz / shadowMapSize.x;  
-	uvBounds.yw =  bounds.yw / shadowMapSize.y;  
+	uvBounds.xz =  bounds.xz / shadowMapSize.x;
+	uvBounds.yw =  bounds.yw / shadowMapSize.y;
 
 	int pcfSize = int(shadowMapParams[shadowMapIndex].z);
 	int halfPCFSize = int(pcfSize / 2.0);
@@ -314,7 +314,6 @@ void main()
 		vec3 H = normalize(V + L);
 		float dist = length(pointLights[i].position.xyz - position);
 
-		
 		//if(dist < pointLights[i].params0.x) // is this needed?
 		{
 			float attenuation = pointLights[i].params0.x / (dist * dist);
@@ -329,10 +328,11 @@ void main()
 			Lo +=  lighting;
 		}
 	}
-	
+
 	vec3 ambient = vec3(0.001) * albedo.rgb;
 	vec3 color = ambient + (Lo);
+	color0 = vec4(color, 1.0);
 
 	gl_FragDepth = d;
-	color0 = vec4(color, 1.0);
+	
 }

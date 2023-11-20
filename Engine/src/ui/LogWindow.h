@@ -22,7 +22,8 @@ protected:
 
 		ImGui::BeginChild("LogScrollWindow");
 
-		const auto& messages = Singletons::Get()->Resolve<gold::Logging>()->GetLogHistory();
+		// by copy 
+		const auto messages = Singletons::Get()->Resolve<gold::Logging>()->GetLogHistory();
 		
 		for (const auto& message : messages)
 		{

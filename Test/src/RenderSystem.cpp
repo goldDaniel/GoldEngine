@@ -286,7 +286,7 @@ void RenderSystem::Tick(scene::Scene& scene, float dt)
 		if (buffer.isDirty)
 		{
 			mEncoder->UpdateUniformBuffer(mLightingBuffer, &buffer.lightBuffer, sizeof(LightBufferComponent::LightShaderBuffer));
-			buffer.isDirty = false;
+			//buffer.isDirty = false; // HACK: remove flag at end of this function when fixed
 		}
 		onlyOneBuffer = false;
 	});
@@ -296,12 +296,27 @@ void RenderSystem::Tick(scene::Scene& scene, float dt)
 	ResolveGBuffer(scene);
 	DrawSkybox();
 	Tonemap();
+
+	//HACK: using as a flag to update shadowmaps temporarily
+	scene.ForEach<LightBufferComponent>([](scene::GameObject obj) 
+	{
+		auto& buffer = obj.GetComponent<LightBufferComponent>();
+		buffer.isDirty = false;
+	});
 }
 
 void RenderSystem::FillShadowAtlas(scene::Scene& scene)
 {
+	bool bufferDirty = false;
+	scene.ForEach<LightBufferComponent>([&bufferDirty](scene::GameObject obj)
+	{
+		bufferDirty = obj.GetComponent<LightBufferComponent>().isDirty;
+	});
+	if (!bufferDirty) return;
+	
+
 	RenderPass shadowPass;
-	shadowPass.mName = "shadow_pass";
+	shadowPass.mName = "Shadow Atlas";
 	shadowPass.mClearDepth = true;
 	shadowPass.mTarget = mShadowMapFrameBuffer.mHandle;
 
@@ -320,8 +335,9 @@ void RenderSystem::FillShadowAtlas(scene::Scene& scene)
 		const auto& light = obj.GetComponent<DirectionalLightComponent>();
 		const auto& pages = Singletons::Get()->Resolve<ShadowMapService>()->GetPages();
 
-		if (!shadow.dirty) return;
-		shadow.dirty = false;
+		// HACK: need to be able to clear individual pages before re-enabling
+		/*if (!shadow.dirty) return;
+		shadow.dirty = false;*/
 
 		int shadowIndex = -1;
 		for (const auto& page : pages)
@@ -334,8 +350,6 @@ void RenderSystem::FillShadowAtlas(scene::Scene& scene)
 		}
 		DEBUG_ASSERT(shadowIndex != -1, "Shadow map page ID assignment logic broken");
 		
-		G_INFO("Rebuilding Directional ShadowMap with index: {}", shadowIndex);
-
 		const auto& page = Singletons::Get()->Resolve<ShadowMapService>()->GetPage(shadowIndex);
 
 		// data for shadow pages uniform buffer
@@ -380,8 +394,9 @@ void RenderSystem::FillShadowAtlas(scene::Scene& scene)
 
 		const auto& pages = Singletons::Get()->Resolve<ShadowMapService>()->GetPages();
 
-		if (!shadow.dirty) return;
-		shadow.dirty = false;
+		// HACK: need to be able to clear individual pages before re-enabling
+		/*if (!shadow.dirty) return;
+		shadow.dirty = false;*/
 
 		const std::array<glm::mat4, 6> lightViews
 		{
@@ -409,8 +424,6 @@ void RenderSystem::FillShadowAtlas(scene::Scene& scene)
 			}
 
 			DEBUG_ASSERT(shadowIndex != -1, "Shadow map page ID assignment logic broken");
-
-			G_INFO("Rebuilding Cube ShadowMap with index: {}", shadowIndex);
 
 			const auto& page = Singletons::Get()->Resolve<ShadowMapService>()->GetPage(shadowIndex);
 
