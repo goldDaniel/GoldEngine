@@ -683,58 +683,55 @@ void Renderer::EndFrame()
 		}
 
 		// Images
-		if (isCompute)
+		for (u64 i = 0; i < shader.mImages.size(); ++i)
 		{
-			for (u64 i = 0; i < shader.mImages.size(); ++i)
+			bool foundTexture = false;
+			for (u64 j = 0; j < state.mNumImages; ++j)
 			{
-				bool foundTexture = false;
-				for (u64 j = 0; j < state.mNumImages; ++j)
+				u32 nameHash = state.mImages[j].mNameHash;
+				if (nameHash == shader.mImages[i])
 				{
-					u32 nameHash = state.mImages[j].mNameHash;
-					if (nameHash == shader.mImages[i])
+					TextureHandle handle = state.mImages[j].mHandle;
+					const TextureDesc& d = textureDescriptions[handle];
+
+					GLenum format;
+					switch (d.mType)
 					{
-						TextureHandle handle = state.mImages[j].mHandle;
-						const TextureDesc& d = textureDescriptions[handle];
-
-						GLenum format;
-						switch (d.mType)
-						{
-						case TextureType::Cubemap: 
-							format = FormatToInternalGL(d.descCubemap.mFormat);
-							break;
-						case TextureType::Texture2D:
-							format = FormatToInternalGL(d.desc2D.mFormat);
-							break;
-						case TextureType::Texture3D:
-							format = FormatToInternalGL(d.desc3D.mFormat);
-							break;
-						default:
-							DEBUG_ASSERT(false, "Invalid texture type");
-							break;
-						}
-
-						GLenum access = 0;
-						if (state.mImages[j].read && state.mImages[j].write)
-						{
-							access = GL_READ_WRITE;
-						}
-						else if (state.mImages[j].read)
-						{
-							access = GL_READ_ONLY;
-						}
-						else if (state.mImages[j].write)
-						{
-							access = GL_WRITE_ONLY;
-						}
-						else 
-						{
-							DEBUG_ASSERT(false, "Invalid access type");
-						}
-
-						glBindImageTexture(static_cast<GLuint>(i), handle.idx, 0, GL_TRUE, 0, access, format);
-						foundTexture = true;
+					case TextureType::Cubemap: 
+						format = FormatToInternalGL(d.descCubemap.mFormat);
+						break;
+					case TextureType::Texture2D:
+						format = FormatToInternalGL(d.desc2D.mFormat);
+						break;
+					case TextureType::Texture3D:
+						format = FormatToInternalGL(d.desc3D.mFormat);
+						break;
+					default:
+						DEBUG_ASSERT(false, "Invalid texture type");
 						break;
 					}
+
+					GLenum access = 0;
+					if (state.mImages[j].read && state.mImages[j].write)
+					{
+						access = GL_READ_WRITE;
+					}
+					else if (state.mImages[j].read)
+					{
+						access = GL_READ_ONLY;
+					}
+					else if (state.mImages[j].write)
+					{
+						access = GL_WRITE_ONLY;
+					}
+					else 
+					{
+						DEBUG_ASSERT(false, "Invalid access type");
+					}
+
+					glBindImageTexture(static_cast<GLuint>(i), handle.idx, 0, GL_TRUE, 0, access, format);
+					foundTexture = true;
+					break;
 				}
 			}
 		}		
