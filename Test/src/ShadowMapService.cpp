@@ -10,15 +10,15 @@ ShadowMapService::ShadowMapService()
 uint32_t ShadowMapService::PageIndex(uint16_t x, uint16_t y)
 {
 	uint32_t index = y * kNumPagesX + x;
-	assert(index >= 0 && index < kNumPages);
+	DEBUG_ASSERT(index >= 0 && index < kNumPages, "Invalid page location!");
 
 	return index;
 }
 
 bool ShadowMapService::PageOccupied(uint16_t x, uint16_t y)
 {
-	assert(x >= 0 && x < (kNumPagesX));
-	assert(y >= 0 && y < (kNumPagesY));
+	DEBUG_ASSERT(x >= 0 && x < (kNumPagesX), "Invalid page location!");
+	DEBUG_ASSERT(y >= 0 && y < (kNumPagesY), "Invalid page location!");
 
 	uint32_t index = PageIndex(x, y);
 
@@ -34,8 +34,8 @@ void ShadowMapService::Reset()
 
 const ShadowMapService::ShadowPage& ShadowMapService::GetNextAvailablePageLocation()
 {
-	assert(mLastY < kNumPagesY && "shadow buffer has been filled!");
-	assert(!PageOccupied(mLastX, mLastY) && "page occupied! page selection logic broken");
+	DEBUG_ASSERT(mLastY < kNumPagesY, "shadow buffer has been filled!");
+	DEBUG_ASSERT(!PageOccupied(mLastX, mLastY), "page occupied! page selection logic broken");
 
 	ShadowPage result;
 	result.x = mLastX * kPageWidth;
@@ -69,7 +69,7 @@ const ShadowMapService::ShadowPage& ShadowMapService::GetPage(uint32_t index) co
 		}
 	}
 
-	assert(false && "Invalid shadow map index given!");
+	DEBUG_ASSERT(false, "Invalid shadow map index given!");
 	return *(ShadowPage*)nullptr;
 }
 

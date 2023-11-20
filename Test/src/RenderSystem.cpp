@@ -311,7 +311,7 @@ void RenderSystem::Tick(scene::Scene& scene, float dt)
 		if (buffer.isDirty)
 		{
 			mEncoder->UpdateUniformBuffer(mLightingBuffer, &buffer.lightBuffer, sizeof(LightBufferComponent::LightShaderBuffer));
-			buffer.isDirty = false; // HACK: remove flag at end of this function when fixed
+			buffer.isDirty = false;
 		}
 		onlyOneBuffer = false;
 	});
@@ -339,7 +339,7 @@ void RenderSystem::FillShadowAtlas(scene::Scene& scene)
 	shadowPass.mTarget = mShadowMapFrameBuffer.mHandle;
 
 	RenderState shadowState;
-	shadowState.mCullFace = CullFace::BACK;
+	shadowState.mCullFace = CullFace::FRONT;
 	shadowState.mColorWriteEnabled = false;
 	shadowState.mRenderPass = mEncoder->AddRenderPass(shadowPass);
 	shadowState.mShader = mShadowAtlasFillShader;
