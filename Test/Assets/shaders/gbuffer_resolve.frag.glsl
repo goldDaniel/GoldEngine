@@ -189,7 +189,8 @@ float getShadowPCF(vec3 projCoords, float NdotL, int shadowMapIndex, float bias)
 	uvBounds.xz =  bounds.xz / shadowMapSize.x;
 	uvBounds.yw =  bounds.yw / shadowMapSize.y;
 
-	int pcfSize = int(shadowMapParams[shadowMapIndex].z);
+	// just in case zero is sent down. but PCFSize should always be >= 1
+	int pcfSize = max(1, int(shadowMapParams[shadowMapIndex].z));
 	int halfPCFSize = int(pcfSize / 2.0);
 
 	// PCF
@@ -205,8 +206,8 @@ float getShadowPCF(vec3 projCoords, float NdotL, int shadowMapIndex, float bias)
 			shadow += (projCoords.z - bias) > pcfDepth  ? 1.0 : 0.0;
 		}
 	}
-	// just in case zero is sent down. but PCFSize should always be >= 1
-	shadow /= max(1.0, pcfSize*pcfSize);
+	
+	shadow /= (pcfSize*pcfSize);
 	return shadow;
 }
 
@@ -265,11 +266,10 @@ float getPointShadow(int pointLightIndex, vec4 fragmentPosWorldSpace, vec3 norma
 
 	vec3 projCoords = posLightSpace.xyz / posLightSpace.w;
 	projCoords = projCoords * 0.5 + 0.5;
-	///projCoords.xy = 1.0 projCoords.xy;
 
 
 	float NdotL = dot(normal, normalize(fragPosToLightPos));
-	float bias = shadowMapParams[shadowMapIndex].w;
+	float bias = max(0.0001, shadowMapParams[shadowMapIndex].w);
 	return getShadowPCF(projCoords, NdotL, shadowMapIndex, bias);
 }
 
@@ -314,9 +314,11 @@ void main()
 		vec3 H = normalize(V + L);
 		float dist = length(pointLights[i].position.xyz - position);
 
-		//if(dist < pointLights[i].params0.x) // is this needed?
+		if(dist < pointLights[i].params0.x) // is this needed?
 		{
-			float attenuation = pointLights[i].params0.x / (dist * dist);
+			float attenuation = 1.0 - dist / pointLights[i].params0.x;
+			attenuation *= attenuation;
+
 			vec3 radiance = clamp(pointLights[i].color.rgb * attenuation, 0, 1);
 		
 			vec3 lighting = getLighting(L, normal, V, H, F0, radiance, albedo.rgb, roughness, metallic);
@@ -329,7 +331,7 @@ void main()
 		}
 	}
 
-	vec3 ambient = vec3(0.001) * albedo.rgb;
+	vec3 ambient = vec3(0.001)* albedo.rgb;
 	vec3 color = ambient + (Lo);
 	color0 = vec4(color, 1.0);
 

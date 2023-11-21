@@ -339,7 +339,7 @@ void RenderSystem::FillShadowAtlas(scene::Scene& scene)
 	shadowPass.mTarget = mShadowMapFrameBuffer.mHandle;
 
 	RenderState shadowState;
-	shadowState.mCullFace = CullFace::FRONT;
+	shadowState.mCullFace = CullFace::BACK;
 	shadowState.mColorWriteEnabled = false;
 	shadowState.mRenderPass = mEncoder->AddRenderPass(shadowPass);
 	shadowState.mShader = mShadowAtlasFillShader;
@@ -367,7 +367,6 @@ void RenderSystem::FillShadowAtlas(scene::Scene& scene)
 			}
 		}
 		DEBUG_ASSERT(shadowIndex != -1, "Shadow map page ID assignment logic broken");
-		
 		const auto& page = Singletons::Get()->Resolve<ShadowMapService>()->GetPage(shadowIndex);
 
 		// data for shadow pages uniform buffer
@@ -403,7 +402,7 @@ void RenderSystem::FillShadowAtlas(scene::Scene& scene)
 		PopFrustumCull(scene);
 	});
 
-	// directional lights
+	// Point lights
 	scene.ForEach<PointLightComponent, ShadowMapComponent>([this, &shadowState, &scene](scene::GameObject& obj)
 	{
 		const auto& transform = obj.GetComponent<TransformComponent>();
