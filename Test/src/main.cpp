@@ -106,7 +106,7 @@ protected:
 				shadow.PCFSize = 9;
 				shadow.aspect = 1;
 				shadow.FOV = glm::radians(90.f);
-				shadow.nearPlane = 0.1;
+				shadow.nearPlane = 1;
 				shadow.farPlane = 100;
 				shadow.shadowMapBias.fill(0);
 			}
@@ -125,7 +125,7 @@ protected:
 				shadow.PCFSize = 9;
 				shadow.aspect = 1;
 				shadow.FOV = glm::radians(90.f);
-				shadow.nearPlane = 0.1;
+				shadow.nearPlane = 1;
 				shadow.farPlane = 100;
 				shadow.shadowMapBias.fill(0);
 			}
@@ -144,7 +144,7 @@ protected:
 				shadow.PCFSize = 9;
 				shadow.aspect = 1;
 				shadow.FOV = glm::radians(90.f);
-				shadow.nearPlane = 0.1;
+				shadow.nearPlane = 1;
 				shadow.farPlane = 100;
 				shadow.shadowMapBias.fill(0);
 			}

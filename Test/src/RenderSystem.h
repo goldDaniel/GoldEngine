@@ -52,6 +52,27 @@ private:
 
 	graphics::UniformBufferHandle mMaterialBuffer{};
 
+
+	
+	struct LightBins
+	{
+		static constexpr u32 maxBinLights = 256 * 8;
+		struct LightBin
+		{
+			u32 start;
+			u32 end;
+			u32 pad0;
+			u32 pad1;
+		};
+
+		//x,y,z, ?
+		glm::ivec4 u_binsCounts{};
+		LightBin u_lightBins[maxBinLights]{};
+	};
+	
+	LightBins mLightBins{};
+	graphics::UniformBufferHandle mLightBinsBuffer{};
+
 	// holds LightBufferComponent::LightShaderBuffer
 	graphics::UniformBufferHandle mLightingBuffer{};
 
@@ -72,8 +93,11 @@ private:
 
 	bool mFirstFrame = true;
 
+	glm::uvec2 mResolution{};
+		
 	void InitRenderData(scene::Scene& scene);
 
+	void ProcessPointLights(scene::Scene& scene);
 	void FillShadowAtlas(scene::Scene& scene);
 	void FillGBuffer(const Camera& camera, scene::Scene& scene);
 	void ResolveGBuffer(scene::Scene& scene);

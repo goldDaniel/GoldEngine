@@ -35,6 +35,21 @@ layout(std140) uniform LightSpaceMatrices_UBO
 	mat4 mLightInv[MAX_LIGHTS];
 };
 
+const int MAX_BIN_LIGHTS = 256 * 8;
+struct LightBin
+{
+	uint start;
+	uint end;
+	uint pad[2];
+};
+
+layout(std140) uniform LightBins_UBO
+{
+	//x,y,z, ?
+	ivec4 u_binsCounts;
+	LightBin u_lightBins[MAX_BIN_LIGHTS];
+};
+
 layout(std140) uniform ShadowPages_UBO
 {
 	vec4 shadowMapPage[MAX_LIGHTS];
@@ -70,6 +85,24 @@ vec2 mapValue(vec2 x, vec2 in_min, vec2 in_max, vec2 out_min, vec2 out_max)
 {
   return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
 }
+
+uvec2 getLightBin(vec2 screenPos) 
+{
+	uvec2 bin = ivec2(0, 0);
+
+	int numBinsX = int(u_binsCounts.x + 0.5);
+	int numBinsY = int(u_binsCounts.y + 0.5);
+	int binX = clamp(int(screenPos.x * u_binsCounts.x), 0, numBinsX - 1);
+	int binY = clamp(int(screenPos.y * u_binsCounts.y), 0, numBinsY - 1);
+
+	int binIndex = (binY * numBinsX) + binX;
+	bin.x = u_lightBins[binIndex].start;
+	bin.y = u_lightBins[binIndex].end;
+	
+	return bin;
+}
+
+
 
 const int CubemapFace_XP = 0;
 const int CubemapFace_XN = 1;
@@ -224,7 +257,7 @@ float getDirectionalShadow(int index, vec4 posLightSpace, float NdotL)
 	return getShadowPCF(projCoords, NdotL, index, bias);
 }
 
-float getPointShadow(int pointLightIndex, vec4 fragmentPosWorldSpace, vec3 normal)
+float getPointShadow(uint pointLightIndex, vec4 fragmentPosWorldSpace, vec3 normal)
 {
 	 vec3 fragPosToLightPos = fragmentPosWorldSpace.xyz - pointLights[pointLightIndex].position.xyz;
 	
@@ -308,23 +341,27 @@ void main()
 		Lo +=  lighting;
 	}
 
-	for(int i = 0; i < lightCounts.y; ++i) 
+	uvec2 lightBin = getLightBin(Texcoord);
+	//for(uint idx = lightBin.x; idx <= lightBin.y; ++idx) 
+	for(int idx = 0; idx < lightCounts.y; ++idx) 
 	{
-		vec3 L = normalize(pointLights[i].position.xyz - position);
-		vec3 H = normalize(V + L);
-		float dist = length(pointLights[i].position.xyz - position);
+		uint lightIndex = idx;
 
-		if(dist < pointLights[i].params0.x) // is this needed?
+		vec3 L = normalize(pointLights[lightIndex].position.xyz - position);
+		vec3 H = normalize(V + L);
+		float dist = length(pointLights[lightIndex].position.xyz - position);
+
+		if(dist < pointLights[lightIndex].params0.x) // is this needed?
 		{
-			float attenuation = 1.0 - dist / pointLights[i].params0.x;
+			float attenuation = 1.0 - dist / pointLights[lightIndex].params0.x;
 			attenuation *= attenuation;
 
-			vec3 radiance = clamp(pointLights[i].color.rgb * attenuation, 0, 1);
+			vec3 radiance = clamp(pointLights[lightIndex].color.rgb * attenuation, 0, 1);
 		
 			vec3 lighting = getLighting(L, normal, V, H, F0, radiance, albedo.rgb, roughness, metallic);
-			if(pointLights[i].params0.z != -1)
+			if(pointLights[lightIndex].params0.z != -1)
 			{
-				float shadow = getPointShadow(i, vec4(position, 1.0), normal);
+				float shadow = getPointShadow(lightIndex, vec4(position, 1.0), normal);
 				lighting *= (1.0 - shadow);
 			}
 			Lo +=  lighting;

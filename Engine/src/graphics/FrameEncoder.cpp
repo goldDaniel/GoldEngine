@@ -273,7 +273,14 @@ UniformBufferHandle FrameEncoder::CreateUniformBuffer(const void* data, u32 size
 	mWriter.Write(clientHandle);
 	
 	void* frameData = mAllocator->Allocate(size);
-	memcpy(frameData, data, size);
+	if (data)
+	{
+		memcpy(frameData, data, size);
+	}
+	else 
+	{
+		memset(frameData, 0, size);
+	}
 	mWriter.Write(Memory{ frameData, size });
 
 	return clientHandle;

@@ -46,7 +46,6 @@ static void PopFrustumCull(scene::Scene& scene)
 
 void RenderSystem::InitRenderData(scene::Scene& scene)
 {
-
 	// Per frame constants
 	{
 		mPerFrameConstants.u_proj = glm::perspective(glm::radians(65.f), (float)mGBuffer.mWidth / (float)mGBuffer.mHeight, 1.f, 1000.f);
@@ -76,8 +75,7 @@ void RenderSystem::InitRenderData(scene::Scene& scene)
 
 	// Lighting data constants
 	{
-		LightBufferComponent::LightShaderBuffer lightBuffer{};
-		mLightingBuffer = mEncoder->CreateUniformBuffer(&lightBuffer, sizeof(LightBufferComponent::LightShaderBuffer));
+		mLightingBuffer = mEncoder->CreateUniformBuffer(nullptr, sizeof(LightBufferComponent::LightShaderBuffer));
 	}
 
 	// shadow map atlas framebuffer
@@ -94,6 +92,11 @@ void RenderSystem::InitRenderData(scene::Scene& scene)
 		FrameBufferDescription fbDesc;
 		fbDesc.Put<OutputSlot::Depth>(texDesc);
 		mShadowMapFrameBuffer = mEncoder->CreateFrameBuffer(fbDesc);
+	}
+
+	// Light bins
+	{
+		mLightBinsBuffer = mEncoder->CreateUniformBuffer(nullptr, sizeof(LightBins));
 	}
 
 	// Light matrices
@@ -300,6 +303,8 @@ void RenderSystem::Tick(scene::Scene& scene, float dt)
 		}
 	}
 
+	ProcessPointLights(scene);
+
 	// update lighting buffers 
 	// NOTE (danielg): mutable lambda to assert if there is more than 1 iteration
 	// we only want one of these components, holds ALL lighting info
@@ -323,6 +328,147 @@ void RenderSystem::Tick(scene::Scene& scene, float dt)
 	Tonemap();
 }
 
+void RenderSystem::ProcessPointLights(scene::Scene& scene)
+{
+	// TODO (danielg): do this on GPU?
+
+	LightBufferComponent* lightBuffer;
+	scene.ForEach<LightBufferComponent>([&lightBuffer](scene::GameObject obj)
+	{
+		lightBuffer = &obj.GetComponent<LightBufferComponent>();
+	});
+
+	
+	const u32 numPointLights = lightBuffer->lightBuffer.lightCounts.y;
+	const auto& pointLights = lightBuffer->lightBuffer.pointLights;
+
+	const u32 binSizeX = 256;
+	const u32 binSizeY = 256;
+	
+	const u32 numBinsX = std::max((u32)(mResolution.x / binSizeX + 0.5f), 1u);
+	const u32 numBinsY = std::max((u32)(mResolution.y / binSizeY + 0.5f), 1u);
+
+	mLightBins.u_binsCounts.x = numBinsX;
+	mLightBins.u_binsCounts.y = numBinsY;
+
+	const u32 numBinsTotal = numBinsX * numBinsY;
+	const u32 maxLightsPerBin = 8;
+	const u32 maxLights = maxLightsPerBin * numBinsTotal;
+
+	DEBUG_ASSERT(maxLights < LightBins::maxBinLights, "Exceeded bin count");
+
+	std::fill(std::begin(mLightBins.u_lightBins), std::end(mLightBins.u_lightBins), LightBins::LightBin{0,0,0,0});
+
+	// reset bins
+	for (int i = 0; i < numBinsTotal; ++i)
+	{
+		mLightBins.u_lightBins[i].start = i * maxLightsPerBin;
+		mLightBins.u_lightBins[i].end = mLightBins.u_lightBins[i].start;
+	}
+
+	struct LightBounds
+	{
+		glm::vec2 min;
+		glm::vec2 max;
+	};
+
+	const glm::mat4 view = mPerFrameConstants.u_view;
+	const glm::mat4 proj = mPerFrameConstants.u_proj;
+	const float zNear = proj[3][2] / (proj[2][2] - 1.0f);
+	auto computeScreenBounds = [&view, &proj, zNear](const glm::vec3 pos, const float radius)
+	{
+		LightBounds bounds;
+
+		bounds.min = glm::vec3(FLT_MAX, FLT_MAX, FLT_MAX);
+		bounds.max = glm::vec3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
+
+		glm::vec4 light = view * glm::vec4(pos, 1.0f);
+
+		std::array<glm::vec4,8> corners =
+		{
+			glm::vec4(light.x + radius, light.y + radius, light.z + radius, 1.f),
+			glm::vec4(light.x + radius, light.y + radius, light.z - radius, 1.f),
+			glm::vec4(light.x + radius, light.y - radius, light.z + radius, 1.f),
+			glm::vec4(light.x + radius, light.y - radius, light.z - radius, 1.f),
+			glm::vec4(light.x - radius, light.y + radius, light.z + radius, 1.f),
+			glm::vec4(light.x - radius, light.y + radius, light.z - radius, 1.f),
+			glm::vec4(light.x - radius, light.y - radius, light.z + radius, 1.f),
+			glm::vec4(light.x - radius, light.y - radius, light.z - radius, 1.f)
+		};
+
+		for (auto edge : corners)
+		{
+			float viewDepth = edge.z + zNear;
+			edge.z = std::min(-zNear, edge.z);
+
+			glm::vec4 projPos = proj * edge;
+			projPos /= projPos.w;
+
+			bounds.min.x = glm::min(bounds.min.x, projPos.x);
+			bounds.min.y = glm::min(bounds.min.y, -projPos.y);
+			bounds.max.x = glm::max(bounds.max.x, projPos.x);
+			bounds.max.y = glm::max(bounds.max.y, -projPos.y);
+		}
+
+		return bounds;
+	};
+
+	u32 binnedLightCount = 0;
+	for (u32 i = 0; i < numPointLights; ++i)
+	{
+		const auto& light = pointLights[i];
+
+		LightBounds bounds = computeScreenBounds(light.position, light.params0.x);
+		
+		u32 startX = glm::clamp((u32)(bounds.min.x * numBinsX), 0u, numBinsX - 1u);
+		u32 endX   = glm::clamp((u32)(bounds.max.x * numBinsX), 0u, numBinsX - 1u);
+		u32 startY = glm::clamp((u32)(bounds.min.y * numBinsY), 0u, numBinsY - 1u);
+		u32 endY   = glm::clamp((u32)(bounds.max.y * numBinsY), 0u, numBinsY - 1u);
+
+		for (u32 y = startY; y <= endY; ++y)
+		{
+			for (u32 x = startX; x <= endX; ++x)
+			{
+				u32 index = (y * numBinsX) + x;
+				auto& bin = mLightBins.u_lightBins[index];
+					
+				if ((bin.end - bin.start) < maxLightsPerBin)
+				{
+					bin.end++;
+					binnedLightCount++;
+				}
+				else
+				{
+					// NOTE (danielg): do something smarter than ignoring the extra lights?
+					DEBUG_ASSERT(false, "Light bin full!");
+				}
+			}
+		}
+	}
+
+	// compact bins
+	/*{
+		u32 nextAvailableStart = 0;
+		for (u32 binIdx = 0; binIdx < numBinsTotal; ++binIdx)
+		{
+			auto& bin = mLightBins.u_lightBins[binIdx];
+
+			u32 newBinStart = nextAvailableStart;
+
+			for (u32 i = bin.start; i < bin.end; ++i)
+			{
+				mLightBins.u_binnedLightIndices[nextAvailableStart] = mLightBins.u_binnedLightIndices[i];
+				nextAvailableStart++;
+			}
+			bin.start = newBinStart;
+			bin.end = nextAvailableStart;
+		}
+		DEBUG_ASSERT(nextAvailableStart == binnedLightCount, "Light bin compaction logic is broken");
+	}*/
+
+	mEncoder->UpdateUniformBuffer(mLightBinsBuffer, &mLightBins, sizeof(LightBins), 0);
+}
+
 void RenderSystem::FillShadowAtlas(scene::Scene& scene)
 {
 	bool bufferDirty = false;
@@ -339,7 +485,6 @@ void RenderSystem::FillShadowAtlas(scene::Scene& scene)
 	shadowPass.mTarget = mShadowMapFrameBuffer.mHandle;
 
 	RenderState shadowState;
-	shadowState.mCullFace = CullFace::BACK;
 	shadowState.mColorWriteEnabled = false;
 	shadowState.mRenderPass = mEncoder->AddRenderPass(shadowPass);
 	shadowState.mShader = mShadowAtlasFillShader;
@@ -368,6 +513,7 @@ void RenderSystem::FillShadowAtlas(scene::Scene& scene)
 		}
 		DEBUG_ASSERT(shadowIndex != -1, "Shadow map page ID assignment logic broken");
 		const auto& page = Singletons::Get()->Resolve<ShadowMapService>()->GetPage(shadowIndex);
+		if (shadowIndex >= LightBufferComponent::MAX_CASTERS) return;
 
 		// data for shadow pages uniform buffer
 		mShadowPages.mPage[shadowIndex] = { page.x, page.y, page.width, page.height };
@@ -441,6 +587,7 @@ void RenderSystem::FillShadowAtlas(scene::Scene& scene)
 			}
 
 			DEBUG_ASSERT(shadowIndex != -1, "Shadow map page ID assignment logic broken");
+			if (shadowIndex >= LightBufferComponent::MAX_CASTERS) return;
 
 			const auto& page = Singletons::Get()->Resolve<ShadowMapService>()->GetPage(shadowIndex);
 
@@ -535,6 +682,7 @@ void RenderSystem::ResolveGBuffer(scene::Scene& scene)
 	state.SetUniformBlock("Lights_UBO", mLightingBuffer);
 	state.SetUniformBlock("LightSpaceMatrices_UBO", mLightMatricesBuffer);
 	state.SetUniformBlock("ShadowPages_UBO", mShadowPagesBuffer);
+	state.SetUniformBlock("LightBins_UBO", mLightBinsBuffer);
 
 	state.SetTexture("albedos", mGBuffer.AsTexture<OutputSlot::Color0>());
 	state.SetTexture("normals", mGBuffer.AsTexture<OutputSlot::Color1>());
@@ -585,6 +733,9 @@ void RenderSystem::Tonemap()
 
 void RenderSystem::ResizeGBuffer(int width, int height)
 {
+	mResolution.x = width;
+	mResolution.y = height;
+
 	if (mGBuffer.mHandle.idx == 0 ||
 		mGBuffer.mWidth != width || mGBuffer.mHeight != height)
 	{
