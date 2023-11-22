@@ -251,7 +251,7 @@ float getDirectionalShadow(int index, vec4 posLightSpace, float NdotL)
 	{
 		return 0.0;
 	}
-	float bias = max(0.01 * (1.0 - NdotL), shadowMapParams[index].w);
+	float bias = max(0.005 * (1.0 - NdotL), shadowMapParams[index].w);
 	return getShadowPCF(projCoords, NdotL, index, bias);
 }
 
@@ -329,7 +329,7 @@ void main()
 		int shadowMapIndex = directionalLights[i].params.w;
 
 		vec3 lighting = getLighting(L, normal, V, H, F0, radiance, albedo.rgb, roughness, metallic);
-		if(directionalLights[i].params.w != -1)
+		if(directionalLights[i].params.w != -1) // if shadowmaps are enabled for this light
 		{
 			float NdotL = dot(normal, normalize(directionalLights[i].direction.xyz));
 			float shadow = getDirectionalShadow(shadowMapIndex, mLightSpace[shadowMapIndex] * vec4(position, 1.0), NdotL);
@@ -355,7 +355,7 @@ void main()
 			vec3 radiance = clamp(pointLights[lightIndex].color.rgb * attenuation, 0, 1);
 
 			vec3 lighting = getLighting(L, normal, V, H, F0, radiance, albedo.rgb, roughness, metallic);
-			if(pointLights[lightIndex].params0.z != -1)
+			if(pointLights[lightIndex].params0.z != -1) // if shadowmaps are enabled for this light
 			{
 				float shadow = getPointShadow(lightIndex, vec4(position, 1.0), normal);
 				lighting *= (1.0 - shadow);
