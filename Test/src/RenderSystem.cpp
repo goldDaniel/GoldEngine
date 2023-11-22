@@ -9,6 +9,8 @@
 
 using namespace graphics;
 
+bool RenderSystem::kReloadShaders = true;
+
 static void PushFrustumCull(scene::Scene& scene, const glm::mat4& viewProj)
 {
 	// frustum cull
@@ -46,6 +48,7 @@ static void PopFrustumCull(scene::Scene& scene)
 
 void RenderSystem::InitRenderData(scene::Scene& scene)
 {
+	kReloadShaders = false;
 	// Per frame constants
 	{
 		mPerFrameConstants.u_proj = glm::perspective(glm::radians(65.f), (float)mGBuffer.mWidth / (float)mGBuffer.mHeight, 1.f, 1000.f);
@@ -110,40 +113,7 @@ void RenderSystem::InitRenderData(scene::Scene& scene)
 		mShadowPagesBuffer = mEncoder->CreateUniformBuffer(&mShadowPages, sizeof(ShadowMapPages));
 	}
 
-	//Shadow Atlas Fill
-	{
-		std::string vertSrc = util::LoadStringFromFile("shaders/shadow.vert.glsl");
-		std::string fragSrc = util::LoadStringFromFile("shaders/shadow.frag.glsl");
-		mShadowAtlasFillShader = mEncoder->CreateShader(vertSrc.c_str(), fragSrc.c_str());
-	}
-
-	//GBuffer fill
-	{
-		std::string vertSrc = util::LoadStringFromFile("shaders/gbuffer_fill.vert.glsl");
-		std::string fragSrc = util::LoadStringFromFile("shaders/gbuffer_fill.frag.glsl");
-		mGBufferFillShader = mEncoder->CreateShader(vertSrc.c_str(), fragSrc.c_str());
-	}
-
-	//GBuffer resolve
-	{
-		std::string vertSrc = util::LoadStringFromFile("shaders/gbuffer_resolve.vert.glsl");
-		std::string fragSrc = util::LoadStringFromFile("shaders/gbuffer_resolve.frag.glsl");
-		mGBufferResolveShader = mEncoder->CreateShader(vertSrc.c_str(), fragSrc.c_str());
-	}
-
-	// Skybox
-	{
-		std::string vertSrc = util::LoadStringFromFile("shaders/skybox.vert.glsl");
-		std::string fragSrc = util::LoadStringFromFile("shaders/skybox.frag.glsl");
-		mSkyboxShader = mEncoder->CreateShader(vertSrc.c_str(), fragSrc.c_str());
-	}
-
-	//Tonemap
-	{
-		std::string vertSrc = util::LoadStringFromFile("shaders/tonemap.vert.glsl");
-		std::string fragSrc = util::LoadStringFromFile("shaders/tonemap.frag.glsl");
-		mTonemapShader = mEncoder->CreateShader(vertSrc.c_str(), fragSrc.c_str());
-	}
+	
 
 	// fullscreen quad
 	{
@@ -259,9 +229,54 @@ void RenderSystem::InitRenderData(scene::Scene& scene)
 	}
 }
 
+void RenderSystem::ReloadShaders()
+{
+	kReloadShaders = false;
+
+	//Shadow Atlas Fill
+	{
+		std::string vertSrc = util::LoadStringFromFile("shaders/shadow.vert.glsl");
+		std::string fragSrc = util::LoadStringFromFile("shaders/shadow.frag.glsl");
+		mShadowAtlasFillShader = mEncoder->CreateShader(vertSrc.c_str(), fragSrc.c_str());
+	}
+
+	//GBuffer fill
+	{
+		std::string vertSrc = util::LoadStringFromFile("shaders/gbuffer_fill.vert.glsl");
+		std::string fragSrc = util::LoadStringFromFile("shaders/gbuffer_fill.frag.glsl");
+		mGBufferFillShader = mEncoder->CreateShader(vertSrc.c_str(), fragSrc.c_str());
+	}
+
+	//GBuffer resolve
+	{
+		std::string vertSrc = util::LoadStringFromFile("shaders/gbuffer_resolve.vert.glsl");
+		std::string fragSrc = util::LoadStringFromFile("shaders/gbuffer_resolve.frag.glsl");
+		mGBufferResolveShader = mEncoder->CreateShader(vertSrc.c_str(), fragSrc.c_str());
+	}
+
+	// Skybox
+	{
+		std::string vertSrc = util::LoadStringFromFile("shaders/skybox.vert.glsl");
+		std::string fragSrc = util::LoadStringFromFile("shaders/skybox.frag.glsl");
+		mSkyboxShader = mEncoder->CreateShader(vertSrc.c_str(), fragSrc.c_str());
+	}
+
+	//Tonemap
+	{
+		std::string vertSrc = util::LoadStringFromFile("shaders/tonemap.vert.glsl");
+		std::string fragSrc = util::LoadStringFromFile("shaders/tonemap.frag.glsl");
+		mTonemapShader = mEncoder->CreateShader(vertSrc.c_str(), fragSrc.c_str());
+	}
+}
+
 
 void RenderSystem::Tick(scene::Scene& scene, float dt)
 {
+	if (kReloadShaders)
+	{
+		ReloadShaders();
+	}
+
 	if (mFirstFrame)
 	{
 		InitRenderData(scene);

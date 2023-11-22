@@ -21,7 +21,6 @@
 
 #include "ShadowMapService.h"
 
-
 class TestApp : public gold::Application
 {
 private:
@@ -171,6 +170,11 @@ protected:
 
 		mRenderSystem.ResizeGBuffer(width, height);
 		mRenderSystem.Tick(mScene, delta);
+
+		if (Singletons::Get()->Resolve<gold::Input>()->IsKeyJustPressed(KeyCode::r))
+		{
+			RenderSystem::kReloadShaders = true;
+		}
 	}
 };
 

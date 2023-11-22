@@ -10,6 +10,8 @@
 
 class RenderSystem : scene::GameSystem
 {
+public:
+	static bool kReloadShaders;
 private:
 	gold::FrameEncoder* mEncoder = nullptr;
 
@@ -92,6 +94,7 @@ private:
 	glm::uvec2 mResolution{};
 		
 	void InitRenderData(scene::Scene& scene);
+	void ReloadShaders();
 
 	void ProcessPointLights(scene::Scene& scene);
 	void FillShadowAtlas(scene::Scene& scene);
