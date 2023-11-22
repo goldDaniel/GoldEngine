@@ -56,18 +56,11 @@ private:
 	
 	struct LightBins
 	{
-		static constexpr u32 maxBinLights = 256 * 8;
-		struct LightBin
-		{
-			u32 start;
-			u32 end;
-			u32 pad0;
-			u32 pad1;
-		};
-
-		//x,y,z, ?
-		glm::ivec4 u_binsCounts{};
-		LightBin u_lightBins[maxBinLights]{};
+		static constexpr u32 maxBinLights = (2560 / 128)*(2560 / 128) * 8;
+		
+		glm::uvec4 u_binsCounts{}; //x,y,z, ?
+		glm::uvec4 u_lightBins[maxBinLights]{}; //start, end, pad, pad;
+		int u_lightBinIndices[maxBinLights]{}; 
 	};
 	
 	LightBins mLightBins{};

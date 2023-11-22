@@ -35,19 +35,12 @@ layout(std140) uniform LightSpaceMatrices_UBO
 	mat4 mLightInv[MAX_LIGHTS];
 };
 
-const int MAX_BIN_LIGHTS = 256 * 8;
-struct LightBin
-{
-	uint start;
-	uint end;
-	uint pad[2];
-};
-
+const int MAX_BIN_LIGHTS = (2560 / 128)*(2560 / 128) * 8;
 layout(std140) uniform LightBins_UBO
 {
-	//x,y,z, ?
-	ivec4 u_binsCounts;
-	LightBin u_lightBins[MAX_BIN_LIGHTS];
+	uvec4 u_binsCounts; //x,y,z, ?
+	uvec4 u_lightBins[MAX_BIN_LIGHTS]; // start, end, pad, pad
+	int u_lightBinIndices[MAX_BIN_LIGHTS]; 
 };
 
 layout(std140) uniform ShadowPages_UBO
@@ -96,13 +89,11 @@ uvec2 getLightBin(vec2 screenPos)
 	int binY = clamp(int(screenPos.y * u_binsCounts.y), 0, numBinsY - 1);
 
 	int binIndex = (binY * numBinsX) + binX;
-	bin.x = u_lightBins[binIndex].start;
-	bin.y = u_lightBins[binIndex].end;
+	bin.x = u_lightBins[binIndex].x;
+	bin.y = u_lightBins[binIndex].y;
 	
 	return bin;
 }
-
-
 
 const int CubemapFace_XP = 0;
 const int CubemapFace_XN = 1;
@@ -342,10 +333,12 @@ void main()
 	}
 
 	uvec2 lightBin = getLightBin(Texcoord);
-	//for(uint idx = lightBin.x; idx <= lightBin.y; ++idx) 
-	for(int idx = 0; idx < lightCounts.y; ++idx) 
+	for(uint idx = lightBin.x; idx < lightBin.y; ++idx) 
+	//for(int idx = 0; idx < lightCounts.y; ++idx)
 	{
-		uint lightIndex = idx;
+		if(u_lightBinIndices[idx] == -1) continue;
+
+		uint lightIndex = uint(u_lightBinIndices[idx]);
 
 		vec3 L = normalize(pointLights[lightIndex].position.xyz - position);
 		vec3 H = normalize(V + L);
@@ -353,7 +346,7 @@ void main()
 
 		if(dist < pointLights[lightIndex].params0.x) // is this needed?
 		{
-			float attenuation = 1.0 - dist / pointLights[lightIndex].params0.x;
+			float attenuation = 1.0 - (dist / pointLights[lightIndex].params0.x) * (dist / pointLights[lightIndex].params0.x);
 			attenuation *= attenuation;
 
 			vec3 radiance = clamp(pointLights[lightIndex].color.rgb * attenuation, 0, 1);

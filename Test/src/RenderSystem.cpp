@@ -342,11 +342,11 @@ void RenderSystem::ProcessPointLights(scene::Scene& scene)
 	const u32 numPointLights = lightBuffer->lightBuffer.lightCounts.y;
 	const auto& pointLights = lightBuffer->lightBuffer.pointLights;
 
-	const u32 binSizeX = 256;
-	const u32 binSizeY = 256;
+	const i32 binSizeX = 64;
+	const i32 binSizeY = 64;
 	
-	const u32 numBinsX = std::max((u32)(mResolution.x / binSizeX + 0.5f), 1u);
-	const u32 numBinsY = std::max((u32)(mResolution.y / binSizeY + 0.5f), 1u);
+	const i32 numBinsX = std::max((u32)(mResolution.x / binSizeX + 0.5f), 1u);
+	const i32 numBinsY = std::max((u32)(mResolution.y / binSizeY + 0.5f), 1u);
 
 	mLightBins.u_binsCounts.x = numBinsX;
 	mLightBins.u_binsCounts.y = numBinsY;
@@ -357,13 +357,17 @@ void RenderSystem::ProcessPointLights(scene::Scene& scene)
 
 	DEBUG_ASSERT(maxLights < LightBins::maxBinLights, "Exceeded bin count");
 
-	std::fill(std::begin(mLightBins.u_lightBins), std::end(mLightBins.u_lightBins), LightBins::LightBin{0,0,0,0});
+	std::fill(std::begin(mLightBins.u_lightBins), std::end(mLightBins.u_lightBins), glm::vec4{0,0,0,0});
 
 	// reset bins
 	for (int i = 0; i < numBinsTotal; ++i)
 	{
-		mLightBins.u_lightBins[i].start = i * maxLightsPerBin;
-		mLightBins.u_lightBins[i].end = mLightBins.u_lightBins[i].start;
+		mLightBins.u_lightBins[i].x = i * maxLightsPerBin;
+		mLightBins.u_lightBins[i].y = mLightBins.u_lightBins[i].x;
+	}
+	for (int i = 0; i < maxLights; ++i)
+	{
+		mLightBins.u_lightBinIndices[i] = -1;
 	}
 
 	struct LightBounds
@@ -382,26 +386,21 @@ void RenderSystem::ProcessPointLights(scene::Scene& scene)
 		bounds.min = glm::vec3(FLT_MAX, FLT_MAX, FLT_MAX);
 		bounds.max = glm::vec3(-FLT_MAX, -FLT_MAX, -FLT_MAX);
 
-		glm::vec4 light = view * glm::vec4(pos, 1.0f);
-
 		std::array<glm::vec4,8> corners =
 		{
-			glm::vec4(light.x + radius, light.y + radius, light.z + radius, 1.f),
-			glm::vec4(light.x + radius, light.y + radius, light.z - radius, 1.f),
-			glm::vec4(light.x + radius, light.y - radius, light.z + radius, 1.f),
-			glm::vec4(light.x + radius, light.y - radius, light.z - radius, 1.f),
-			glm::vec4(light.x - radius, light.y + radius, light.z + radius, 1.f),
-			glm::vec4(light.x - radius, light.y + radius, light.z - radius, 1.f),
-			glm::vec4(light.x - radius, light.y - radius, light.z + radius, 1.f),
-			glm::vec4(light.x - radius, light.y - radius, light.z - radius, 1.f)
+			glm::vec4(pos.x + radius, pos.y + radius, pos.z + radius, 1.f),
+			glm::vec4(pos.x + radius, pos.y + radius, pos.z - radius, 1.f),
+			glm::vec4(pos.x + radius, pos.y - radius, pos.z + radius, 1.f),
+			glm::vec4(pos.x + radius, pos.y - radius, pos.z - radius, 1.f),
+			glm::vec4(pos.x - radius, pos.y + radius, pos.z + radius, 1.f),
+			glm::vec4(pos.x - radius, pos.y + radius, pos.z - radius, 1.f),
+			glm::vec4(pos.x - radius, pos.y - radius, pos.z + radius, 1.f),
+			glm::vec4(pos.x - radius, pos.y - radius, pos.z - radius, 1.f)
 		};
 
-		for (auto edge : corners)
+		for (auto& edge : corners)
 		{
-			float viewDepth = edge.z + zNear;
-			edge.z = std::min(-zNear, edge.z);
-
-			glm::vec4 projPos = proj * edge;
+			glm::vec4 projPos = proj * view * edge;
 			projPos /= projPos.w;
 
 			bounds.min.x = glm::min(bounds.min.x, projPos.x);
@@ -409,7 +408,8 @@ void RenderSystem::ProcessPointLights(scene::Scene& scene)
 			bounds.max.x = glm::max(bounds.max.x, projPos.x);
 			bounds.max.y = glm::max(bounds.max.y, -projPos.y);
 		}
-
+		bounds.min = bounds.min * glm::vec2(0.5f, 0.5f) + glm::vec2(0.5f, 0.5f);
+		bounds.max = bounds.max * glm::vec2(0.5f, 0.5f) + glm::vec2(0.5f, 0.5f);
 		return bounds;
 	};
 
@@ -418,12 +418,12 @@ void RenderSystem::ProcessPointLights(scene::Scene& scene)
 	{
 		const auto& light = pointLights[i];
 
-		LightBounds bounds = computeScreenBounds(light.position, light.params0.x);
+		LightBounds bounds = computeScreenBounds(light.position, light.params0.x * 2);
 		
-		u32 startX = glm::clamp((u32)(bounds.min.x * numBinsX), 0u, numBinsX - 1u);
-		u32 endX   = glm::clamp((u32)(bounds.max.x * numBinsX), 0u, numBinsX - 1u);
-		u32 startY = glm::clamp((u32)(bounds.min.y * numBinsY), 0u, numBinsY - 1u);
-		u32 endY   = glm::clamp((u32)(bounds.max.y * numBinsY), 0u, numBinsY - 1u);
+		i32 startX = glm::clamp((i32)(bounds.min.x * numBinsX), 0, numBinsX - 1);
+		i32 endX   = glm::clamp((i32)(bounds.max.x * numBinsX), 0, numBinsX - 1);
+		i32 startY = glm::clamp((i32)(bounds.min.y * numBinsY), 0, numBinsY - 1);
+		i32 endY   = glm::clamp((i32)(bounds.max.y * numBinsY), 0, numBinsY - 1);
 
 		for (u32 y = startY; y <= endY; ++y)
 		{
@@ -432,9 +432,10 @@ void RenderSystem::ProcessPointLights(scene::Scene& scene)
 				u32 index = (y * numBinsX) + x;
 				auto& bin = mLightBins.u_lightBins[index];
 					
-				if ((bin.end - bin.start) < maxLightsPerBin)
+				if ((bin.y - bin.x) < maxLightsPerBin)
 				{
-					bin.end++;
+					mLightBins.u_lightBinIndices[bin.y] = i;
+					bin.y++;
 					binnedLightCount++;
 				}
 				else
@@ -447,7 +448,7 @@ void RenderSystem::ProcessPointLights(scene::Scene& scene)
 	}
 
 	// compact bins
-	/*{
+	{
 		u32 nextAvailableStart = 0;
 		for (u32 binIdx = 0; binIdx < numBinsTotal; ++binIdx)
 		{
@@ -455,16 +456,16 @@ void RenderSystem::ProcessPointLights(scene::Scene& scene)
 
 			u32 newBinStart = nextAvailableStart;
 
-			for (u32 i = bin.start; i < bin.end; ++i)
+			for (u32 i = bin.x; i < bin.y; ++i)
 			{
-				mLightBins.u_binnedLightIndices[nextAvailableStart] = mLightBins.u_binnedLightIndices[i];
+				mLightBins.u_lightBinIndices[nextAvailableStart] = mLightBins.u_lightBinIndices[i];
 				nextAvailableStart++;
 			}
-			bin.start = newBinStart;
-			bin.end = nextAvailableStart;
+			bin.x = newBinStart;
+			bin.y = nextAvailableStart;
 		}
 		DEBUG_ASSERT(nextAvailableStart == binnedLightCount, "Light bin compaction logic is broken");
-	}*/
+	}
 
 	mEncoder->UpdateUniformBuffer(mLightBinsBuffer, &mLightBins, sizeof(LightBins), 0);
 }
