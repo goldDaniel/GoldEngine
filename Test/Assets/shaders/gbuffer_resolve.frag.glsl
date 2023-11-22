@@ -35,12 +35,19 @@ layout(std140) uniform LightSpaceMatrices_UBO
 	mat4 mLightInv[MAX_LIGHTS];
 };
 
-const int MAX_BIN_LIGHTS = (2560 / 128)*(2560 / 128) * 8;
+const int lightsPerBin = 8;
+const int maxBins = (3840 / 128) * (3840 / 128);
+const int maxBinIndices = maxBins * lightsPerBin;
 layout(std140) uniform LightBins_UBO
 {
 	uvec4 u_binsCounts; //x,y,z, ?
-	uvec4 u_lightBins[MAX_BIN_LIGHTS]; // start, end, pad, pad
-	int u_lightBinIndices[MAX_BIN_LIGHTS]; 
+	uvec4 u_lightBins[maxBins]; // start, end, pad, pad
+	
+};
+
+layout(std430) readonly buffer LightBinIndices_UBO
+{
+	int u_lightBinIndices[maxBins]; 
 };
 
 layout(std140) uniform ShadowPages_UBO
@@ -334,23 +341,19 @@ void main()
 
 	uvec2 lightBin = getLightBin(Texcoord);
 	for(uint idx = lightBin.x; idx < lightBin.y; ++idx) 
-	//for(int idx = 0; idx < lightCounts.y; ++idx)
 	{
-		if(u_lightBinIndices[idx] == -1) continue;
-
 		uint lightIndex = uint(u_lightBinIndices[idx]);
 
 		vec3 L = normalize(pointLights[lightIndex].position.xyz - position);
 		vec3 H = normalize(V + L);
 		float dist = length(pointLights[lightIndex].position.xyz - position);
 
-		if(dist < pointLights[lightIndex].params0.x) // is this needed?
+		// is this needed? possible early exit if all threads hit
+		if(dist < pointLights[lightIndex].params0.x) 
 		{
 			float attenuation = 1.0 - (dist / pointLights[lightIndex].params0.x) * (dist / pointLights[lightIndex].params0.x);
-			attenuation *= attenuation;
-
 			vec3 radiance = clamp(pointLights[lightIndex].color.rgb * attenuation, 0, 1);
-		
+
 			vec3 lighting = getLighting(L, normal, V, H, F0, radiance, albedo.rgb, roughness, metallic);
 			if(pointLights[lightIndex].params0.z != -1)
 			{

@@ -52,19 +52,22 @@ private:
 
 	graphics::UniformBufferHandle mMaterialBuffer{};
 
-
-	
 	struct LightBins
 	{
-		static constexpr u32 maxBinLights = (2560 / 128)*(2560 / 128) * 8;
+		static constexpr u32 lightsPerBin = 8;
+		static constexpr u32 maxBins = (3840 / 128) * (3840 / 128);
+		static constexpr u32 maxBinIndices = maxBins * lightsPerBin;
 		
 		glm::uvec4 u_binsCounts{}; //x,y,z, ?
-		glm::uvec4 u_lightBins[maxBinLights]{}; //start, end, pad, pad;
-		int u_lightBinIndices[maxBinLights]{}; 
+		glm::uvec4 u_lightBins[maxBins]{}; //start, end, pad, pad;
 	};
+
 	
 	LightBins mLightBins{};
 	graphics::UniformBufferHandle mLightBinsBuffer{};
+
+	glm::int32 mLightBinIndices[LightBins::maxBinIndices]{};
+	graphics::ShaderBufferHandle mLightBinIndicesBuffer{};
 
 	// holds LightBufferComponent::LightShaderBuffer
 	graphics::UniformBufferHandle mLightingBuffer{};

@@ -101,12 +101,12 @@ protected:
 				transform.position.x = -20;
 				transform.position.y = 40;
 				light.color = { 2, 0, 0, 1 };
-				light.falloff = 100;
+				light.falloff = 20;
 
 				shadow.PCFSize = 9;
 				shadow.aspect = 1;
 				shadow.FOV = glm::radians(90.f);
-				shadow.nearPlane = 1;
+				shadow.nearPlane = 0.5;
 				shadow.farPlane = 100;
 				shadow.shadowMapBias.fill(0);
 			}
@@ -120,12 +120,12 @@ protected:
 				transform.position.x = 0;
 				transform.position.y = 40;
 				light.color = { 0, 2, 0, 1 };
-				light.falloff = 100;
+				light.falloff = 20;
 
 				shadow.PCFSize = 9;
 				shadow.aspect = 1;
 				shadow.FOV = glm::radians(90.f);
-				shadow.nearPlane = 1;
+				shadow.nearPlane = 0.5;
 				shadow.farPlane = 100;
 				shadow.shadowMapBias.fill(0);
 			}
@@ -139,12 +139,12 @@ protected:
 				transform.position.x = 20;
 				transform.position.y = 40;
 				light.color = { 0, 0, 2, 1 };
-				light.falloff = 100;
+				light.falloff = 20;
 
 				shadow.PCFSize = 9;
 				shadow.aspect = 1;
 				shadow.FOV = glm::radians(90.f);
-				shadow.nearPlane = 1;
+				shadow.nearPlane = 0.5;
 				shadow.farPlane = 100;
 				shadow.shadowMapBias.fill(0);
 			}

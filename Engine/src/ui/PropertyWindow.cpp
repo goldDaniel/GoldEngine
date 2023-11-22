@@ -91,7 +91,7 @@ PropertyWindow::PropertyWindow(scene::Scene& scene, std::function<scene::GameObj
 
 		ImGui::Text("Falloff");
 		ImGui::SameLine();
-		if (ImGui::SliderFloat("Falloff", &l.falloff, 0.0f, 1000.0f))
+		if (ImGui::SliderFloat("Falloff", &l.falloff, 0.0f, 100.f))
 		{
 			l.color.w = 1;
 		}
@@ -120,7 +120,7 @@ PropertyWindow::PropertyWindow(scene::Scene& scene, std::function<scene::GameObj
 			ImGui::Text("Near"); ImGui::SameLine(); check(ImGui::SliderFloat("Near", &shadow.nearPlane, -200, 200));
 			ImGui::Text("Far"); ImGui::SameLine(); check(ImGui::SliderFloat("Far", &shadow.farPlane, -200, 200));
 
-			ImGui::Text("Bias"); ImGui::SameLine(); check(ImGui::SliderFloat("Bias", &shadow.shadowMapBias[0], 0.0f, 0.1f));
+			ImGui::Text("Bias"); ImGui::SameLine(); check(ImGui::SliderFloat("Bias", &shadow.shadowMapBias[0], 0.0f, 0.01f));
 
 			ImGui::Text("PCF Size"); ImGui::SameLine();  check(ImGui::SliderInt("PCF size", &shadow.PCFSize, 0, 9));
 		}
@@ -134,11 +134,11 @@ PropertyWindow::PropertyWindow(scene::Scene& scene, std::function<scene::GameObj
 
 			ImGui::Text("Aspect"); ImGui::SameLine(); check(ImGui::SliderFloat("Aspect", &shadow.aspect, 0.1, 2));
 
-			ImGui::Text("Near"); ImGui::SameLine(); check(ImGui::SliderFloat("Near", &shadow.nearPlane, 1, 10));
+			ImGui::Text("Near"); ImGui::SameLine(); check(ImGui::SliderFloat("Near", &shadow.nearPlane, 0.5f, 10));
 
 			ImGui::Text("Far"); ImGui::SameLine(); check(ImGui::SliderFloat("Far", &shadow.farPlane, 50, 5000));
 
-			ImGui::Text("Bias"); ImGui::SameLine(); check(ImGui::SliderFloat("Bias", &shadow.shadowMapBias[0], 0.0f, 0.1f));
+			ImGui::Text("Bias"); ImGui::SameLine(); check(ImGui::SliderFloat("Bias", &shadow.shadowMapBias[0], 0.0f, 0.01f));
 			
 			// gross
 			shadow.shadowMapBias[1] = shadow.shadowMapBias[2] = shadow.shadowMapBias[3] =
