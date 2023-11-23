@@ -57,7 +57,7 @@ private:
 	struct LightBins
 	{
 		static constexpr u32 lightsPerBin = 8;
-		static constexpr u32 maxBins = (3840 / 128) * (3840 / 128);
+		static constexpr u32 maxBins = (3840 / 32) * (3840 / 32);
 		static constexpr u32 maxBinIndices = maxBins * lightsPerBin;
 		
 		glm::uvec4 u_binsCounts{}; //x,y,z, ?

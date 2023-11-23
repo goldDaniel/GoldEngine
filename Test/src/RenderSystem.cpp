@@ -358,8 +358,8 @@ void RenderSystem::ProcessPointLights(scene::Scene& scene)
 	const i32 numPointLights = lightBuffer->lightBuffer.lightCounts.y;
 	const auto& pointLights = lightBuffer->lightBuffer.pointLights;
 
-	const i32 binSizeX = 64;
-	const i32 binSizeY = 64;
+	const i32 binSizeX = 32;
+	const i32 binSizeY = 32;
 	
 	const i32 numBinsX = std::max((u32)(mResolution.x / binSizeX + 0.5f), 1u);
 	const i32 numBinsY = std::max((u32)(mResolution.y / binSizeY + 0.5f), 1u);
@@ -460,7 +460,7 @@ void RenderSystem::ProcessPointLights(scene::Scene& scene)
 	}
 
 	// compact bins
-	/*{
+	{
 		i32 nextAvailableStart = 0;
 		for (i32 binIdx = 0; binIdx < numBinsTotal; ++binIdx)
 		{
@@ -470,17 +470,17 @@ void RenderSystem::ProcessPointLights(scene::Scene& scene)
 
 			for (i32 i = bin.x; i < bin.y; ++i)
 			{
-				mLightBins.u_lightBinIndices[nextAvailableStart] = mLightBins.u_lightBinIndices[i];
+				mLightBinIndices[nextAvailableStart] = mLightBinIndices[i];
 				nextAvailableStart++;
 			}
 			bin.x = newBinStart;
 			bin.y = nextAvailableStart;
 		}
 		DEBUG_ASSERT(nextAvailableStart == binnedLightCount, "Light bin compaction logic is broken");
-	}*/
+	}
 
-	mEncoder->UpdateUniformBuffer(mLightBinsBuffer, &mLightBins, sizeof(LightBins), 0);
-	mEncoder->UpdateShaderBuffer(mLightBinIndicesBuffer, &mLightBinIndices, sizeof(u32) * LightBins::maxBinIndices, 0);
+	mEncoder->UpdateUniformBuffer(mLightBinsBuffer, &mLightBins, sizeof(mLightBins.lightsPerBin) + sizeof(glm::vec4) * numBinsTotal, 0);
+	mEncoder->UpdateShaderBuffer(mLightBinIndicesBuffer, &mLightBinIndices, sizeof(u32) * binnedLightCount, 0);
 }
 
 void RenderSystem::FillShadowAtlas(scene::Scene& scene)

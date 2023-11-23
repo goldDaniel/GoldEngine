@@ -36,7 +36,7 @@ layout(std140) uniform LightSpaceMatrices_UBO
 };
 
 const int lightsPerBin = 8;
-const int maxBins = (3840 / 128) * (3840 / 128);
+const int maxBins = (3840 / 32) * (3840 / 32);
 const int maxBinIndices = maxBins * lightsPerBin;
 layout(std140) uniform LightBins_UBO
 {
@@ -352,8 +352,7 @@ void main()
 		float falloff = pointLights[lightIndex].params0.x;
 		if(dist <= falloff)
 		{
-			float falloffT = dist / falloff;
-			float attenuation = 1 - pow(falloffT, 0.01);
+			float attenuation = 1.0 / (1.0f * dist*dist);
 
 			vec3 radiance = clamp(pointLights[lightIndex].color.rgb * attenuation, 0, 1);
 
@@ -367,7 +366,7 @@ void main()
 		}
 	}
 
-	vec3 ambient = vec3(0.001)* albedo.rgb;
+	vec3 ambient = 1.0 / 255.0 * albedo.rgb;
 	vec3 color = ambient + (Lo);
 	color0 = vec4(color, 1.0);
 
