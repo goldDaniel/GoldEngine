@@ -107,7 +107,8 @@ public:
 					shadowMap.dirty = true; // TODO (danielg): fix this
 				}
 
-				buffer.lightBuffer.directionalLights[dirCount++] = LightBufferComponent::DirectionalLight{ glm::normalize(light.direction), light.color, {0,0,0, shadowMapIndex } };	
+				glm::vec3 dir = light.direction;
+				buffer.lightBuffer.directionalLights[dirCount++] = LightBufferComponent::DirectionalLight{ {dir, 0}, light.color, { 0,0,0, shadowMapIndex } };
 			});
 			buffer.lightBuffer.lightCounts.x = dirCount;
 		}

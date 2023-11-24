@@ -75,22 +75,23 @@ protected:
 			auto obj = scene::Loader::LoadGameObjectFromModel(mScene, encoder, "sponza2/sponza.gltf");
 			obj.GetComponent<TransformComponent>().scale = { 0.05f, 0.05f, 0.05f };
 
-			auto lightObj = mScene.CreateGameObject("Directional Light");
-			
-			/*auto& light = lightObj.AddComponent<DirectionalLightComponent>();
-			light.direction = { 0.05f, -0.7f, 0.25f, 1.0f };
-			light.color = { 1,1,1,1 };
-
-			auto& shadow = lightObj.AddComponent<ShadowMapComponent>();
-			shadow.left = -90;
-			shadow.right = 90;
-			shadow.bottom = -90;
-			shadow.top = 90;
-			shadow.nearPlane = -90;
-			shadow.farPlane = 90;
-			shadow.dirty = true;*/
-
 			{
+				auto lightObj = mScene.CreateGameObject("Directional Light");
+				auto& light = lightObj.AddComponent<DirectionalLightComponent>();
+				light.direction = { 0.05f, -0.7f, 0.25f, 1.0f };
+				light.color = { 1,1,1,1 };
+
+				auto& shadow = lightObj.AddComponent<ShadowMapComponent>();
+				shadow.left = -90;
+				shadow.right = 90;
+				shadow.bottom = -90;
+				shadow.top = 90;
+				shadow.nearPlane = -90;
+				shadow.farPlane = 90;
+				shadow.dirty = true;
+			}
+
+			/*{
 				auto lightObj = mScene.CreateGameObject("Red Light");
 
 				auto& transform = lightObj.GetComponent<TransformComponent>();
@@ -99,7 +100,7 @@ protected:
 
 				transform.position.x = -20;
 				transform.position.y = 40;
-				light.color = { 2, 0, 0, 1 };
+				light.color = { 20, 0, 0, 1 };
 				light.falloff = 40;
 
 				shadow.PCFSize = 9;
@@ -108,8 +109,8 @@ protected:
 				shadow.nearPlane = 0.5;
 				shadow.farPlane = 100;
 				shadow.shadowMapBias.fill(0);
-			}
-			{
+			}*/
+			/*{
 				auto lightObj = mScene.CreateGameObject("Green Light");
 
 				auto& transform = lightObj.GetComponent<TransformComponent>();
@@ -118,7 +119,7 @@ protected:
 
 				transform.position.x = 0;
 				transform.position.y = 40;
-				light.color = { 0, 2, 0, 1 };
+				light.color = { 0, 20, 0, 1 };
 				light.falloff = 40;
 
 				shadow.PCFSize = 9;
@@ -127,8 +128,8 @@ protected:
 				shadow.nearPlane = 0.5;
 				shadow.farPlane = 100;
 				shadow.shadowMapBias.fill(0);
-			}
-			{
+			}*/
+			/*{
 				auto lightObj = mScene.CreateGameObject("Blue Light");
 
 				auto& transform = lightObj.GetComponent<TransformComponent>();
@@ -137,7 +138,7 @@ protected:
 
 				transform.position.x = 20;
 				transform.position.y = 40;
-				light.color = { 0, 0, 2, 1 };
+				light.color = { 0, 0, 20, 1 };
 				light.falloff = 40;
 
 				shadow.PCFSize = 9;
@@ -146,7 +147,7 @@ protected:
 				shadow.nearPlane = 0.5;
 				shadow.farPlane = 100;
 				shadow.shadowMapBias.fill(0);
-			}
+			}*/
 
 			mFirstFrame = false;
 		}

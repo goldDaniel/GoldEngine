@@ -479,8 +479,9 @@ void RenderSystem::ProcessPointLights(scene::Scene& scene)
 		DEBUG_ASSERT(nextAvailableStart == binnedLightCount, "Light bin compaction logic is broken");
 	}
 
+	
 	mEncoder->UpdateUniformBuffer(mLightBinsBuffer, &mLightBins, sizeof(mLightBins.lightsPerBin) + sizeof(glm::vec4) * numBinsTotal, 0);
-	mEncoder->UpdateShaderBuffer(mLightBinIndicesBuffer, &mLightBinIndices, sizeof(u32) * binnedLightCount, 0);
+	mEncoder->UpdateShaderBuffer(mLightBinIndicesBuffer, &mLightBinIndices, sizeof(u32) * (binnedLightCount == 0 ? 1 : binnedLightCount), 0);
 }
 
 void RenderSystem::FillShadowAtlas(scene::Scene& scene)

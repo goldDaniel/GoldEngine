@@ -290,8 +290,9 @@ static bool DrawVec3Control(const std::string& label, glm::vec3& values, bool is
 	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.9f, 0.2f, 0.2f, 1.0f });
 	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.8f, 0.1f, 0.15f, 1.0f });
 	ImGui::PushFont(font);
-	if (result = result || ImGui::Button(isColor ? "R" : "X", buttonSize))
+	if (ImGui::Button(isColor ? "R" : "X", buttonSize))
 	{
+		result = true;
 		values.x = resetValue;
 	}
 
@@ -308,8 +309,9 @@ static bool DrawVec3Control(const std::string& label, glm::vec3& values, bool is
 	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.3f, 0.8f, 0.3f, 1.0f });
 	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.2f, 0.7f, 0.2f, 1.0f });
 	ImGui::PushFont(font);
-	if (result = result || ImGui::Button(isColor ? "G" : "Y", buttonSize))
+	if (ImGui::Button(isColor ? "G" : "Y", buttonSize))
 	{
+		result = true;
 		values.y = resetValue;
 	}
 	ImGui::PopFont();
@@ -325,8 +327,9 @@ static bool DrawVec3Control(const std::string& label, glm::vec3& values, bool is
 	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4{ 0.2f, 0.35f, 0.9f, 1.0f });
 	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4{ 0.1f, 0.25f, 0.8f, 1.0f });
 	ImGui::PushFont(font);
-	if (result = result || ImGui::Button(isColor ? "B" : "Z", buttonSize))
+	if (ImGui::Button(isColor ? "B" : "Z", buttonSize))
 	{
+		result = true;
 		values.z = resetValue;
 	}
 	ImGui::PopFont();
