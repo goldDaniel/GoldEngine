@@ -57,7 +57,7 @@ namespace graphics
 		void DestroyFramebuffer(FrameBufferHandle buffer);
 
 		// shaders /////////////////////////////////////////////
-		ShaderHandle CreateShader(const char* vertexSrc, const char* fragSrc, const char* tessCtrlSrc = nullptr, const char* tessEvalSrc = nullptr);
+		ShaderHandle CreateShader(const ShaderSourceDescription& desc);
 		ShaderHandle CreateComputeShader(const char* src);
 		void DestroyShader(ShaderHandle shader);
 

@@ -1489,7 +1489,7 @@ void Renderer::DestroyFramebuffer(FrameBufferHandle handle)
 	deletions.push_back(command);
 }
 
-ShaderHandle Renderer::CreateShader(const char* vertexSrc, const char* fragSrc, const char* tessCtrlSrc, const char* tessEvalSrc)
+ShaderHandle Renderer::CreateShader(const ShaderSourceDescription& desc)
 {
 	auto createShader = [](GLenum shaderType, const char* src)
 	{
@@ -1515,33 +1515,43 @@ ShaderHandle Renderer::CreateShader(const char* vertexSrc, const char* fragSrc, 
 		return result;
 	};
 
-	GLuint vert = createShader(GL_VERTEX_SHADER, vertexSrc);
-	GLuint frag = createShader(GL_FRAGMENT_SHADER, fragSrc);
-
-	if (tessCtrlSrc || tessEvalSrc)
-	{
-		DEBUG_ASSERT(tessCtrlSrc && tessEvalSrc, "Must have both control and eval shaders!");
-	}
-
-	GLuint tessCtrl = tessCtrlSrc ? createShader(GL_TESS_CONTROL_SHADER, tessCtrlSrc) : 0;
-	GLuint tessEval = tessEvalSrc ? createShader(GL_TESS_EVALUATION_SHADER, tessEvalSrc) : 0;
-
-	//shader failed to create, return invalid shader
+	// required shaders
+	GLuint vert = createShader(GL_VERTEX_SHADER, desc.vertSrc);
+	GLuint frag = createShader(GL_FRAGMENT_SHADER, desc.fragSrc);
 	DEBUG_ASSERT(vert && frag, "Shader creation failed!");
 	if (!vert || !frag) return {};
 
-	// we must either have both or none
-	if (tessCtrlSrc || tessEvalSrc)
+
+
+	// optional shaders: tesselation 
+	if (desc.tessCtrlSrc || desc.tessEvalSrc)
+	{
+		DEBUG_ASSERT(desc.tessCtrlSrc && desc.tessEvalSrc, "Must have both control and eval shaders!");
+	}
+	GLuint tessCtrl = desc.tessCtrlSrc ? createShader(GL_TESS_CONTROL_SHADER,    desc.tessCtrlSrc) : 0;
+	GLuint tessEval = desc.tessEvalSrc ? createShader(GL_TESS_EVALUATION_SHADER, desc.tessEvalSrc) : 0;
+	if (desc.tessCtrlSrc || desc.tessEvalSrc) // we must either have both or none
 	{
 		DEBUG_ASSERT(tessCtrl && tessEval, "Shader creation failed!");
 		if (!tessCtrl || !tessEval) return {};
 	}
 	
+	// optional shaders: geometry
+	GLuint geo = desc.geoSrc ? createShader(GL_GEOMETRY_SHADER, desc.geoSrc) : 0;
+	if (desc.geoSrc) // we must either have both or none
+	{
+		DEBUG_ASSERT(geo, "Shader creation failed!");
+		if (!geo) return {};
+	}
+
+
+
 	GLuint program = glCreateProgram();
 	glAttachShader(program, vert);
 	glAttachShader(program, frag);
 	if (tessCtrl) glAttachShader(program, tessCtrl);
 	if (tessEval) glAttachShader(program, tessEval);
+	if (geo)	  glAttachShader(program, geo);
 
 	glBindAttribLocation(program, VERTEX_ATTR_POSITION, "a_position");
 	glBindAttribLocation(program, VERTEX_ATTR_NORMAL, "a_normal");
@@ -1563,6 +1573,7 @@ ShaderHandle Renderer::CreateShader(const char* vertexSrc, const char* fragSrc, 
 	glDeleteShader(frag);
 	if (tessCtrl) glDeleteShader(tessCtrl);
 	if (tessEval) glDeleteShader(tessEval);
+	if (geo)	  glDeleteShader(geo);
 
 	//program failed to link, return invalid shader
 	GLint status;
@@ -1582,7 +1593,7 @@ ShaderHandle Renderer::CreateShader(const char* vertexSrc, const char* fragSrc, 
 
 	Shader& result = shaders[{program}];
 	result.mHandle.idx = program;
-	result.mTesselation = (tessCtrlSrc && tessEvalSrc);
+	result.mTesselation = (desc.tessCtrlSrc && desc.tessEvalSrc);
 
 	GatherShaderTextures(program, result);
 	GatherShaderUniformBlocks(program, result);

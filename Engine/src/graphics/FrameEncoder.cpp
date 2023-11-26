@@ -340,7 +340,7 @@ void FrameEncoder::DestroyShaderBuffer(graphics::ShaderBufferHandle clientHandle
 	mWriter.Write(clientHandle);
 }
 
-ShaderHandle FrameEncoder::CreateShader(const char* vertSrc, const char* fragSrc)
+ShaderHandle FrameEncoder::CreateShader(const ShaderSourceDescription& desc)
 {
 	DEBUG_ASSERT(mRecording, "");
 	mWriter.Write(RenderCommand::CreateShader);
@@ -349,18 +349,36 @@ ShaderHandle FrameEncoder::CreateShader(const char* vertSrc, const char* fragSrc
 
 	mWriter.Write(clientHandle);
 
-	u32 vertLen = strlen(vertSrc) + 1;
-	u32 fragLen = strlen(fragSrc) + 1;
+	DEBUG_ASSERT(desc.vertSrc, "No vertex shader!");
+	DEBUG_ASSERT(desc.fragSrc, "No fragment shader!");
+	if (desc.tessCtrlSrc || desc.tessEvalSrc) // must have both, or none
+	{
+		DEBUG_ASSERT(desc.tessCtrlSrc, "No tesselation control shader!");
+		DEBUG_ASSERT(desc.tessEvalSrc, "No tesselation evaluation shader!");
+	}
 
-	// vert
-	void* vertData = mAllocator->Allocate(vertLen);
-	memcpy(vertData, vertSrc, vertLen);
-	mWriter.Write(Memory{ vertData, vertLen });
+	auto allocSrc = [&](const char* src)
+	{
+		u32 len = (strlen(src) + 1);
+		void* dst = mAllocator->Allocate(len);
+		memcpy(dst, src, len);
+		return (const char*)dst;
+	};
+
+	ShaderSourceDescription result{};
+	result.vertSrc = allocSrc(desc.vertSrc);
+	result.fragSrc = allocSrc(desc.fragSrc);
+	if (desc.tessCtrlSrc && desc.tessEvalSrc) // must have both, or none
+	{
+		result.tessCtrlSrc = allocSrc(desc.tessCtrlSrc);
+		result.tessEvalSrc = allocSrc(desc.tessEvalSrc);
+	}
+	if (desc.geoSrc)
+	{
+		result.geoSrc = allocSrc(desc.geoSrc);
+	}
 	
-	// frag
-	void* fragData = mAllocator->Allocate(fragLen);
-	memcpy(fragData, fragSrc, fragLen);
-	mWriter.Write(Memory{ fragData, fragLen });
+	mWriter.Write(result);
 
 	return clientHandle;
 }

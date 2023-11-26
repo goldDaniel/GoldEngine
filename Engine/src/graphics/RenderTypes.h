@@ -380,6 +380,15 @@ namespace graphics
 		}
 	};
 
+	struct ShaderSourceDescription
+	{
+		const char* vertSrc = nullptr;
+		const char* fragSrc = nullptr;
+		const char* tessCtrlSrc = nullptr;
+		const char* tessEvalSrc = nullptr;
+		const char* geoSrc = nullptr;
+	};
+
 	struct RenderPass
 	{
 		const char* mName = nullptr;

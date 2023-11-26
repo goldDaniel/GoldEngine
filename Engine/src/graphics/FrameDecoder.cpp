@@ -277,11 +277,10 @@ void FrameDecoder::Decode(Renderer& renderer, ServerResources& resources, Binary
 		case RenderCommand::CreateShader:
 		{
 			ShaderHandle clientHandle = reader.Read<ShaderHandle>();
+			
+			ShaderSourceDescription desc = reader.Read<ShaderSourceDescription>();
 
-			Memory vertex = reader.Read<Memory>();
-			Memory fragment = reader.Read<Memory>();
-
-			resources.get(clientHandle) = renderer.CreateShader((char*)vertex.data, (char*)fragment.data);
+			resources.get(clientHandle) = renderer.CreateShader(desc);
 			break;
 		}
 		case RenderCommand::DestroyShader:

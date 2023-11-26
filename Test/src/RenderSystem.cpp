@@ -235,37 +235,58 @@ void RenderSystem::ReloadShaders()
 
 	//Shadow Atlas Fill
 	{
+		ShaderSourceDescription desc{};
+
 		std::string vertSrc = util::LoadStringFromFile("shaders/shadow.vert.glsl");
 		std::string fragSrc = util::LoadStringFromFile("shaders/shadow.frag.glsl");
-		mShadowAtlasFillShader = mEncoder->CreateShader(vertSrc.c_str(), fragSrc.c_str());
+		
+		desc.vertSrc = vertSrc.c_str();
+		desc.fragSrc = fragSrc.c_str();
+		mShadowAtlasFillShader = mEncoder->CreateShader(desc);
 	}
 
 	//GBuffer fill
 	{
+		ShaderSourceDescription desc{};
 		std::string vertSrc = util::LoadStringFromFile("shaders/gbuffer_fill.vert.glsl");
 		std::string fragSrc = util::LoadStringFromFile("shaders/gbuffer_fill.frag.glsl");
-		mGBufferFillShader = mEncoder->CreateShader(vertSrc.c_str(), fragSrc.c_str());
+
+		desc.vertSrc = vertSrc.c_str();
+		desc.fragSrc = fragSrc.c_str();
+		mGBufferFillShader = mEncoder->CreateShader(desc);
 	}
 
 	//GBuffer resolve
 	{
+		ShaderSourceDescription desc{};
 		std::string vertSrc = util::LoadStringFromFile("shaders/gbuffer_resolve.vert.glsl");
 		std::string fragSrc = util::LoadStringFromFile("shaders/gbuffer_resolve.frag.glsl");
-		mGBufferResolveShader = mEncoder->CreateShader(vertSrc.c_str(), fragSrc.c_str());
+
+		desc.vertSrc = vertSrc.c_str();
+		desc.fragSrc = fragSrc.c_str();
+		mGBufferResolveShader = mEncoder->CreateShader(desc);
 	}
 
 	// Skybox
 	{
+		ShaderSourceDescription desc{};
 		std::string vertSrc = util::LoadStringFromFile("shaders/skybox.vert.glsl");
 		std::string fragSrc = util::LoadStringFromFile("shaders/skybox.frag.glsl");
-		mSkyboxShader = mEncoder->CreateShader(vertSrc.c_str(), fragSrc.c_str());
+
+		desc.vertSrc = vertSrc.c_str();
+		desc.fragSrc = fragSrc.c_str();
+		mSkyboxShader = mEncoder->CreateShader(desc);
 	}
 
 	//Tonemap
 	{
+		ShaderSourceDescription desc{};
 		std::string vertSrc = util::LoadStringFromFile("shaders/tonemap.vert.glsl");
 		std::string fragSrc = util::LoadStringFromFile("shaders/tonemap.frag.glsl");
-		mTonemapShader = mEncoder->CreateShader(vertSrc.c_str(), fragSrc.c_str());
+
+		desc.vertSrc = vertSrc.c_str();
+		desc.fragSrc = fragSrc.c_str();
+		mTonemapShader = mEncoder->CreateShader(desc);
 	}
 }
 

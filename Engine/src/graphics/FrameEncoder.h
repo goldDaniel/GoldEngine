@@ -56,7 +56,7 @@ namespace gold
 		void UpdateShaderBuffer(graphics::ShaderBufferHandle clientHandle, const void* data, u32 size, u32 offset = 0);
 		void DestroyShaderBuffer(graphics::ShaderBufferHandle clientHandle);
 
-		graphics::ShaderHandle CreateShader(const char* vertSrc, const char* fragSrc);
+		graphics::ShaderHandle CreateShader(const graphics::ShaderSourceDescription& desc);
 
 		graphics::MeshHandle CreateMesh(const graphics::MeshDescription& mesh);
 

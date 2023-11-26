@@ -81,7 +81,7 @@ public:
 			Singletons::Get()->Resolve<ShadowMapService>()->Reset();
 		}
 
-		// TODO (danielg): This updates and uploads ALL lights when a light is modified. Only update touched  lights
+		// TODO (danielg): This updates and uploads ALL lights when a light is modified. Only update touched lights
 		if (CheckSetDirectionalLightsDirty(scene))
 		{	
 			LightBufferComponent& buffer = mLightBuffer.GetComponent<LightBufferComponent>();
