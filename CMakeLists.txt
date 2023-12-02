@@ -12,6 +12,7 @@ if (NOT ${CMAKE_SIZEOF_VOID_P} MATCHES 8)
 endif()
 
 
+
 find_package(Git QUIET)
 
 if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git")
@@ -29,4 +30,4 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 add_subdirectory(Dependencies)
 add_subdirectory(Engine)
-add_subdirectory(Test)
+add_subdirectory(Sponza)

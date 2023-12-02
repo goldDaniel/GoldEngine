@@ -1,26 +1,25 @@
 #include "ShadowMapService.h"
 
-
 ShadowMapService::ShadowMapService()
 	: mLastX(0)
 	, mLastY(0)
 {
 }
 
-uint32_t ShadowMapService::PageIndex(uint16_t x, uint16_t y)
+u32 ShadowMapService::PageIndex(u16 x, u16 y)
 {
-	uint32_t index = y * kNumPagesX + x;
+	u32 index = y * kNumPagesX + x;
 	DEBUG_ASSERT(index >= 0 && index < kNumPages, "Invalid page location!");
 
 	return index;
 }
 
-bool ShadowMapService::PageOccupied(uint16_t x, uint16_t y)
+bool ShadowMapService::PageOccupied(u16 x, u16 y)
 {
 	DEBUG_ASSERT(x >= 0 && x < (kNumPagesX), "Invalid page location!");
 	DEBUG_ASSERT(y >= 0 && y < (kNumPagesY), "Invalid page location!");
 
-	uint32_t index = PageIndex(x, y);
+	u32 index = PageIndex(x, y);
 
 	return mPageTable[index];
 }
@@ -59,7 +58,7 @@ const ShadowMapService::ShadowPage& ShadowMapService::GetNextAvailablePageLocati
 	return mPages.back();
 }
 
-const ShadowMapService::ShadowPage& ShadowMapService::GetPage(uint32_t index) const
+const ShadowMapService::ShadowPage& ShadowMapService::GetPage(u32 index) const
 {
 	for (const auto& page : mPages)
 	{

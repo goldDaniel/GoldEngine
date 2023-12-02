@@ -33,7 +33,13 @@ Texture2D::Texture2D(const std::string& filepath)
 	}
 	else
 	{
-		mData = stbi_load(filepath.c_str(), &mWidth, &mHeight, &mChannels, STBI_default);
+		int w;
+		int h; 
+		int c;
+		mData = stbi_load(filepath.c_str(), &w, &h, &c, STBI_default);
+		mWidth = static_cast<u16>(w);
+		mHeight = static_cast<u16>(h);
+		mChannels = static_cast<u16>(c);
 	}
 	
 }

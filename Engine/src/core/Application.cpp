@@ -24,6 +24,7 @@ void Application::Run()
 	size = 512 * 1024 * 1024;
 	mFrameAllocators.Init([this, size]() {return  std::make_unique<LinearAllocator>(malloc(size), size); });
 
+	mUpdateComplete = false;
 	std::thread updateThread = std::thread(&Application::UpdateThread, this);
 	RenderThread(); 
 
@@ -42,6 +43,8 @@ void Application::UpdateThread()
 	G_ENGINE_WARN("Update thread starting...");
 
 	f32 step = 1.0f / 30.f;
+	UNUSED_VAR(step); // TODO (danielg): for when putting physics back in
+
 	uint32_t prevTime = mPlatform->GetElapsedTimeMS();
 	while (mRunning)
 	{

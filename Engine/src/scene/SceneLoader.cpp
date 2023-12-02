@@ -120,7 +120,7 @@ static void CreateMesh(const aiMesh* mesh, gold::FrameEncoder& encoder, RenderCo
 	if (indices.size() > 0)
 	{
 		desc.mIndicesFormat = IndexFormat::U32;
-		desc.mIndices = encoder.CreateIndexBuffer(indices.data(), indices.size() * sizeof(u32));
+		desc.mIndices = encoder.CreateIndexBuffer(indices.data(), static_cast<u32>(indices.size()) * sizeof(u32));
 		desc.mIndexCount = static_cast<uint32_t>(indices.size());
 	}
 

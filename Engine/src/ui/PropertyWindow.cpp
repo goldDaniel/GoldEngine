@@ -91,7 +91,7 @@ PropertyWindow::PropertyWindow(scene::Scene& scene, std::function<scene::GameObj
 
 		ImGui::Text("Falloff");
 		ImGui::SameLine();
-		if (ImGui::SliderFloat("Falloff", &l.falloff, 0.0f, 100.f))
+		if (ImGui::SliderFloat("Falloff", &l.falloff, 0.0f, 500.f))
 		{
 			l.color.w = 1;
 		}
@@ -107,15 +107,13 @@ PropertyWindow::PropertyWindow(scene::Scene& scene, std::function<scene::GameObj
 		auto obj = mGetSelected();
 		if (obj.HasComponent<DirectionalLightComponent>())
 		{
-			auto& light = obj.GetComponent<DirectionalLightComponent>();
-			
 			ImGui::Text("Directional Light Ortho Projection");
 			
-			ImGui::Text("Left"); ImGui::SameLine(); check(ImGui::SliderFloat("Left", &shadow.left, -200, 200));
-			ImGui::Text("Right"); ImGui::SameLine(); check(ImGui::SliderFloat("Right", &shadow.right, -200, 200));
+			ImGui::Text("Left"); ImGui::SameLine(); check(ImGui::SliderFloat("Left", &shadow.ortho.left, -200, 200));
+			ImGui::Text("Right"); ImGui::SameLine(); check(ImGui::SliderFloat("Right", &shadow.ortho.right, -200, 200));
 
-			ImGui::Text("Bottom"); ImGui::SameLine(); check(ImGui::SliderFloat("Bottom", &shadow.bottom, -200, 200));
-			ImGui::Text("Top"); ImGui::SameLine(); check(ImGui::SliderFloat("top", &shadow.top, -200, 200));
+			ImGui::Text("Bottom"); ImGui::SameLine(); check(ImGui::SliderFloat("Bottom", &shadow.ortho.bottom, -200, 200));
+			ImGui::Text("Top"); ImGui::SameLine(); check(ImGui::SliderFloat("top", &shadow.ortho.top, -200, 200));
 
 			ImGui::Text("Near"); ImGui::SameLine(); check(ImGui::SliderFloat("Near", &shadow.nearPlane, -200, 200));
 			ImGui::Text("Far"); ImGui::SameLine(); check(ImGui::SliderFloat("Far", &shadow.farPlane, -200, 200));
@@ -128,11 +126,11 @@ PropertyWindow::PropertyWindow(scene::Scene& scene, std::function<scene::GameObj
 		{
 			ImGui::Text("Point Light Perspective Projection");
 
-			float fov = glm::degrees(shadow.FOV);
+			float fov = glm::degrees(shadow.perspective.FOV);
 			ImGui::Text("Aspect"); ImGui::SameLine(); check(ImGui::SliderFloat("FOV", &fov, 35, 120));
-			shadow.FOV = glm::radians(fov);
+			shadow.perspective.FOV = glm::radians(fov);
 
-			ImGui::Text("Aspect"); ImGui::SameLine(); check(ImGui::SliderFloat("Aspect", &shadow.aspect, 0.1, 2));
+			ImGui::Text("Aspect"); ImGui::SameLine(); check(ImGui::SliderFloat("Aspect", &shadow.perspective.aspect, 0.1f, 2.0f));
 
 			ImGui::Text("Near"); ImGui::SameLine(); check(ImGui::SliderFloat("Near", &shadow.nearPlane, 0.5f, 10));
 
@@ -165,6 +163,7 @@ PropertyWindow::PropertyWindow(scene::Scene& scene, std::function<scene::GameObj
 
 	AddComponentControl<RenderComponent>("Render", [this](auto& render)
 	{
+		UNUSED_VAR(render);
 		/*uint32_t materialID = render.material;
 		uint32_t meshID = render.mesh;*/
 
@@ -234,6 +233,9 @@ void PropertyWindow::DrawComponent(const std::string& name, scene::GameObject ob
 
 void PropertyWindow::DrawWindow(graphics::Renderer& renderer, gold::ServerResources& resources)
 {
+	UNUSED_VAR(renderer);
+	UNUSED_VAR(resources);
+
 	scene::GameObject obj = mGetSelected();
 
 	if (!obj.IsValid()) return;

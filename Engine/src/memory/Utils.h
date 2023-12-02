@@ -4,23 +4,22 @@
 
 namespace gold::memory
 {
-	
-	static const std::size_t CalculatePadding(const u64  baseAddress, const u64 alignment) 
-	{
-		if (alignment == 0)
-		{
-			return 0;
-		} 
-
-		const u64 multiplier = (baseAddress / alignment) + 1;
-		const u64  alignedAddress = multiplier * alignment;
-		const u64  padding = alignedAddress - baseAddress;
-		return padding;
-	}
-
 	template<typename T>
 	static const std::size_t CalculatePaddingWithHeader(const u64  baseAddress, const u64 alignment) 
 	{
+		auto calculatePadding = [](const u64  baseAddress, const u64 alignment)
+		{
+			if (alignment == 0)
+			{
+				return 0;
+			}
+
+			const u64 multiplier = (baseAddress / alignment) + 1;
+			const u64  alignedAddress = multiplier * alignment;
+			const u64  padding = alignedAddress - baseAddress;
+			return padding;
+		};
+
 		if (alignment == 0)
 		{
 			return 0;
@@ -28,7 +27,7 @@ namespace gold::memory
 
 		const u64 headerSize = sizeof(T);
 
-		u64 padding = CalculatePadding(baseAddress, alignment);
+		u64 padding = calculatePadding(baseAddress, alignment);
 		u64 neededSpace = headerSize;
 
 		if (padding < neededSpace) 

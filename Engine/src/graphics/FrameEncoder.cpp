@@ -34,7 +34,7 @@ static void WriteRenderState(const RenderState& state, BinaryWriter& writer)
 	{
 		const RenderState::UniformBlock& buffer = state.mUniformBlocks[i];
 		writer.Write(buffer.mNameHash);
-		writer.Write(buffer.mBinding);
+		writer.Write(buffer.mHandle);
 	}
 
 	// Shader buffers
@@ -43,7 +43,7 @@ static void WriteRenderState(const RenderState& state, BinaryWriter& writer)
 	{
 		const RenderState::StorageBlock& buffer = state.mStorageBlocks[i];
 		writer.Write(buffer.mNameHash);
-		writer.Write(buffer.mBinding);
+		writer.Write(buffer.mHandle);
 	}
 
 	// Textures
@@ -154,7 +154,7 @@ u8 FrameEncoder::AddRenderPass(const graphics::RenderPass& pass)
 	mWriter.Write(RenderCommand::AddRenderPass);
 
 	// name
-	u32 size = strlen(pass.mName) + 1;
+	u32 size = static_cast<u32>(strlen(pass.mName) + 1);
 	mWriter.Write(Memory{ pass.mName, size });
 
 	// framebuffer
@@ -359,7 +359,7 @@ ShaderHandle FrameEncoder::CreateShader(const ShaderSourceDescription& desc)
 
 	auto allocSrc = [&](const char* src)
 	{
-		u32 len = (strlen(src) + 1);
+		u32 len = static_cast<u32>((strlen(src) + 1));
 		void* dst = mAllocator->Allocate(len);
 		memcpy(dst, src, len);
 		return (const char*)dst;

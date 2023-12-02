@@ -33,10 +33,10 @@ namespace graphics
 
 		bool mCompressedLoad = false;
 
-		int mWidth = 0;
-		int mHeight = 0;
+		u16 mWidth = 0;
+		u16 mHeight = 0;
 
-		int mChannels = 0;
+		u16 mChannels = 0;
 
 		void* mData = 0;
 	};

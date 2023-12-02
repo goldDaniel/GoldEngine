@@ -48,6 +48,8 @@ static void PopFrustumCull(scene::Scene& scene)
 
 void RenderSystem::InitRenderData(scene::Scene& scene)
 {
+	UNUSED_VAR(scene);
+
 	kReloadShaders = false;
 	// Per frame constants
 	{
@@ -68,10 +70,10 @@ void RenderSystem::InitRenderData(scene::Scene& scene)
 
 	// Material buffer
 	{
-		auto& materialManager = Singletons::Get()->Resolve<MaterialManager>();
+		const auto materialManager = Singletons::Get()->Resolve<MaterialManager>();
+		const auto& materials = materialManager->GetMaterials();
 
-		auto& materials = materialManager->GetMaterials();
-		u32 materialBufferSize = materials.size() * sizeof(graphics::Material);
+		u32 materialBufferSize = static_cast<u32>(materials.size()) * sizeof(graphics::Material);
 
 		mMaterialBuffer = mEncoder->CreateUniformBuffer(materials.data(), materialBufferSize);
 	}
@@ -113,8 +115,6 @@ void RenderSystem::InitRenderData(scene::Scene& scene)
 		mShadowPagesBuffer = mEncoder->CreateUniformBuffer(&mShadowPages, sizeof(ShadowMapPages));
 	}
 
-	
-
 	// fullscreen quad
 	{
 		MeshDescription desc;
@@ -134,7 +134,7 @@ void RenderSystem::InitRenderData(scene::Scene& scene)
 
 		std::vector<u16> indices{ 0, 1, 2, 3, 0, 2 };
 		desc.mIndicesFormat = IndexFormat::U16;
-		desc.mIndices = mEncoder->CreateIndexBuffer(indices.data(), sizeof(u16) * indices.size());
+		desc.mIndices = mEncoder->CreateIndexBuffer(indices.data(), sizeof(u16) * static_cast<u32>(indices.size()));
 		desc.mIndexCount = 6;
 
 		mFullscreenQuad = mEncoder->CreateMesh(desc);
@@ -227,6 +227,21 @@ void RenderSystem::InitRenderData(scene::Scene& scene)
 		CubemapDescription desc(faces);
 		mCubemap = mEncoder->CreateCubemap(desc);
 	}
+
+	// voxelized scene for GI
+	{
+		mVoxel.size = 512;
+
+		TextureDescription3D desc;
+		desc.mWidth  = mVoxel.size;
+		desc.mHeight = mVoxel.size;
+		desc.mDepth  = mVoxel.size;
+		
+		desc.mFormat = TextureFormat::R_U32;
+		desc.mFilter = TextureFilter::POINT;
+	
+		mVoxel.mHandle = mEncoder->CreateTexture3D(desc);
+	}
 }
 
 void RenderSystem::ReloadShaders()
@@ -288,6 +303,19 @@ void RenderSystem::ReloadShaders()
 		desc.fragSrc = fragSrc.c_str();
 		mTonemapShader = mEncoder->CreateShader(desc);
 	}
+
+	// Voxelize
+	{
+		ShaderSourceDescription desc{};
+		std::string vertSrc = util::LoadStringFromFile("shaders/voxelize.vert.glsl");
+		std::string geomSrc = util::LoadStringFromFile("shaders/voxelize.geom.glsl");
+		std::string fragSrc = util::LoadStringFromFile("shaders/voxelize.frag.glsl");
+
+		desc.vertSrc = vertSrc.c_str();
+		desc.geoSrc = geomSrc.c_str();
+		desc.fragSrc = fragSrc.c_str();
+		mVoxelizeShader = mEncoder->CreateShader(desc);
+	}
 }
 
 
@@ -301,7 +329,6 @@ void RenderSystem::Tick(scene::Scene& scene, float dt)
 	if (mFirstFrame)
 	{
 		InitRenderData(scene);
-		mFirstFrame = false;
 	}
 
 	// retrieve camera
@@ -334,7 +361,7 @@ void RenderSystem::Tick(scene::Scene& scene, float dt)
 		if (materialManager->CheckSetDirty())
 		{
 			auto& materials = materialManager->GetMaterials();
-			u32 materialBufferSize = materials.size() * sizeof(graphics::Material);
+			u32 materialBufferSize = static_cast<u32>(materials.size()) * sizeof(graphics::Material);
 
 			mMaterialBuffer = mEncoder->CreateUniformBuffer(materials.data(), materialBufferSize);
 		}
@@ -359,10 +386,14 @@ void RenderSystem::Tick(scene::Scene& scene, float dt)
 	});
 
 	FillShadowAtlas(scene);
+	VoxelizeScene(scene);
 	FillGBuffer(*camera, scene);
 	ResolveGBuffer(scene);
 	DrawSkybox();
 	Tonemap();
+
+	mFirstFrame = false;
+	mFrameCount++;
 }
 
 void RenderSystem::ProcessPointLights(scene::Scene& scene)
@@ -446,12 +477,12 @@ void RenderSystem::ProcessPointLights(scene::Scene& scene)
 		return bounds;
 	};
 
-	u32 binnedLightCount = 0;
+	i32 binnedLightCount = 0;
 	for (i32 i = 0; i < numPointLights; ++i)
 	{
 		const auto& light = pointLights[i];
 
-		LightBounds bounds = computeScreenBounds(light.position, light.params0.x * 2);
+		LightBounds bounds = computeScreenBounds(light.position, light.params0.x * 2.0f);
 		
 		i32 startX = glm::clamp((i32)(bounds.min.x * numBinsX), 0, numBinsX - 1);
 		i32 endX   = glm::clamp((i32)(bounds.max.x * numBinsX), 0, numBinsX - 1);
@@ -489,7 +520,7 @@ void RenderSystem::ProcessPointLights(scene::Scene& scene)
 
 			i32 newBinStart = nextAvailableStart;
 
-			for (i32 i = bin.x; i < bin.y; ++i)
+			for (i32 i = (i32)bin.x; i < (i32)bin.y; ++i)
 			{
 				mLightBinIndices[nextAvailableStart] = mLightBinIndices[i];
 				nextAvailableStart++;
@@ -511,8 +542,11 @@ void RenderSystem::FillShadowAtlas(scene::Scene& scene)
 	scene.ForEach<ShadowMapComponent>([&bufferDirty](scene::GameObject obj)
 	{
 		bufferDirty = bufferDirty || obj.GetComponent<ShadowMapComponent>().dirty;
-	});
-	if (!bufferDirty) return;
+	});	
+
+	// HACK (danielg): broke shadowmap caching, does not seem to update on the first frame.
+	// fix and remove framecount check
+	if (!bufferDirty && mFrameCount > 2) return;
 	
 
 	RenderPass shadowPass;
@@ -541,7 +575,7 @@ void RenderSystem::FillShadowAtlas(scene::Scene& scene)
 		int shadowIndex = -1;
 		for (const auto& page : pages)
 		{
-			if (page.shadowMapIndex == shadow.shadowMapIndex[0])
+			if (page.shadowMapIndex == static_cast<u32>(shadow.shadowMapIndex[0]))
 			{
 				shadowIndex = page.shadowMapIndex;
 				break;
@@ -554,13 +588,13 @@ void RenderSystem::FillShadowAtlas(scene::Scene& scene)
 		// data for shadow pages uniform buffer
 		mShadowPages.mPage[shadowIndex] = { page.x, page.y, page.width, page.height };
 		mShadowPages.mParams[shadowIndex].w = shadow.shadowMapBias[0];
-		mShadowPages.mParams[shadowIndex].z = shadow.PCFSize + 1;
+		mShadowPages.mParams[shadowIndex].z = shadow.PCFSize + 1.0f;
 
 		// data for light matrices uniform buffer
 		// NOTE (danielg): adds support for light to follow a position
 		glm::mat4 lightView = glm::lookAt(-glm::vec3(light.direction), glm::vec3(0,0,0), glm::vec3(0.0f, 1.0f, 0.0f));
 
-		mLightMatrices.mLightSpace[shadowIndex] = glm::ortho(shadow.left, shadow.right, shadow.bottom, shadow.top, shadow.nearPlane, shadow.farPlane) * lightView;
+		mLightMatrices.mLightSpace[shadowIndex] = glm::ortho(shadow.ortho.left, shadow.ortho.right, shadow.ortho.bottom, shadow.ortho.top, shadow.nearPlane, shadow.farPlane) * lightView;
 		mLightMatrices.mLightInv[shadowIndex] = glm::inverse(mLightMatrices.mLightSpace[shadowIndex]);
 
 		//the section of our paged shadowMap to render to 
@@ -585,10 +619,9 @@ void RenderSystem::FillShadowAtlas(scene::Scene& scene)
 	});
 
 	// Point lights
-	scene.ForEach<PointLightComponent, ShadowMapComponent>([this, &shadowState, &scene](scene::GameObject& obj)
+	scene.ForEach<PointLightComponent, ShadowMapComponent>([this, &shadowState, &scene](scene::GameObject obj)
 	{
 		const auto& transform = obj.GetComponent<TransformComponent>();
-		const auto& light = obj.GetComponent<PointLightComponent>();
 		auto& shadow = obj.GetComponent<ShadowMapComponent>();
 
 		const auto& pages = Singletons::Get()->Resolve<ShadowMapService>()->GetPages();
@@ -615,7 +648,7 @@ void RenderSystem::FillShadowAtlas(scene::Scene& scene)
 			int shadowIndex = -1;
 			for (const auto& page : pages)
 			{
-				if (page.shadowMapIndex == shadow.shadowMapIndex[i])
+				if ((i32)page.shadowMapIndex == shadow.shadowMapIndex[i])
 				{
 					shadowIndex = page.shadowMapIndex;
 					break;
@@ -629,9 +662,9 @@ void RenderSystem::FillShadowAtlas(scene::Scene& scene)
 
 			mShadowPages.mPage[shadowIndex] = { page.x, page.y, page.width, page.height };
 			mShadowPages.mParams[shadowIndex].w = shadow.shadowMapBias[i];
-			mShadowPages.mParams[shadowIndex].z = shadow.PCFSize + 1;
+			mShadowPages.mParams[shadowIndex].z = shadow.PCFSize + 1.0f;
 
-			mLightMatrices.mLightSpace[shadowIndex] = glm::perspective(shadow.FOV, shadow.aspect, shadow.nearPlane, shadow.farPlane) * lightViews[i];
+			mLightMatrices.mLightSpace[shadowIndex] = glm::perspective(shadow.perspective.FOV, shadow.perspective.aspect, shadow.nearPlane, shadow.farPlane) * lightViews[i];
 			mLightMatrices.mLightInv[shadowIndex] = glm::inverse(mLightMatrices.mLightSpace[shadowIndex]);
 			
 
@@ -658,6 +691,78 @@ void RenderSystem::FillShadowAtlas(scene::Scene& scene)
 
 	mEncoder->UpdateUniformBuffer(mLightMatricesBuffer, &mLightMatrices, sizeof(LightMatrices));
 	mEncoder->UpdateUniformBuffer(mShadowPagesBuffer, &mShadowPages, sizeof(ShadowMapPages));
+}
+
+void RenderSystem::VoxelizeScene(scene::Scene& scene)
+{
+	const float voxelSize = static_cast<float>(mVoxel.size);
+	const float halfVoxelSize = voxelSize / 2.0f;
+
+	// save/restore these: we need to change the viewproj 
+	// TODO (danielg): Maybe set up a view-rendering system instead of a per frame
+	const PerFrameConstants savedConstants = mPerFrameConstants;
+	
+	mPerFrameConstants.u_view = glm::identity<glm::mat4>();
+	mPerFrameConstants.u_viewInv = glm::identity<glm::mat4>();
+	
+	mPerFrameConstants.u_proj = glm::ortho(-halfVoxelSize,
+											halfVoxelSize,
+										   -halfVoxelSize,
+											halfVoxelSize,
+										   -halfVoxelSize,
+											halfVoxelSize);
+
+
+	mPerFrameConstants.u_projInv = glm::inverse(mPerFrameConstants.u_proj);
+	mEncoder->UpdateUniformBuffer(mPerFrameContantsBuffer, &mPerFrameConstants, sizeof(PerFrameConstants), 0);
+	
+	
+	auto materialManager = Singletons::Get()->Resolve<MaterialManager>();
+
+	RenderPass passDesc;
+	passDesc.mClearColor = false;
+	passDesc.mClearDepth = false;
+	passDesc.mName = "Voxelization";
+	passDesc.mTarget = mGBuffer.mHandle;
+	u8 passID = mEncoder->AddRenderPass(passDesc);
+
+	scene.ForEach<RenderComponent>([this, passID, &materialManager](scene::GameObject obj)
+	{
+		const auto& render = obj.GetComponent<RenderComponent>();
+
+		PerDrawConstants draw;
+		draw.u_model = obj.GetWorldSpaceTransform();
+		draw.materialHandle = render.material.idx;
+		mEncoder->UpdateUniformBuffer(mPerDrawConstantsBuffer, &draw, sizeof(PerDrawConstants), 0);
+
+		auto material = materialManager->GetMaterial(render.material);
+
+		RenderState state;
+		state.mRenderPass = passID;
+		state.mColorWriteEnabled = false;
+		state.mShader = mVoxelizeShader;
+		state.mDepthFunc = DepthFunction::DISABLED;
+		state.mViewport = { 0, 0, static_cast<int>(mVoxel.size), static_cast<int>(mVoxel.size) };
+
+		state.SetUniformBlock("PerFrameConstants_UBO", mPerFrameContantsBuffer);
+		state.SetUniformBlock("PerDrawConstants_UBO", mPerDrawConstantsBuffer);
+		state.SetUniformBlock("Materials_UBO", mMaterialBuffer);
+
+		state.SetImage("u_voxelGrid", mVoxel.mHandle, false, true);
+
+		// TODO (danielg): is this a weird way to store textures?
+		if (material.mapFlags.x > 0) state.SetTexture("u_albedoMap", { material.mapFlags.x });
+		if (material.mapFlags.y > 0) state.SetTexture("u_normalMap", { material.mapFlags.y });
+		if (material.mapFlags.z > 0) state.SetTexture("u_metallicMap", { material.mapFlags.z });
+		if (material.mapFlags.w > 0) state.SetTexture("u_roughnessMap", { material.mapFlags.w });
+
+		mEncoder->DrawMesh(render.mesh, state);
+	});
+
+	mEncoder->IssueMemoryBarrier();
+	// restore
+	mPerFrameConstants = savedConstants;
+	mEncoder->UpdateUniformBuffer(mPerFrameContantsBuffer, &mPerFrameConstants, sizeof(PerFrameConstants), 0);
 }
 
 void RenderSystem::FillGBuffer(const Camera& camera, scene::Scene& scene)
@@ -703,6 +808,8 @@ void RenderSystem::FillGBuffer(const Camera& camera, scene::Scene& scene)
 
 void RenderSystem::ResolveGBuffer(scene::Scene& scene)
 {
+	UNUSED_VAR(scene);
+
 	RenderPass pass;
 	pass.mName = "GBuffer Resolve";
 	pass.mTarget = mHDRBuffer.mHandle;
@@ -774,7 +881,7 @@ void RenderSystem::ResizeGBuffer(int width, int height)
 	mResolution.y = height;
 
 	if (mGBuffer.mHandle.idx == 0 ||
-		mGBuffer.mWidth != width || mGBuffer.mHeight != height)
+		mGBuffer.mWidth != (u32)width || mGBuffer.mHeight != (u32)height)
 	{
 		// GBuffer
 		if (IsValid(mGBuffer.mHandle))

@@ -81,9 +81,9 @@ namespace scene
 			return mRegistry->any_of<T>(mEntity);
 		}
 
-		void ForEachChild(std::function<void(GameObject&)> func);
+		void ForEachChild(std::function<void(GameObject)> func);
 
-		void ForEachChild(std::function<void(const GameObject&)> func) const;
+		void ForEachChild(std::function<void(const GameObject)> func) const;
 
 		void RemoveChildren(const std::vector<GameObject>& children);
 

@@ -7,7 +7,7 @@ std::string util::LoadStringFromFile(const std::string& filename)
 	std::ifstream f(filename);
 	std::string str;
 
-	DEBUG_ASSERT(f, "file could not be opened!");
+	DEBUG_ASSERT(f, "file could not be opened: " + filename);
 
 	std::ostringstream ss;
 	ss << f.rdbuf();

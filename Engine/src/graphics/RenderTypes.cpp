@@ -21,7 +21,7 @@ graphics::TextureDescription3D::TextureDescription3D(const std::vector<Texture2D
 
 	mDataSize = data[0].GetDataSize();
 	mFormat = data[0].GetFormat();
-
+	mMipmaps = mipmaps;
 
 	for (u64 i = 0; i < data.size(); ++i)
 	{

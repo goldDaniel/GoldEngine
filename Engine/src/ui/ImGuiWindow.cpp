@@ -27,8 +27,8 @@ void ImGuiWindow::Draw(graphics::Renderer& renderer, gold::ServerResources& reso
 		ImGui::Begin(mName.c_str(), nullptr, mWindowFlags);
 
 		auto size = ImGui::GetWindowSize();
-		mSize.x = size.x;
-		mSize.y = size.y;
+		mSize.x = static_cast<int>(size.x);
+		mSize.y = static_cast<int>(size.y);
 
 		DrawWindow(renderer, resources);
 

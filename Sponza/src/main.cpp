@@ -36,11 +36,6 @@ private:
 
 	bool mFirstFrame = true;
 
-	void ResizeGBuffer(gold::FrameEncoder& encoder)
-	{
-		
-	}
-
 public:
 	TestApp(gold::ApplicationConfig&& config)
 		: gold::Application(std::move(config))
@@ -54,7 +49,7 @@ protected:
 		AddEditorWindow(std::make_unique<LogWindow>());
 		AddEditorWindow(std::make_unique<PerformanceWindow>(true));
 		auto sceneWindow = AddEditorWindow(std::make_unique<SceneWindow>(&mScene));
-		auto propertyWindow = AddEditorWindow(std::make_unique<PropertyWindow>(mScene, [sceneWindow]()
+		AddEditorWindow(std::make_unique<PropertyWindow>(mScene, [sceneWindow]()
 		{
 			return sceneWindow->GetSelected();
 		}));
@@ -75,23 +70,24 @@ protected:
 			auto obj = scene::Loader::LoadGameObjectFromModel(mScene, encoder, "sponza2/sponza.gltf");
 			obj.GetComponent<TransformComponent>().scale = { 0.05f, 0.05f, 0.05f };
 
-			{
+			/*{
 				auto lightObj = mScene.CreateGameObject("Directional Light");
 				auto& light = lightObj.AddComponent<DirectionalLightComponent>();
 				light.direction = { 0.05f, -0.7f, 0.25f, 1.0f };
 				light.color = { 1,1,1,1 };
 
 				auto& shadow = lightObj.AddComponent<ShadowMapComponent>();
-				shadow.left = -90;
-				shadow.right = 90;
-				shadow.bottom = -90;
-				shadow.top = 90;
+				shadow.ortho.left = -90;
+				shadow.ortho.right = 90;
+				shadow.ortho.bottom = -90;
+				shadow.ortho.top = 90;
 				shadow.nearPlane = -90;
 				shadow.farPlane = 90;
+				shadow.PCFSize = 9;
 				shadow.dirty = true;
-			}
+			}*/
 
-			/*{
+			{
 				auto lightObj = mScene.CreateGameObject("Red Light");
 
 				auto& transform = lightObj.GetComponent<TransformComponent>();
@@ -100,17 +96,17 @@ protected:
 
 				transform.position.x = -20;
 				transform.position.y = 40;
-				light.color = { 20, 0, 0, 1 };
-				light.falloff = 40;
+				light.color = { 300, 0, 0, 1 };
+				light.falloff = 100;
 
 				shadow.PCFSize = 9;
-				shadow.aspect = 1;
-				shadow.FOV = glm::radians(90.f);
+				shadow.perspective.aspect = 1;
+				shadow.perspective.FOV = glm::radians(90.f);
 				shadow.nearPlane = 0.5;
 				shadow.farPlane = 100;
 				shadow.shadowMapBias.fill(0);
-			}*/
-			/*{
+			}
+			{
 				auto lightObj = mScene.CreateGameObject("Green Light");
 
 				auto& transform = lightObj.GetComponent<TransformComponent>();
@@ -119,17 +115,17 @@ protected:
 
 				transform.position.x = 0;
 				transform.position.y = 40;
-				light.color = { 0, 20, 0, 1 };
-				light.falloff = 40;
+				light.color = { 0, 300, 0, 1 };
+				light.falloff = 100;
 
 				shadow.PCFSize = 9;
-				shadow.aspect = 1;
-				shadow.FOV = glm::radians(90.f);
+				shadow.perspective.aspect = 1;
+				shadow.perspective.FOV = glm::radians(90.f);
 				shadow.nearPlane = 0.5;
 				shadow.farPlane = 100;
 				shadow.shadowMapBias.fill(0);
-			}*/
-			/*{
+			}
+			{
 				auto lightObj = mScene.CreateGameObject("Blue Light");
 
 				auto& transform = lightObj.GetComponent<TransformComponent>();
@@ -138,37 +134,28 @@ protected:
 
 				transform.position.x = 20;
 				transform.position.y = 40;
-				light.color = { 0, 0, 20, 1 };
-				light.falloff = 40;
+				light.color = { 0, 0, 300, 1 };
+				light.falloff = 100;
 
 				shadow.PCFSize = 9;
-				shadow.aspect = 1;
-				shadow.FOV = glm::radians(90.f);
+				shadow.perspective.aspect = 1;
+				shadow.perspective.FOV = glm::radians(90.f);
 				shadow.nearPlane = 0.5;
 				shadow.farPlane = 100;
 				shadow.shadowMapBias.fill(0);
-			}*/
+			}
 
 			mFirstFrame = false;
 		}
 
 		mCameraSystem.Tick(mScene, delta);
 
-		/*const graphics::FrameBuffer& fb = mRenderSystem.GetRenderTarget();
-		mViewport->SetTexture(fb.mTextures[0].idx);*/
 
 		mRenderSystem.SetEncoder(&encoder);
-
-		/*u32 width = mViewport->GetSize().x;
-		u32 height = mViewport->GetSize().y;
-		if (width == 0 || height == 0)*/
-		//{
-			u32 width  = GetScreenSize().x;
-			u32 height = GetScreenSize().y;
-		//}
-
+		u32 width = (u32)GetScreenSize().x;
+		u32 height = (u32)GetScreenSize().y;
+		
 		mLightingSystem.Tick(mScene, delta);
-
 		mRenderSystem.ResizeGBuffer(width, height);
 		mRenderSystem.Tick(mScene, delta);
 

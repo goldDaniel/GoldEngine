@@ -39,6 +39,7 @@ void* LinearAllocator::Allocate(size_t size, u8 alignment)
 
 void LinearAllocator::Deallocate(void* p)
 {
+	UNUSED_VAR(p);
 	DEBUG_ASSERT(false, "Use Reset() instead");
 }
 

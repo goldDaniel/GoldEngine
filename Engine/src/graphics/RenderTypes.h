@@ -92,6 +92,7 @@ namespace graphics
 		R_U8,
 		R_U8NORM,
 		R_U16,
+		R_U32,
 		R_FLOAT,
 
 		RGB_U8,
@@ -425,13 +426,13 @@ namespace graphics
 		struct UniformBlock
 		{
 			u32 mNameHash{};
-			UniformBufferHandle mBinding{};
+			UniformBufferHandle mHandle{};
 		};
 
 		struct StorageBlock
 		{
 			u32 mNameHash{};
-			ShaderBufferHandle mBinding{};
+			ShaderBufferHandle mHandle{};
 		};
 
 		struct Texture
@@ -479,14 +480,14 @@ namespace graphics
 
 		void SetUniformBlock(const std::string& name, UniformBufferHandle binding)
 		{
-			u64 nameHash = util::Hash(name.c_str(), name.size());
+			u32 nameHash = util::Hash(name.c_str(), name.size());
 
 			// update uniform block if it exists
-			for (u64 i = 0; i < mNumUniformBlocks; ++i)
+			for (u32 i = 0; i < mNumUniformBlocks; ++i)
 			{
 				if (mUniformBlocks[i].mNameHash == nameHash)
 				{
-					mUniformBlocks[i].mBinding = binding;
+					mUniformBlocks[i].mHandle = binding;
 					return;
 				}
 			}
@@ -495,20 +496,20 @@ namespace graphics
 			DEBUG_ASSERT(mNumUniformBlocks < mUniformBlocks.size(), "Uniform block overflow!");
 
 			mUniformBlocks[mNumUniformBlocks].mNameHash = nameHash;
-			mUniformBlocks[mNumUniformBlocks].mBinding = binding;
+			mUniformBlocks[mNumUniformBlocks].mHandle = binding;
 			mNumUniformBlocks++;
 		}
 
 		void SetStorageBlock(const std::string& name, ShaderBufferHandle binding)
 		{
-			u64 nameHash = util::Hash(name.c_str(), name.size());
+			u32 nameHash = util::Hash(name.c_str(), name.size());
 
 			// update uniform block if it exists
-			for (u64 i = 0; i < mNumStorageBlocks; ++i)
+			for (u32 i = 0; i < mNumStorageBlocks; ++i)
 			{
 				if (mStorageBlocks[i].mNameHash == nameHash)
 				{
-					mStorageBlocks[i].mBinding = binding;
+					mStorageBlocks[i].mHandle = binding;
 					return;
 				}
 			}
@@ -517,7 +518,7 @@ namespace graphics
 			DEBUG_ASSERT(mNumStorageBlocks < mStorageBlocks.size(), "Storage block overflow!");
 
 			mStorageBlocks[mNumStorageBlocks].mNameHash = nameHash;
-			mStorageBlocks[mNumStorageBlocks].mBinding = binding;
+			mStorageBlocks[mNumStorageBlocks].mHandle = binding;
 			mNumStorageBlocks++;
 		}
 
@@ -526,7 +527,7 @@ namespace graphics
 		{
 			DEBUG_ASSERT(texture.idx != 0, "Invalid Texture Handle!");
 
-			u64 nameHash = util::Hash(name.c_str(), name.size());
+			u32 nameHash = util::Hash(name.c_str(), name.size());
 
 			// update texture if it exists
 			for (u64 i = 0; i < mNumTextures; ++i)
@@ -548,7 +549,7 @@ namespace graphics
 
 		void SetImage(const std::string& name, TextureHandle texture, bool read = true, bool write = true)
 		{
-			u64 nameHash = util::Hash(name.c_str(), name.size());
+			u32 nameHash = util::Hash(name.c_str(), name.size());
 
 			// update texture if it exists
 			for (u64 i = 0; i < mNumImages; ++i)

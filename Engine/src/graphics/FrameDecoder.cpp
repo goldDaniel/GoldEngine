@@ -40,7 +40,7 @@ static RenderState ReadRenderState(BinaryReader& reader, ServerResources& resour
 	{
 		RenderState::UniformBlock& buffer = state.mUniformBlocks[i];
 		buffer.mNameHash = reader.Read<u32>();
-		buffer.mBinding = resources.get(reader.Read<UniformBufferHandle>());
+		buffer.mHandle = resources.get(reader.Read<UniformBufferHandle>());
 	}
 
 	// shader buffers
@@ -49,7 +49,7 @@ static RenderState ReadRenderState(BinaryReader& reader, ServerResources& resour
 	{
 		RenderState::StorageBlock& buffer = state.mStorageBlocks[i];
 		buffer.mNameHash = reader.Read<u32>();
-		buffer.mBinding = resources.get(reader.Read<ShaderBufferHandle>());
+		buffer.mHandle = resources.get(reader.Read<ShaderBufferHandle>());
 	}
 
 	// Textures
@@ -70,8 +70,8 @@ static RenderState ReadRenderState(BinaryReader& reader, ServerResources& resour
 		image.mHandle = resources.get(reader.Read<TextureHandle>());
 
 		// TODO (danielg): Also defined in the frame encoder. Move to shared location
-		u8 readBit = image.read ? 1 << 0 : 0;
-		u8 writeBit = image.write ? 1 << 1 : 0;
+		u8 readBit = 1 << 0;
+		u8 writeBit = 1 << 1;
 
 		u8 readWrite = reader.Read<u8>();
 

@@ -78,20 +78,20 @@ struct ShadowMapComponent
 	union
 	{
 		// construct dir light ortho
-		struct
+		struct Ortho
 		{
 			float left;
 			float right;
 			float top;
 			float bottom;
-		};
+		} ortho;
 
 		// construct point light projection
-		struct
+		struct Perspective
 		{
 			float FOV;
 			float aspect;
-		};
+		} perspective;
 	};
 
 	

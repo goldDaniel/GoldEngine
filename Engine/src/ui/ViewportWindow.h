@@ -35,6 +35,8 @@ protected:
 
 	virtual void DrawWindow(graphics::Renderer& renderer, gold::ServerResources& resources) override
 	{ 
+		UNUSED_VAR(renderer);
+
 		using namespace graphics;
 
 		auto size = ImGui::GetWindowSize();

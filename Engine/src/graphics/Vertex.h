@@ -212,7 +212,7 @@ namespace graphics
 
 			for (u32 i = 0; i < mLayout.Size(); ++i)
 			{
-				mBuffer.emplace_back(0);
+				mBuffer.emplace_back(u8(0));
 			}
 			Back().SetAttribByIndex(0u, std::forward<Args>(args)...);
 		}

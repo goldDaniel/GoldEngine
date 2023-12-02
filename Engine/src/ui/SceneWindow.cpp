@@ -22,6 +22,9 @@ scene::GameObject SceneWindow::GetSelected() const
 
 void SceneWindow::DrawWindow(graphics::Renderer& renderer, gold::ServerResources& resources)
 {
+	UNUSED_VAR(renderer);
+	UNUSED_VAR(resources);
+
 	if (!mScene) return; 
 	
 
@@ -30,7 +33,7 @@ void SceneWindow::DrawWindow(graphics::Renderer& renderer, gold::ServerResources
 		mSelected = mScene->CreateGameObject();
 	}
 
-	mScene->ForEach([this](scene::GameObject& obj)
+	mScene->ForEach([this](scene::GameObject obj)
 	{
 		if (!obj.HasParent())
 		{
@@ -61,8 +64,8 @@ void SceneWindow::_DrawNode(scene::GameObject obj)
 		}
 		if (ImGui::MenuItem("Add Child GameObject"))
 		{
-			auto obj = mScene->CreateGameObject("Child");
-			obj.SetParent(mSelected);
+			auto child = mScene->CreateGameObject("Child");
+			child.SetParent(mSelected);
 		}
 
 		ImGui::EndPopup();
@@ -70,9 +73,7 @@ void SceneWindow::_DrawNode(scene::GameObject obj)
 
 	if (opened)
 	{
-		ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanAvailWidth;
-		
-		obj.ForEachChild([this](scene::GameObject& child)
+		obj.ForEachChild([this](scene::GameObject child)
 		{
 			_DrawNode(child);
 		});

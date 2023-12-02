@@ -10,8 +10,8 @@ Scene::Scene()
 }
 
 void Scene::ForEach(std::function<void(GameObject)>&& func)
-{
-	mRegistry.each([this, &func](auto entity)
+{	
+	mRegistry.view<entt::entity>().each([this, func](auto entity)
 	{
 		func(GameObject(&mRegistry, entity));
 	});

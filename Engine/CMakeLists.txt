@@ -21,8 +21,18 @@ target_compile_features(Engine PRIVATE cxx_std_17)
 
 target_include_directories(Engine PUBLIC ${ENGINE_HEADER_DIR})
 
+if(MSVC)
+  target_compile_options(Engine PRIVATE /W4 /WX)
+  # for localtime()
+  # TODO (danielg): probably shouldnt be disabling warnings
+  target_compile_definitions(Engine PRIVATE _CRT_SECURE_NO_WARNINGS) 
+else()
+  target_compile_options(Engine PRIVATE -Wall -Wextra -Wpedantic -Werror)
+endif()
+
 #glm
 target_link_libraries(Engine glm)
+target_compile_definitions(Engine PUBLIC GLM_FORCE_SILENT_WARNINGS) # dont want external lib warnings showing
 
 #SDL
 get_property(sdl_include GLOBAL PROPERTY SDL2_INCLUDE_DIRS)

@@ -7,7 +7,7 @@
 
 using namespace scene;
 
-void GameObject::ForEachChild(std::function<void(GameObject&)> func)
+void GameObject::ForEachChild(std::function<void(GameObject)> func)
 {
 	if (HasComponent<ChildrenComponent>())
 	{
@@ -19,7 +19,7 @@ void GameObject::ForEachChild(std::function<void(GameObject&)> func)
 	}
 }
 
-void GameObject::ForEachChild(std::function<void(const GameObject&)> func) const
+void GameObject::ForEachChild(std::function<void(const GameObject)> func) const
 {
 	if (HasComponent<ChildrenComponent>())
 	{

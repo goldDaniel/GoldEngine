@@ -10,6 +10,8 @@ public:
 protected:
 	virtual void DrawWindow(graphics::Renderer& renderer, gold::ServerResources& resources) override
 	{
+		UNUSED_VAR(resources);
+
 		const auto stats = renderer.GetPerfStats();
 		
 		u32 drawCalls = 0;

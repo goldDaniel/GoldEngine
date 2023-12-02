@@ -26,6 +26,9 @@ static int currentFrame = 0;
 
 static void GLErrorCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length, GLchar const* message, const void* user_param)
 {
+	UNUSED_VAR(user_param);
+	UNUSED_VAR(length);
+
 	const char* srcStr = [source]()
 	{
 		switch (source)
@@ -176,7 +179,7 @@ static std::unordered_map<TextureHandle, TextureDesc> textureDescriptions;
 static std::vector<DrawCall> drawCalls{};
 static std::vector<DeleteCommand> deletions{};
 
-static std::array<u32, UINT8_MAX> renderPassTimerQueries{};
+static std::array<u32, std::numeric_limits<u8>::max()> renderPassTimerQueries{};
 static std::vector<RenderPass> renderPasses{};
 
 static bool buildingFrame = false;
@@ -190,7 +193,6 @@ static void GatherShaderImages(GLuint program, Shader& result)
 	// gather textures
 	GLint uniformCount;
 	glGetProgramiv(program, GL_ACTIVE_UNIFORMS, &uniformCount);
-	u64 textureSlot = 0;
 	u64 imageSlot = 0;
 	for (GLint i = 0; i < uniformCount; ++i)
 	{
@@ -203,7 +205,9 @@ static void GatherShaderImages(GLuint program, Shader& result)
 		GLint loc = glGetUniformLocation(program, uniformName);
 		if (type == GL_IMAGE_2D ||
 			type == GL_IMAGE_CUBE ||
-			type == GL_IMAGE_3D)
+			type == GL_IMAGE_3D ||
+			type == GL_INT_IMAGE_3D || 
+			type == GL_UNSIGNED_INT_IMAGE_3D)
 		{
 			glProgramUniform1i(program, loc, static_cast<GLint>(imageSlot));
 
@@ -336,6 +340,10 @@ static auto TypeToGL(TextureFormat format, GLenum& channels, GLenum& type)
 		channels = GL_RED;
 		type = GL_UNSIGNED_SHORT;
 		break;
+	case TextureFormat::R_U32:
+		channels = GL_RED;
+		type = GL_UNSIGNED_INT;
+		break;
 	case TextureFormat::R_FLOAT:
 		channels = GL_RED;
 		type = GL_FLOAT;
@@ -387,9 +395,10 @@ static auto FormatToInternalGL(TextureFormat format)
 	{
 	case graphics::TextureFormat::INVALID:		break;
 
-	case graphics::TextureFormat::R_U8:			return GL_R8;
+	case graphics::TextureFormat::R_U8:			return GL_R8UI;
 	case graphics::TextureFormat::R_U8NORM:		return GL_R8_SNORM;
-	case graphics::TextureFormat::R_U16:		return GL_R16;
+	case graphics::TextureFormat::R_U16:		return GL_R16UI;
+	case graphics::TextureFormat::R_U32:		return GL_R32UI;
 	case graphics::TextureFormat::R_FLOAT:		return GL_R32F;
 
 	case graphics::TextureFormat::RGB_U8:		return GL_RGB8;
@@ -507,7 +516,7 @@ void Renderer::Init(void* window)
 	stateCache.prevMesh = {};
 	 
 	// timer query intialization for profiling renderpases
-	glGenQueries(renderPassTimerQueries.size(), renderPassTimerQueries.data());
+	glGenQueries(static_cast<GLsizei>(renderPassTimerQueries.size()), renderPassTimerQueries.data());
 
 	// default GL state
 	// done using prevState so if we want to change defaults we just need
@@ -560,7 +569,7 @@ void Renderer::Init(void* window)
 
 void Renderer::Destroy()
 {
-	glDeleteQueries(renderPassTimerQueries.size(), renderPassTimerQueries.data());
+	glDeleteQueries(static_cast<GLsizei>(renderPassTimerQueries.size()), renderPassTimerQueries.data());
 }
 
 void Renderer::BeginFrame()
@@ -597,7 +606,7 @@ void Renderer::EndFrame()
 
 	perfStats = {};
 
-	auto setRenderState = [](const RenderState& state, bool isCompute)
+	auto setRenderState = [](const RenderState& state)
 	{
 		static auto depthFuncGL = [](DepthFunction func)
 		{
@@ -629,7 +638,7 @@ void Renderer::EndFrame()
 
 			for (u64 j = 0; j < state.mNumUniformBlocks; ++j)
 			{
-				UniformBufferHandle binding = state.mUniformBlocks[j].mBinding;
+				UniformBufferHandle binding = state.mUniformBlocks[j].mHandle;
 				const UniformBuffer& buffer = uniformBuffers[binding];
 
 				u32 nameHash = state.mUniformBlocks[j].mNameHash;
@@ -650,7 +659,7 @@ void Renderer::EndFrame()
 
 			for (u64 j = 0; j < state.mNumStorageBlocks; ++j)
 			{
-				ShaderBufferHandle binding = state.mStorageBlocks[j].mBinding;
+				ShaderBufferHandle binding = state.mStorageBlocks[j].mHandle;
 				const StorageBuffer& buffer = shaderBuffers[binding];
 
 
@@ -708,6 +717,7 @@ void Renderer::EndFrame()
 						break;
 					default:
 						DEBUG_ASSERT(false, "Invalid texture type");
+						format = GL_INVALID_ENUM; 
 						break;
 					}
 
@@ -835,7 +845,7 @@ void Renderer::EndFrame()
 		stateCache.prevRenderState = state;
 	};
 
-	auto setupRenderPass = [](uint8_t passID)
+	auto setupRenderPass = [](u8 passID)
 	{
 		const RenderPass& pass = renderPasses[passID];
 		glPushDebugGroup(GL_DEBUG_SOURCE_APPLICATION, 0, -1, pass.mName);
@@ -977,6 +987,7 @@ void Renderer::EndFrame()
 		}
 	};
 	
+	// TODO (danielg): find a better way to sort drawstates
 	std::sort(drawCalls.begin(), drawCalls.end(), [](const DrawCall& a, const DrawCall& b)
 	{
 		if (a.mState.mRenderPass != b.mState.mRenderPass)
@@ -1006,7 +1017,7 @@ void Renderer::EndFrame()
 			draw.mPreAction(); 
 		}
 
-		setRenderState(draw.mState, draw.isCompute);
+		setRenderState(draw.mState);
 		
 		if (draw.isCompute)
 		{
@@ -1147,13 +1158,11 @@ UniformBufferHandle Renderer::CreateUniformBuffer(const void* data, u32 size)
 
 void Renderer::UpdateShaderBuffer(const void* data, u32 size, u32 offset, ShaderBufferHandle binding)
 {
-	//DEBUG_ASSERT(size <= binding.mSize, "Size is larger than storage block size!");
 	UpdateGLBuffer(binding.idx, data, offset, size);
 }
 
 void Renderer::UpdateUniformBuffer(const void* data, u32 size, u32 offset, UniformBufferHandle binding)
 {
-	//DEBUG_ASSERT(size <= binding.mSize, "Size is larger than storage block size!");
 	UpdateGLBuffer(binding.idx, data, offset, size);
 }
 
@@ -1573,7 +1582,10 @@ ShaderHandle Renderer::CreateShader(const ShaderSourceDescription& desc)
 	glDeleteShader(frag);
 	if (tessCtrl) glDeleteShader(tessCtrl);
 	if (tessEval) glDeleteShader(tessEval);
-	if (geo)	  glDeleteShader(geo);
+	if (geo)
+	{
+		glDeleteShader(geo);
+	}
 
 	//program failed to link, return invalid shader
 	GLint status;
@@ -1596,6 +1608,7 @@ ShaderHandle Renderer::CreateShader(const ShaderSourceDescription& desc)
 	result.mTesselation = (desc.tessCtrlSrc && desc.tessEvalSrc);
 
 	GatherShaderTextures(program, result);
+	GatherShaderImages(program, result);
 	GatherShaderUniformBlocks(program, result);
 	GatherShaderStorageBlocks(program, result);
 	

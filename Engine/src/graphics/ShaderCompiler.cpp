@@ -14,6 +14,8 @@ static constexpr size_t _length(char const(&)[N])
 
 static bool _HandleIncludes(std::string& shaderSrc, const std::string& directory, const std::string& shaderName)
 {
+	UNUSED_VAR(shaderName);
+
 	constexpr const char INCLUDE_KEY[] = "#include ";
 
 	auto getAndValidatePathStart = [&](size_t includeEndIndex)

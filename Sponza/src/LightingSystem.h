@@ -73,6 +73,8 @@ public:
 	
 	virtual void Tick(scene::Scene& scene, float dt)
 	{
+		UNUSED_VAR(dt);
+
 		// reset/init on first frame 
 		if (!mLightBuffer.IsValid())
 		{
@@ -92,7 +94,6 @@ public:
 			{
 				DEBUG_ASSERT(dirCount < LightBufferComponent::MAX_CASTERS, "Will overflow light buffer!");
 
-				const auto& transform = obj.GetComponent<TransformComponent>();
 				const auto& light = obj.GetComponent<DirectionalLightComponent>();
 				DEBUG_ASSERT(light.direction.w == 0, "Dirty flag must not be set at this point!");
 
@@ -118,7 +119,7 @@ public:
 			buffer.isDirty = true;
 
 			u16 pointCount = 0;
-			scene.ForEach<PointLightComponent>([&, this](scene::GameObject& obj)
+			scene.ForEach<PointLightComponent>([&, this](scene::GameObject obj)
 			{
 				DEBUG_ASSERT(pointCount < LightBufferComponent::MAX_CASTERS, "Will overflow light buffer!");
 

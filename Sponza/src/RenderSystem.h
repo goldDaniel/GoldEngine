@@ -80,6 +80,8 @@ private:
 	graphics::ShaderHandle mSkyboxShader{};
 	graphics::ShaderHandle mTonemapShader{};
 
+	graphics::ShaderHandle mVoxelizeShader{};
+
 	graphics::FrameBuffer mGBuffer{};
 	graphics::FrameBuffer mShadowMapFrameBuffer{};
 	graphics::FrameBuffer mHDRBuffer{};
@@ -87,29 +89,35 @@ private:
 	graphics::MeshHandle mFullscreenQuad{};
 	graphics::MeshHandle mCube{};
 
+
+	struct Voxel
+	{
+		u32 size{};
+		graphics::TextureHandle mHandle{};
+	};
+	
+	Voxel mVoxel{};
+
 	graphics::TextureHandle mCubemap{};
 
 	bool mFirstFrame = true;
 
 	glm::uvec2 mResolution{};
+
+	u64 mFrameCount = 0;
 		
 	void InitRenderData(scene::Scene& scene);
 	void ReloadShaders();
 
 	void ProcessPointLights(scene::Scene& scene);
 	void FillShadowAtlas(scene::Scene& scene);
+	void VoxelizeScene(scene::Scene& scene);
 	void FillGBuffer(const Camera& camera, scene::Scene& scene);
 	void ResolveGBuffer(scene::Scene& scene);
 	void DrawSkybox();
 	void Tonemap();
 
 public:
-	
-	RenderSystem()
-	{
-
-	}
-	
 	virtual ~RenderSystem()
 	{
 

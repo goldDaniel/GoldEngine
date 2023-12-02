@@ -1,5 +1,6 @@
 #pragma once 
 
+// TODO (danielg): P1, this causes really long compile times. Templated lib included as header only
 #include <spdlog/spdlog.h>
 
 namespace gold
