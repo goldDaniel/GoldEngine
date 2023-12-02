@@ -1305,6 +1305,8 @@ TextureHandle Renderer::CreateTexture2D(const TextureDescription2D& desc)
 	GLenum mag;
 	FilterToGL(desc.mFilter, min, mag, desc.mMipmaps);
 	
+	GLenum wrap = WrapToGL(desc.mWrap);
+
 	GLenum channels;
 	GLenum type;
 	TypeToGL(desc.mFormat, channels, type);
@@ -1329,8 +1331,8 @@ TextureHandle Renderer::CreateTexture2D(const TextureDescription2D& desc)
 		glGenerateTextureMipmap(texture);
 	}
 
-	glTextureParameteri(texture, GL_TEXTURE_WRAP_S, WrapToGL(desc.mWrap));
-	glTextureParameteri(texture, GL_TEXTURE_WRAP_T, WrapToGL(desc.mWrap));
+	glTextureParameteri(texture, GL_TEXTURE_WRAP_S, wrap);
+	glTextureParameteri(texture, GL_TEXTURE_WRAP_T, wrap);
 	glTextureParameteri(texture, GL_TEXTURE_MIN_FILTER, min);
 	glTextureParameteri(texture, GL_TEXTURE_MAG_FILTER, mag);
 	if (desc.mWrap == TextureWrap::BORDER) 
@@ -1973,7 +1975,7 @@ void Renderer::DispatchCompute(const RenderState& state, u16 groupsX, u16 groups
 	draw.groupsX = glm::max((u16)1, groupsX);
 	draw.groupsY = glm::max((u16)1, groupsY);
 	draw.groupsZ = glm::max((u16)1, groupsZ);
-					  
+
 	draw.mState = state;
 	draw.mInstanceCount = 0;
 	draw.mInstanceData = { 0 };
