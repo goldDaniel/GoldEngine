@@ -187,13 +187,15 @@ static bool buildingFrame = false;
 static glm::ivec2 backBufferSize{ 0,0 };
 
 static int32_t maxUBOSize = 0;
+static int32_t maxSSBOSize = 0;
 
-static void GatherShaderImages(GLuint program, Shader& result)
+static void GatherShaderBindings(GLuint program, Shader& result)
 {
-	// gather textures
+	// gather textures/images
 	GLint uniformCount;
 	glGetProgramiv(program, GL_ACTIVE_UNIFORMS, &uniformCount);
 	u64 imageSlot = 0;
+	u64 textureSlot = 0;
 	for (GLint i = 0; i < uniformCount; ++i)
 	{
 		char uniformName[128];
@@ -206,78 +208,55 @@ static void GatherShaderImages(GLuint program, Shader& result)
 		if (type == GL_IMAGE_2D ||
 			type == GL_IMAGE_CUBE ||
 			type == GL_IMAGE_3D ||
-			type == GL_INT_IMAGE_3D || 
+			type == GL_INT_IMAGE_3D ||
 			type == GL_UNSIGNED_INT_IMAGE_3D)
 		{
 			glProgramUniform1i(program, loc, static_cast<GLint>(imageSlot));
-
 			result.mImages[imageSlot] = util::Hash(uniformName, nameLength);
 			imageSlot++;
 		}
-	}
-}
-
-static void GatherShaderTextures(GLuint program, Shader& result)
-{
-	// gather textures
-	GLint uniformCount;
-	glGetProgramiv(program, GL_ACTIVE_UNIFORMS, &uniformCount);
-	u64 textureSlot = 0;
-	for (GLint i = 0; i < uniformCount; ++i)
-	{
-		char uniformName[128];
-		GLint size;
-		GLint nameLength;
-		GLenum type;
-		glGetActiveUniform(program, i, sizeof(uniformName), &nameLength, &size, &type, uniformName);
-
-		GLint loc = glGetUniformLocation(program, uniformName);
-
-		if (type == GL_SAMPLER_2D ||
-			type == GL_SAMPLER_CUBE ||
-			type == GL_SAMPLER_3D)
+		else if (type == GL_SAMPLER_2D ||
+				 type == GL_SAMPLER_CUBE ||
+				 type == GL_SAMPLER_3D)
 		{
 			glProgramUniform1i(program, loc, static_cast<GLint>(textureSlot));
-
 			result.mTextures[textureSlot] = util::Hash(uniformName, nameLength);
 			textureSlot++;
 		}
 	}
-}
 
-static void GatherShaderUniformBlocks(GLuint program, Shader& result)
-{
 	// gather uniform blocks
-	GLint numUBOs;
-	GLint maxNameLen;
-	glGetProgramInterfaceiv(program, GL_UNIFORM_BLOCK, GL_ACTIVE_RESOURCES, &numUBOs);
-	glGetProgramInterfaceiv(program, GL_UNIFORM_BLOCK, GL_MAX_NAME_LENGTH, &maxNameLen);
-	std::vector<char> name(maxNameLen);
-
-	for (int i = 0; i < numUBOs; ++i)
 	{
-		GLsizei nameLen;
-		glGetProgramResourceName(program, GL_UNIFORM_BLOCK, i, maxNameLen, &nameLen, name.data());
-		result.mUniformBlocks[i] = util::Hash(&name[0], nameLen);
-		glUniformBlockBinding(program, i, i);
+		GLint numUBOs;
+		GLint maxNameLen;
+		glGetProgramInterfaceiv(program, GL_UNIFORM_BLOCK, GL_ACTIVE_RESOURCES, &numUBOs);
+		glGetProgramInterfaceiv(program, GL_UNIFORM_BLOCK, GL_MAX_NAME_LENGTH, &maxNameLen);
+		std::vector<char> name(maxNameLen);
+
+		for (int i = 0; i < numUBOs; ++i)
+		{
+			GLsizei nameLen;
+			glGetProgramResourceName(program, GL_UNIFORM_BLOCK, i, maxNameLen, &nameLen, name.data());
+			result.mUniformBlocks[i] = util::Hash(&name[0], nameLen);
+			glUniformBlockBinding(program, i, i);
+		}
 	}
-}
-
-static void GatherShaderStorageBlocks(GLuint program, Shader& result)
-{
+	
 	// gather storage blocks
-	GLint numSSBOs;
-	GLint maxNameLen;
-	glGetProgramInterfaceiv(program, GL_SHADER_STORAGE_BLOCK, GL_ACTIVE_RESOURCES, &numSSBOs);
-	glGetProgramInterfaceiv(program, GL_SHADER_STORAGE_BLOCK, GL_MAX_NAME_LENGTH, &maxNameLen);
-	std::vector<char> name(maxNameLen);
+	{	
+		GLint numSSBOs;
+		GLint maxNameLen;
+		glGetProgramInterfaceiv(program, GL_SHADER_STORAGE_BLOCK, GL_ACTIVE_RESOURCES, &numSSBOs);
+		glGetProgramInterfaceiv(program, GL_SHADER_STORAGE_BLOCK, GL_MAX_NAME_LENGTH, &maxNameLen);
+		std::vector<char> name(maxNameLen);
 
-	for (int i = 0; i < numSSBOs; ++i)
-	{
-		GLsizei nameLen;
-		glGetProgramResourceName(program, GL_SHADER_STORAGE_BLOCK, i, maxNameLen, &nameLen, name.data());
-		result.mStorageBlocks[i] = util::Hash(&name[0], nameLen);
-		glShaderStorageBlockBinding(program, i, i);
+		for (int i = 0; i < numSSBOs; ++i)
+		{
+			GLsizei nameLen;
+			glGetProgramResourceName(program, GL_SHADER_STORAGE_BLOCK, i, maxNameLen, &nameLen, name.data());
+			result.mStorageBlocks[i] = util::Hash(&name[0], nameLen);
+			glShaderStorageBlockBinding(program, i, i);
+		}
 	}
 }
 
@@ -511,6 +490,7 @@ void Renderer::Init(void* window)
 	glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION, 0, nullptr, GL_FALSE);
 
 	glGetIntegerv(GL_MAX_UNIFORM_BLOCK_SIZE, &maxUBOSize);
+	glGetIntegerv(GL_MAX_SHADER_STORAGE_BLOCK_SIZE, &maxSSBOSize);
 	
 	buildingFrame = false;
 	stateCache.prevMesh = {};
@@ -1138,7 +1118,7 @@ u8 Renderer::AddRenderPass(const char* name, ClearColor color, ClearDepth depth)
 
 ShaderBufferHandle Renderer::CreateShaderBuffer(const void* data, u32 size)
 {
-	StorageBuffer result;
+	DEBUG_ASSERT(size < static_cast<u32>(maxSSBOSize), "Size larger than max UBO size!");
 
 	ShaderBufferHandle handle = { CreateGLBuffer(data, size, BufferUsage::DYNAMIC) };
 	shaderBuffers[handle] = { handle, size };
@@ -1611,10 +1591,7 @@ ShaderHandle Renderer::CreateShader(const ShaderSourceDescription& desc)
 	result.mHandle.idx = program;
 	result.mTesselation = (desc.tessCtrlSrc && desc.tessEvalSrc);
 
-	GatherShaderTextures(program, result);
-	GatherShaderImages(program, result);
-	GatherShaderUniformBlocks(program, result);
-	GatherShaderStorageBlocks(program, result);
+	GatherShaderBindings(program, result);
 	
 	glUseProgram(0);
 
@@ -1680,11 +1657,7 @@ ShaderHandle Renderer::CreateComputeShader(const char* src)
 	Shader& result = shaders[{program}];;
 	result.mHandle.idx = program;
 
-
-	GatherShaderTextures(program, result);
-	GatherShaderImages(program, result);
-	GatherShaderUniformBlocks(program, result);
-	GatherShaderStorageBlocks(program, result);
+	GatherShaderBindings(program, result);
 
 	glUseProgram(0);
 
