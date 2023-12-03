@@ -99,12 +99,6 @@ void RenderSystem::InitRenderData(scene::Scene& scene)
 		mShadowMapFrameBuffer = mEncoder->CreateFrameBuffer(fbDesc);
 	}
 
-	// Light bins
-	{
-		mLightBinsBuffer = mEncoder->CreateShaderBuffer(&mLightBins, sizeof(LightBins));
-		mLightBinIndicesBuffer = mEncoder->CreateShaderBuffer(&mLightBinIndices, sizeof(u32) * LightBins::maxBinIndices);
-	}
-
 	// Light matrices
 	{
 		mLightMatricesBuffer = mEncoder->CreateUniformBuffer(&mLightMatrices, sizeof(LightMatrices));
@@ -407,6 +401,8 @@ void RenderSystem::ProcessPointLights(scene::Scene& scene)
 	});
 
 	
+
+	
 	const i32 numPointLights = lightBuffer->lightBuffer.lightCounts.y;
 	const auto& pointLights = lightBuffer->lightBuffer.pointLights;
 
@@ -416,15 +412,35 @@ void RenderSystem::ProcessPointLights(scene::Scene& scene)
 	const i32 numBinsX = std::max((u32)(mResolution.x / binSizeX + 0.5f), 1u);
 	const i32 numBinsY = std::max((u32)(mResolution.y / binSizeY + 0.5f), 1u);
 
-	mLightBins.u_binsCounts.x = numBinsX;
-	mLightBins.u_binsCounts.y = numBinsY;
-
 	const i32 numBinsTotal = numBinsX * numBinsY;
 	const i32 maxLights = numBinsTotal * LightBins::lightsPerBin;
 
-	DEBUG_ASSERT(maxLights < LightBins::maxBinIndices, "Exceeded bin count");
 
-	std::fill(std::begin(mLightBins.u_lightBins), std::end(mLightBins.u_lightBins), glm::vec4{0,0,0,0});
+	mLightBins.u_binsCounts.x = numBinsX;
+	mLightBins.u_binsCounts.y = numBinsY;
+
+	// lazy init lightbins due to dynamic sizing 
+	if (!mLightBinsBuffer.idx || !mLightBinIndicesBuffer.idx)
+	{
+		//+1 due to binCounts
+		mLightBinsBuffer = mEncoder->CreateShaderBuffer(nullptr, sizeof(glm::uvec4) * (numBinsTotal + 1));
+		mLightBinIndicesBuffer = mEncoder->CreateShaderBuffer(nullptr, maxLights * sizeof(i32));
+
+		mLightBins.u_lightBins.resize(numBinsTotal);
+		mLightBinIndices.resize(LightBins::lightsPerBin * numBinsTotal);
+	}
+	else if (numBinsTotal > mLightBins.u_lightBins.size() || maxLights > mLightBinIndices.size())
+	{
+		mEncoder->DestroyShaderBuffer(mLightBinsBuffer);
+		mEncoder->DestroyShaderBuffer(mLightBinIndicesBuffer);
+
+		//+1 due to binCounts
+		mLightBinsBuffer = mEncoder->CreateShaderBuffer(nullptr, sizeof(glm::uvec4) * (numBinsTotal + 1));
+		mLightBinIndicesBuffer = mEncoder->CreateShaderBuffer(nullptr, maxLights * sizeof(i32));
+		
+		mLightBins.u_lightBins.resize(numBinsTotal);
+		mLightBinIndices.resize(LightBins::lightsPerBin * numBinsTotal);
+	}
 
 	// reset bins
 	for (int i = 0; i < numBinsTotal; ++i)
@@ -496,7 +512,7 @@ void RenderSystem::ProcessPointLights(scene::Scene& scene)
 				i32 index = (y * numBinsX) + x;
 				auto& bin = mLightBins.u_lightBins[index];
 					
-				if ((bin.y - bin.x) < LightBins::maxBinIndices)
+				if ((bin.y - bin.x) < (u32)maxLights)
 				{
 					mLightBinIndices[bin.y] = i;
 					bin.y++;
@@ -532,8 +548,10 @@ void RenderSystem::ProcessPointLights(scene::Scene& scene)
 	}
 
 	
-	mEncoder->UpdateShaderBuffer(mLightBinsBuffer, &mLightBins, sizeof(mLightBins.lightsPerBin) + sizeof(glm::vec4) * numBinsTotal, 0);
-	mEncoder->UpdateShaderBuffer(mLightBinIndicesBuffer, &mLightBinIndices, sizeof(u32) * (binnedLightCount == 0 ? 1 : binnedLightCount), 0);
+	mEncoder->UpdateShaderBuffer(mLightBinsBuffer, &mLightBins.u_binsCounts, sizeof(glm::uvec4), 0);
+	mEncoder->UpdateShaderBuffer(mLightBinsBuffer, &mLightBins.u_lightBins[0], sizeof(glm::uvec4) * numBinsTotal, sizeof(glm::uvec4));
+
+	mEncoder->UpdateShaderBuffer(mLightBinIndicesBuffer, &mLightBinIndices[0], binnedLightCount * sizeof(i32), 0);
 }
 
 void RenderSystem::FillShadowAtlas(scene::Scene& scene)

@@ -57,18 +57,16 @@ private:
 	struct LightBins
 	{
 		static constexpr u32 lightsPerBin = 8;
-		static constexpr u32 maxBins = (3840 / 32) * (3840 / 32);
-		static constexpr u32 maxBinIndices = maxBins * lightsPerBin;
 		
 		glm::uvec4 u_binsCounts{}; //x,y,z, ?
-		glm::uvec4 u_lightBins[maxBins]{}; //start, end, pad, pad;
+		std::vector<glm::uvec4> u_lightBins; //start, end, pad, pad;
 	};
 
 	
 	LightBins mLightBins{};
 	graphics::ShaderBufferHandle mLightBinsBuffer{};
 
-	glm::int32 mLightBinIndices[LightBins::maxBinIndices]{};
+	std::vector<glm::int32> mLightBinIndices{};
 	graphics::ShaderBufferHandle mLightBinIndicesBuffer{};
 
 	// holds LightBufferComponent::LightShaderBuffer
