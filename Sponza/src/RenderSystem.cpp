@@ -101,7 +101,7 @@ void RenderSystem::InitRenderData(scene::Scene& scene)
 
 	// Light bins
 	{
-		mLightBinsBuffer = mEncoder->CreateUniformBuffer(nullptr, sizeof(LightBins));
+		mLightBinsBuffer = mEncoder->CreateShaderBuffer(&mLightBins, sizeof(LightBins));
 		mLightBinIndicesBuffer = mEncoder->CreateShaderBuffer(&mLightBinIndices, sizeof(u32) * LightBins::maxBinIndices);
 	}
 
@@ -532,7 +532,7 @@ void RenderSystem::ProcessPointLights(scene::Scene& scene)
 	}
 
 	
-	mEncoder->UpdateUniformBuffer(mLightBinsBuffer, &mLightBins, sizeof(mLightBins.lightsPerBin) + sizeof(glm::vec4) * numBinsTotal, 0);
+	mEncoder->UpdateShaderBuffer(mLightBinsBuffer, &mLightBins, sizeof(mLightBins.lightsPerBin) + sizeof(glm::vec4) * numBinsTotal, 0);
 	mEncoder->UpdateShaderBuffer(mLightBinIndicesBuffer, &mLightBinIndices, sizeof(u32) * (binnedLightCount == 0 ? 1 : binnedLightCount), 0);
 }
 
@@ -825,7 +825,7 @@ void RenderSystem::ResolveGBuffer(scene::Scene& scene)
 	state.SetUniformBlock("Lights_UBO", mLightingBuffer);
 	state.SetUniformBlock("LightSpaceMatrices_UBO", mLightMatricesBuffer);
 	state.SetUniformBlock("ShadowPages_UBO", mShadowPagesBuffer);
-	state.SetUniformBlock("LightBins_UBO", mLightBinsBuffer);
+	state.SetStorageBlock("LightBins_UBO", mLightBinsBuffer);
 	state.SetStorageBlock("LightBinIndices_UBO", mLightBinIndicesBuffer);
 
 	state.SetTexture("albedos", mGBuffer.AsTexture<OutputSlot::Color0>());

@@ -38,7 +38,7 @@ layout(std140) uniform LightSpaceMatrices_UBO
 const int lightsPerBin = 8;
 const int maxBins = (3840 / 32) * (3840 / 32);
 const int maxBinIndices = maxBins * lightsPerBin;
-layout(std140) uniform LightBins_UBO
+layout(std140) readonly buffer LightBins_UBO
 {
 	uvec4 u_binsCounts; //x,y,z, ?
 	uvec4 u_lightBins[maxBins]; // start, end, pad, pad

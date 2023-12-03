@@ -66,7 +66,7 @@ private:
 
 	
 	LightBins mLightBins{};
-	graphics::UniformBufferHandle mLightBinsBuffer{};
+	graphics::ShaderBufferHandle mLightBinsBuffer{};
 
 	glm::int32 mLightBinIndices[LightBins::maxBinIndices]{};
 	graphics::ShaderBufferHandle mLightBinIndicesBuffer{};
