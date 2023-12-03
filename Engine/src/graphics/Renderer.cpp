@@ -1301,98 +1301,47 @@ TextureHandle Renderer::CreateTexture2D(const TextureDescription2D& desc)
 {
 	DEBUG_ASSERT(desc.mFormat != TextureFormat::INVALID, "Invalid texture format!");
 
-	auto genTextureDSA = [](const TextureDescription2D& desc)
+	GLenum min;
+	GLenum mag;
+	FilterToGL(desc.mFilter, min, mag, desc.mMipmaps);
+
+	GLenum wrap = WrapToGL(desc.mWrap);
+
+	GLenum channels;
+	GLenum type;
+	TypeToGL(desc.mFormat, channels, type);
+
+	GLenum internal = FormatToInternalGL(desc.mFormat);
+
+	int mipmapLevels = 1;
+	if (desc.mMipmaps)
 	{
-		GLenum min;
-		GLenum mag;
-		FilterToGL(desc.mFilter, min, mag, desc.mMipmaps);
+		float log = glm::log2((float)glm::max(desc.mWidth, desc.mHeight));
+		mipmapLevels = 1 + static_cast<int>(glm::floor(log));
+	}
 
-		GLenum wrap = WrapToGL(desc.mWrap);
-
-		GLenum channels;
-		GLenum type;
-		TypeToGL(desc.mFormat, channels, type);
-
-		GLenum internal = FormatToInternalGL(desc.mFormat);
-
-		int mipmapLevels = 1;
-		if (desc.mMipmaps)
-		{
-			float log = glm::log2((float)glm::max(desc.mWidth, desc.mHeight));
-			mipmapLevels = 1 + static_cast<int>(glm::floor(log));
-		}
-
-		GLuint texture;
-		glCreateTextures(GL_TEXTURE_2D, 1, &texture);
-		glTextureStorage2D(texture, mipmapLevels, internal, desc.mWidth, desc.mHeight);
+	GLuint texture;
+	glCreateTextures(GL_TEXTURE_2D, 1, &texture);
+	glTextureStorage2D(texture, mipmapLevels, internal, desc.mWidth, desc.mHeight);
+	if (desc.mData && desc.mDataSize)
+	{
 		glTextureSubImage2D(texture, 0, 0, 0, desc.mWidth, desc.mHeight, channels, type, desc.mData);
+	}
 
-		if (desc.mMipmaps)
-		{
-			glGenerateTextureMipmap(texture);
-		}
-
-		glTextureParameteri(texture, GL_TEXTURE_WRAP_S, wrap);
-		glTextureParameteri(texture, GL_TEXTURE_WRAP_T, wrap);
-		glTextureParameteri(texture, GL_TEXTURE_MIN_FILTER, min);
-		glTextureParameteri(texture, GL_TEXTURE_MAG_FILTER, mag);
-		if (desc.mWrap == TextureWrap::BORDER)
-		{
-			glTextureParameterfv(texture, GL_TEXTURE_BORDER_COLOR, &desc.mBorderColor[0]);
-		}
-
-		return texture;
-	};
-	
-	auto genTextureStateful = [](const TextureDescription2D& desc)
+	if (desc.mMipmaps)
 	{
-		GLenum min;
-		GLenum mag;
-		FilterToGL(desc.mFilter, min, mag, desc.mMipmaps);
+		glGenerateTextureMipmap(texture);
+	}
 
-		GLenum wrap = WrapToGL(desc.mWrap);
-
-		GLenum channels;
-		GLenum type;
-		TypeToGL(desc.mFormat, channels, type);
-
-		GLenum internal = FormatToInternalGL(desc.mFormat);
-
-		int mipmapLevels = 1;
-		if (desc.mMipmaps)
-		{
-			float log = glm::log2((float)glm::max(desc.mWidth, desc.mHeight));
-			mipmapLevels = 1 + static_cast<int>(glm::floor(log));
-		}
-
-		GLuint texture;
-		//STATEFUl
-		glGenTextures(1, &texture);
-		glBindTexture(GL_TEXTURE_2D, texture);
-		glTexStorage2D(GL_TEXTURE_2D, mipmapLevels, internal, desc.mWidth, desc.mHeight);
-		glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, desc.mWidth, desc.mHeight, channels, type, desc.mData);
-		if (desc.mMipmaps)
-		{
-			glGenerateMipmap(GL_TEXTURE_2D);
-		}
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, wrap);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, wrap);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, min);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, mag);
-		if (desc.mWrap == TextureWrap::BORDER)
-		{
-			glTexParameterfv(GL_TEXTURE_2D, GL_TEXTURE_BORDER_COLOR, &desc.mBorderColor[0]);
-		}
-		glBindTexture(GL_TEXTURE_2D, 0);
-
-		return texture;
-	};
-
-	// NOTE (danielg): the DSA API does not work on NVIDIA cards? 
-	// My main machine has and AMD GPU and this works OK, using the stateful binding API seems to work on NVIDIA
-	///GLuint texture = genTextureDSA(desc);
-	GLuint texture = genTextureStateful(desc);
-
+	glTextureParameteri(texture, GL_TEXTURE_WRAP_S, wrap);
+	glTextureParameteri(texture, GL_TEXTURE_WRAP_T, wrap);
+	glTextureParameteri(texture, GL_TEXTURE_MIN_FILTER, min);
+	glTextureParameteri(texture, GL_TEXTURE_MAG_FILTER, mag);
+	if (desc.mWrap == TextureWrap::BORDER)
+	{
+		glTextureParameterfv(texture, GL_TEXTURE_BORDER_COLOR, &desc.mBorderColor[0]);
+	}
+	
 	TextureDesc d;
 	d.mType = TextureType::Texture2D;
 	d.desc2D = desc;
