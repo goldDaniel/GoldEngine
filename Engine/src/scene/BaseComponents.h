@@ -93,7 +93,6 @@ struct ShadowMapComponent
 			float aspect;
 		} perspective;
 	};
-
 	
 	float nearPlane;
 	float farPlane;

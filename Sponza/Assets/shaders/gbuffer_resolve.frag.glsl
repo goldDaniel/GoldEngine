@@ -347,10 +347,8 @@ void main()
 		float dist = length(pointLights[lightIndex].position.xyz - position);
 
 		float falloff = pointLights[lightIndex].params0.x;
-		// is this needed? possible early exit if all threads hit
-		//if(dist <= falloff)
 		{
-			float attenuation = 1.0f / (dist*dist);
+			float attenuation = 1.0/(dist*dist) - 1.0/(falloff*falloff);
 
 			vec3 radiance = clamp(pointLights[lightIndex].color.rgb * attenuation, 0, 1);
 

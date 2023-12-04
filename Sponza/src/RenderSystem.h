@@ -56,6 +56,7 @@ private:
 
 	struct LightBins
 	{
+		static constexpr u32 binSize = 32;
 		static constexpr u32 lightsPerBin = 8;
 		
 		glm::uvec4 u_binsCounts{}; //x,y,z, ?

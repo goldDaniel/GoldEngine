@@ -70,23 +70,6 @@ protected:
 			auto obj = scene::Loader::LoadGameObjectFromModel(mScene, encoder, "sponza2/sponza.gltf");
 			obj.GetComponent<TransformComponent>().scale = { 0.05f, 0.05f, 0.05f };
 
-			/*{
-				auto lightObj = mScene.CreateGameObject("Directional Light");
-				auto& light = lightObj.AddComponent<DirectionalLightComponent>();
-				light.direction = { 0.05f, -0.7f, 0.25f, 1.0f };
-				light.color = { 1,1,1,1 };
-
-				auto& shadow = lightObj.AddComponent<ShadowMapComponent>();
-				shadow.ortho.left = -90;
-				shadow.ortho.right = 90;
-				shadow.ortho.bottom = -90;
-				shadow.ortho.top = 90;
-				shadow.nearPlane = -90;
-				shadow.farPlane = 90;
-				shadow.PCFSize = 9;
-				shadow.dirty = true;
-			}*/
-
 			{
 				auto lightObj = mScene.CreateGameObject("Red Light");
 
@@ -94,9 +77,9 @@ protected:
 				auto& light = lightObj.AddComponent<PointLightComponent>();
 				auto& shadow = lightObj.AddComponent<ShadowMapComponent>();
 
-				transform.position.x = -20;
-				transform.position.y = 40;
-				light.color = { 300, 0, 0, 1 };
+				transform.position.x = -50;
+				transform.position.y = 10;
+				light.color = { 100, 0, 0, 1 };
 				light.falloff = 100;
 
 				shadow.PCFSize = 9;
@@ -114,8 +97,8 @@ protected:
 				auto& shadow = lightObj.AddComponent<ShadowMapComponent>();
 
 				transform.position.x = 0;
-				transform.position.y = 40;
-				light.color = { 0, 300, 0, 1 };
+				transform.position.y = 10;
+				light.color = { 0, 100, 0, 1 };
 				light.falloff = 100;
 
 				shadow.PCFSize = 9;
@@ -132,9 +115,9 @@ protected:
 				auto& light = lightObj.AddComponent<PointLightComponent>();
 				auto& shadow = lightObj.AddComponent<ShadowMapComponent>();
 
-				transform.position.x = 20;
-				transform.position.y = 40;
-				light.color = { 0, 0, 300, 1 };
+				transform.position.x = 40;
+				transform.position.y = 10;
+				light.color = { 0, 0, 100, 1 };
 				light.falloff = 100;
 
 				shadow.PCFSize = 9;

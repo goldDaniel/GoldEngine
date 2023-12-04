@@ -11,9 +11,7 @@ in vec2 Texcoord;
 layout(std140) uniform PerDrawConstants_UBO
 {
     mat4 u_model;
-	
 	int u_materialID;
-	int pad[3];
 };
 
 struct Material

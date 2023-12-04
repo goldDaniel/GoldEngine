@@ -406,8 +406,8 @@ void RenderSystem::ProcessPointLights(scene::Scene& scene)
 	const i32 numPointLights = lightBuffer->lightBuffer.lightCounts.y;
 	const auto& pointLights = lightBuffer->lightBuffer.pointLights;
 
-	const i32 binSizeX = 32;
-	const i32 binSizeY = 32;
+	const i32 binSizeX = LightBins::binSize;
+	const i32 binSizeY = LightBins::binSize;
 	
 	const i32 numBinsX = std::max((u32)(mResolution.x / binSizeX + 0.5f), 1u);
 	const i32 numBinsY = std::max((u32)(mResolution.y / binSizeY + 0.5f), 1u);
@@ -498,7 +498,7 @@ void RenderSystem::ProcessPointLights(scene::Scene& scene)
 	{
 		const auto& light = pointLights[i];
 
-		LightBounds bounds = computeScreenBounds(light.position, light.params0.x * 2.0f);
+		LightBounds bounds = computeScreenBounds(light.position, static_cast<float>(light.params0.x));
 		
 		i32 startX = glm::clamp((i32)(bounds.min.x * numBinsX), 0, numBinsX - 1);
 		i32 endX   = glm::clamp((i32)(bounds.max.x * numBinsX), 0, numBinsX - 1);
@@ -577,6 +577,7 @@ void RenderSystem::FillShadowAtlas(scene::Scene& scene)
 	shadowState.mRenderPass = mEncoder->AddRenderPass(shadowPass);
 	shadowState.mShader = mShadowAtlasFillShader;
 	shadowState.SetUniformBlock("ShadowMap_UBO", mPerDrawConstantsBuffer);
+	shadowState.SetUniformBlock("Materials_UBO", mMaterialBuffer);
 
 	// directional light shadows
 	scene.ForEach<DirectionalLightComponent, ShadowMapComponent>(
@@ -627,8 +628,17 @@ void RenderSystem::FillShadowAtlas(scene::Scene& scene)
 		
 			// reusing the perDrawConstantsBuffer for the model matrix slot
 			PerDrawConstants draw;
+			draw.materialHandle = render.material.idx;
 			draw.u_model = mLightMatrices.mLightSpace[shadowIndex] * obj.GetWorldSpaceTransform();
-			mEncoder->UpdateUniformBuffer(mPerDrawConstantsBuffer, &draw, sizeof(PerDrawConstants));
+			mEncoder->UpdateUniformBuffer(mPerDrawConstantsBuffer, &draw, sizeof(PerDrawConstants)); 
+
+			const auto materialManager = Singletons::Get()->Resolve<MaterialManager>();
+			const auto& material = materialManager->GetMaterial(render.material);
+			
+			if (material.mapFlags.x > 0)
+			{
+				shadowState.SetTexture("u_albedoMap", { material.mapFlags.x });
+			}
 
 			mEncoder->DrawMesh(render.mesh, shadowState);
 		});

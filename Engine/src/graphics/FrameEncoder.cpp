@@ -96,7 +96,7 @@ static void WriteRenderState(const RenderState& state, BinaryWriter& writer)
 	u8 depthWriteBit = 1 << 0;
 	u8 colorWriteBit = 1 << 1;
 	u8 alphaBlendBit = 1 << 2;
-	u8 wireframeBit = 1 << 3;
+	u8 wireframeBit =  1 << 3;
 
 	u8 toggles = (state.mDepthWriteEnabled ? depthWriteBit : 0) |
 				 (state.mColorWriteEnabled ? colorWriteBit : 0) |

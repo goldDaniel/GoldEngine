@@ -19,9 +19,7 @@ layout(std140) uniform PerFrameConstants_UBO
 layout(std140) uniform PerDrawConstants_UBO
 {
     mat4 u_model;
-	
 	int u_materialID;
-	int pad[3];
 };
 
 out vec3 Position;

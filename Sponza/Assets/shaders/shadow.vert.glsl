@@ -1,19 +1,17 @@
 #version 460 core
 layout (location = 0) in vec3 a_position;
+layout (location = 2) in vec2 a_texcoord;
 
 layout(std140) uniform PerDrawConstants_UBO
 {
-    mat4 u_model; // this should hold (lightSpace * model)
-		
-	// these are all unused here
-	vec4 u_albedo;
-	vec4 u_emissive;
-	vec4 u_coefficients;
-
-	vec4 u_flags;
+    mat4 u_model;
+	int u_materialID;
 };
+
+out vec2 Texcoord;
 
 void main()
 {
-    gl_Position = u_model * vec4(a_position, 1.0);
+	Texcoord = a_texcoord;
+	gl_Position = u_model * vec4(a_position, 1.0);
 }  
