@@ -1488,7 +1488,8 @@ ShaderHandle Renderer::CreateShader(const ShaderSourceDescription& desc)
 	{
 		GLuint result = glCreateShader(shaderType);
 
-		glShaderSource(result, 1, &src, NULL);
+		GLint length = static_cast<GLint>(strlen(src));
+		glShaderSource(result, 1, &src, &length);
 		glCompileShader(result);
 		
 		GLint status;
@@ -1511,6 +1512,7 @@ ShaderHandle Renderer::CreateShader(const ShaderSourceDescription& desc)
 	// required shaders
 	GLuint vert = createShader(GL_VERTEX_SHADER, desc.vertSrc);
 	GLuint frag = createShader(GL_FRAGMENT_SHADER, desc.fragSrc);
+
 	DEBUG_ASSERT(vert && frag, "Shader creation failed!");
 	if (!vert || !frag) return {};
 
