@@ -356,12 +356,15 @@ ShaderHandle FrameEncoder::CreateShader(const ShaderSourceDescription& desc)
 
 	mWriter.Write(clientHandle);
 
-	DEBUG_ASSERT(desc.vertSrc, "No vertex shader!");
-	DEBUG_ASSERT(desc.fragSrc, "No fragment shader!");
-	if (desc.tessCtrlSrc || desc.tessEvalSrc) // must have both, or none
+	if (!desc.compSrc)
 	{
-		DEBUG_ASSERT(desc.tessCtrlSrc, "No tesselation control shader!");
-		DEBUG_ASSERT(desc.tessEvalSrc, "No tesselation evaluation shader!");
+		DEBUG_ASSERT(desc.vertSrc, "No vertex shader!");
+		DEBUG_ASSERT(desc.fragSrc, "No fragment shader!");
+		if (desc.tessCtrlSrc || desc.tessEvalSrc) // must have both, or none
+		{
+			DEBUG_ASSERT(desc.tessCtrlSrc, "No tesselation control shader!");
+			DEBUG_ASSERT(desc.tessEvalSrc, "No tesselation evaluation shader!");
+		}
 	}
 
 	auto allocSrc = [&](const char* src)
@@ -373,16 +376,30 @@ ShaderHandle FrameEncoder::CreateShader(const ShaderSourceDescription& desc)
 	};
 
 	ShaderSourceDescription result{};
-	result.vertSrc = allocSrc(desc.vertSrc);
-	result.fragSrc = allocSrc(desc.fragSrc);
-	if (desc.tessCtrlSrc && desc.tessEvalSrc) // must have both, or none
+	
+	if (desc.vertSrc)
+	{
+		result.vertSrc = allocSrc(desc.vertSrc);
+	}
+	if (desc.fragSrc)
+	{
+		result.fragSrc = allocSrc(desc.fragSrc);
+	}
+	if (desc.tessCtrlSrc)
 	{
 		result.tessCtrlSrc = allocSrc(desc.tessCtrlSrc);
+	}
+	if (desc.tessEvalSrc)
+	{
 		result.tessEvalSrc = allocSrc(desc.tessEvalSrc);
 	}
 	if (desc.geoSrc)
 	{
 		result.geoSrc = allocSrc(desc.geoSrc);
+	}
+	if (desc.compSrc)
+	{
+		result.compSrc = allocSrc(desc.compSrc);
 	}
 	
 	mWriter.Write(result);

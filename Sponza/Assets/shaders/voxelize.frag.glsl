@@ -59,7 +59,7 @@ void imageAtomicAverage(ivec3 pos, vec4 addingColor)
 
 		newValue = packUnorm4x8(color);
 		actualValue = imageAtomicCompSwap(u_voxelGrid, pos, expectedValue, newValue);
-}
+	}
 }
 
 void main()

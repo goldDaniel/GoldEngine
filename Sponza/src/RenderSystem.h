@@ -79,6 +79,8 @@ private:
 	graphics::ShaderHandle mSkyboxShader{};
 	graphics::ShaderHandle mTonemapShader{};
 
+	graphics::ShaderHandle mVoxelVisualizeShader{};
+	graphics::ShaderHandle mVoxelClearShader{};
 	graphics::ShaderHandle mVoxelizeShader{};
 
 	graphics::FrameBuffer mGBuffer{};

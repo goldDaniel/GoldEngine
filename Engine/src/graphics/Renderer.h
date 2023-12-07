@@ -68,7 +68,7 @@ namespace graphics
 		void DrawMesh(MeshHandle mesh, const RenderState& state, std::function<void()> preAction = nullptr);
 		void DrawMeshInstanced(MeshHandle mesh, const RenderState& state, VertexBufferHandle instanceData, uint32_t instanceCount, std::function<void()> preAction = nullptr);
 
-		void DispatchCompute(const RenderState& state, uint16_t localX, uint16_t localY, uint16_t localZ, std::function<void()> preAction = nullptr);
+		void DispatchCompute(const RenderState& state, uint16_t groupsX, uint16_t groupsY, uint16_t groupsZ, std::function<void()> preAction = nullptr);
 		void IssueMemoryBarrier();
 
 

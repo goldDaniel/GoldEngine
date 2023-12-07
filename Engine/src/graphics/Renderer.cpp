@@ -1497,14 +1497,22 @@ ShaderHandle Renderer::CreateShader(const ShaderSourceDescription& desc)
 		return result;
 	};
 
+	if (desc.compSrc)
+	{
+		DEBUG_ASSERT(!desc.vertSrc, "Vertex source found with compute shader!");
+		DEBUG_ASSERT(!desc.fragSrc, "Fragment source found with compute shader!");
+		DEBUG_ASSERT(!desc.geoSrc, "Geometry source found with compute shader!");
+		DEBUG_ASSERT(!desc.tessCtrlSrc, "Hull source found with compute shader!");
+		DEBUG_ASSERT(!desc.tessEvalSrc, "Domain source found with compute shader!");
+		return {};
+	}
+
 	// required shaders
 	GLuint vert = createShader(GL_VERTEX_SHADER, desc.vertSrc);
 	GLuint frag = createShader(GL_FRAGMENT_SHADER, desc.fragSrc);
 
 	DEBUG_ASSERT(vert && frag, "Shader creation failed!");
 	if (!vert || !frag) return {};
-
-
 
 	// optional shaders: tesselation 
 	if (desc.tessCtrlSrc || desc.tessEvalSrc)
@@ -1642,14 +1650,21 @@ ShaderHandle Renderer::CreateComputeShader(const char* src)
 		return { };
 	}
 
-	glUseProgram(program);
 
-	Shader& result = shaders[{program}];;
+	// TODO (danielg): Get this information to client side
+	GLint workGroupSize[3];
+	glGetProgramiv(program, GL_COMPUTE_WORK_GROUP_SIZE, workGroupSize);
+	Shader& result = shaders[{program}];
+	
+	result.mIsCompute = true;
+	result.localX = static_cast<u16>(workGroupSize[0]);
+	result.localY = static_cast<u16>(workGroupSize[1]);
+	result.localZ = static_cast<u16>(workGroupSize[2]);
+
 	result.mHandle.idx = program;
 
 	GatherShaderBindings(program, result);
 
-	glUseProgram(0);
 
 	return result.mHandle;
 }

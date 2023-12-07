@@ -323,7 +323,13 @@ namespace graphics
 		ShaderHandle mHandle{};
 
 		// tessellation params
+		bool mIsCompute = false;
 		bool mTesselation = false;
+
+		i16 localX = -1;
+		i16 localY = -1;
+		i16 localZ = -1;
+
 
 		std::array<u32, 12>  mUniformBlocks; // 12 is the GL defined minimum allowed
 		std::array<u32, 8>  mStorageBlocks; // 8 is the GL defined minimum allowed 
@@ -388,6 +394,7 @@ namespace graphics
 		const char* tessCtrlSrc = nullptr;
 		const char* tessEvalSrc = nullptr;
 		const char* geoSrc = nullptr;
+		const char* compSrc = nullptr;
 	};
 
 	struct RenderPass

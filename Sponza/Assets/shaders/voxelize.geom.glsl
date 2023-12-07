@@ -53,23 +53,8 @@ vec3 getSurfaceNormal(vec4 v0, vec4 v1, vec4 v2)
 vec4 expandVertex(vec4 position, vec3 normal, int axis)
 {
     float halfTexelSize = 1.0 / imageSize(u_voxelGrid).x;
-
-    // assume Z 
-    vec3 expandDir = normal;
-    if(axis == DEPTH_AXIS_X)
-    {
-        expandDir.x = 0;
-    }
-    else if(axis == DEPTH_AXIS_Y)
-    {
-        expandDir.y = 0;
-    }
-    else if(axis == DEPTH_AXIS_Z)
-    {
-        expandDir.z = 0;
-    }
-
-    position.xyz += (normalize(expandDir) * halfTexelSize);
+    
+    position.xyz += normal * halfTexelSize;
     return position;
 }
 

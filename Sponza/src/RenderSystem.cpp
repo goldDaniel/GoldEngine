@@ -311,6 +311,26 @@ void RenderSystem::ReloadShaders()
 		desc.fragSrc = fragSrc.c_str();
 		mVoxelizeShader = mEncoder->CreateShader(desc);
 	}
+
+	// Voxel clear
+	{
+		ShaderSourceDescription desc{};
+		std::string compSrc = util::LoadStringFromFile("shaders/voxel_clear.comp.glsl");
+
+		desc.compSrc = compSrc.c_str();
+		mVoxelClearShader = mEncoder->CreateShader(desc);
+	}
+
+	// Voxel Visualization
+	{
+		ShaderSourceDescription desc{};
+		std::string vertSrc = util::LoadStringFromFile("shaders/voxel_visualize.vert.glsl");
+		std::string fragSrc = util::LoadStringFromFile("shaders/voxel_visualize.frag.glsl");
+
+		desc.vertSrc = vertSrc.c_str();
+		desc.fragSrc = fragSrc.c_str();
+		mVoxelVisualizeShader = mEncoder->CreateShader(desc);
+	}
 }
 
 
@@ -724,6 +744,15 @@ void RenderSystem::FillShadowAtlas(scene::Scene& scene)
 
 void RenderSystem::VoxelizeScene(scene::Scene& scene)
 {
+	// TODO (danielg): client side needs some way to access local work group size. Assumed to be 8 currently
+	RenderState clearState{};
+	clearState.mRenderPass = mEncoder->AddRenderPass("Voxel Clear", ClearColor::NO, ClearDepth::YES);
+	clearState.mShader = mVoxelClearShader;
+
+	u16 groupSize = static_cast<u16>(mVoxel.size / 8u);
+	mEncoder->DispatchCompute(clearState, groupSize, groupSize, groupSize);
+	mEncoder->IssueMemoryBarrier();
+
 	const float voxelSize = static_cast<float>(mVoxel.size);
 	const float halfVoxelSize = voxelSize / 2.0f;
 
@@ -841,6 +870,7 @@ void RenderSystem::FillGBuffer(const Camera& camera, scene::Scene& scene)
 void RenderSystem::ResolveGBuffer(scene::Scene& scene)
 {
 	UNUSED_VAR(scene);
+	mEncoder->IssueMemoryBarrier();
 
 	RenderPass pass;
 	pass.mName = "GBuffer Resolve";
@@ -850,22 +880,24 @@ void RenderSystem::ResolveGBuffer(scene::Scene& scene)
 
 	RenderState state;
 	state.mRenderPass = mEncoder->AddRenderPass(pass);
-	state.mShader = mGBufferResolveShader;
+	state.mShader = mVoxelVisualizeShader;
 	state.mAlphaBlendEnabled = false;
 
 	state.SetUniformBlock("PerFrameConstants_UBO", mPerFrameContantsBuffer);
-	state.SetUniformBlock("Lights_UBO", mLightingBuffer);
+	/*state.SetUniformBlock("Lights_UBO", mLightingBuffer);
 	state.SetUniformBlock("LightSpaceMatrices_UBO", mLightMatricesBuffer);
 	state.SetUniformBlock("ShadowPages_UBO", mShadowPagesBuffer);
 	state.SetStorageBlock("LightBins_UBO", mLightBinsBuffer);
-	state.SetStorageBlock("LightBinIndices_UBO", mLightBinIndicesBuffer);
+	state.SetStorageBlock("LightBinIndices_UBO", mLightBinIndicesBuffer);*/
 
-	state.SetTexture("albedos", mGBuffer.AsTexture<OutputSlot::Color0>());
-	state.SetTexture("normals", mGBuffer.AsTexture<OutputSlot::Color1>());
-	state.SetTexture("coefficients", mGBuffer.AsTexture<OutputSlot::Color2>());
-	state.SetTexture("depth", mGBuffer.AsTexture<OutputSlot::Depth>());
+	state.SetImage("u_voxelGrid", mVoxel.mHandle, true, false);
 
-	state.SetTexture("shadowMap", mShadowMapFrameBuffer.AsTexture<OutputSlot::Depth>());
+	//state.SetTexture("albedos", mGBuffer.AsTexture<OutputSlot::Color0>());
+	//state.SetTexture("normals", mGBuffer.AsTexture<OutputSlot::Color1>());
+	//state.SetTexture("coefficients", mGBuffer.AsTexture<OutputSlot::Color2>());
+	//state.SetTexture("depth", mGBuffer.AsTexture<OutputSlot::Depth>());
+
+	//state.SetTexture("shadowMap", mShadowMapFrameBuffer.AsTexture<OutputSlot::Depth>());
 
 	mEncoder->DrawMesh(mFullscreenQuad, state);
 }
