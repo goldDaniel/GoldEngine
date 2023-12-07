@@ -278,6 +278,21 @@ static auto FilterToGL(TextureFilter filter, GLenum& minFilter, GLenum& magFilte
 	DEBUG_ASSERT(false, "Unsupported filter!");
 }
 
+static auto DepthFuncToGL(DepthFunction func)
+{
+	switch (func)
+	{
+	case DepthFunction::LESS: return GL_LESS;
+	case DepthFunction::LESS_EQUAL: return GL_LEQUAL;
+	case DepthFunction::EQUAL: return GL_EQUAL;
+	case DepthFunction::ALWAYS: return GL_ALWAYS;
+	case DepthFunction::DISABLED: return GL_ALWAYS;
+	}
+
+	DEBUG_ASSERT(false, "Invalid Depth Function!");
+	return GL_INVALID_ENUM;
+}
+
 static auto WrapToGL(TextureWrap wrap)
 {
 	switch (wrap)
@@ -519,8 +534,7 @@ void Renderer::Init(void* window)
 	else
 	{
 		glEnable(GL_DEPTH_TEST);
-		
-		glDepthFunc(GL_LESS);
+		glDepthFunc(DepthFuncToGL(stateCache.prevRenderState.mDepthFunc));
 	}
 	
 	
@@ -588,21 +602,6 @@ void Renderer::EndFrame()
 
 	auto setRenderState = [](const RenderState& state)
 	{
-		static auto depthFuncGL = [](DepthFunction func)
-		{
-			switch (func)
-			{
-			case DepthFunction::LESS: return GL_LESS;
-			case DepthFunction::LESS_EQUAL: return GL_LEQUAL;
-			case DepthFunction::EQUAL: return GL_EQUAL;
-			case DepthFunction::ALWAYS: return GL_ALWAYS;
-			case DepthFunction::DISABLED: return GL_ALWAYS;
-			}
-
-			DEBUG_ASSERT(false, "Invalid Depth Function!");
-			return GL_INVALID_ENUM;
-		};
-
 		if (state.mShader.idx != stateCache.prevRenderState.mShader.idx)
 		{
 			glUseProgram(state.mShader.idx);
@@ -614,8 +613,6 @@ void Renderer::EndFrame()
 		// uniforms blocks
 		for (u64 i = 0; i < shader.mUniformBlocks.size(); ++i)
 		{
-			bool foundBinding = false;
-
 			for (u64 j = 0; j < state.mNumUniformBlocks; ++j)
 			{
 				UniformBufferHandle binding = state.mUniformBlocks[j].mHandle;
@@ -625,7 +622,6 @@ void Renderer::EndFrame()
 				if (nameHash == shader.mUniformBlocks[i] && buffer.mSize > 0)
 				{
 					glBindBufferRange(GL_UNIFORM_BUFFER, static_cast<GLuint>(i), binding.idx, 0, buffer.mSize);
-					foundBinding = true;
 					break;		
 				}
 			
@@ -635,8 +631,6 @@ void Renderer::EndFrame()
 		// shader storage blocks
 		for (u64 i = 0; i < shader.mStorageBlocks.size(); ++i)
 		{
-			bool foundBinding = false;
-
 			for (u64 j = 0; j < state.mNumStorageBlocks; ++j)
 			{
 				ShaderBufferHandle binding = state.mStorageBlocks[j].mHandle;
@@ -647,7 +641,6 @@ void Renderer::EndFrame()
 				if (nameHash == shader.mStorageBlocks[i] && buffer.mSize > 0)
 				{
 					glBindBufferRange(GL_SHADER_STORAGE_BUFFER, static_cast<GLuint>(i), binding.idx, 0, buffer.mSize);
-					foundBinding = true;
 					break;
 				}
 			}
@@ -656,7 +649,6 @@ void Renderer::EndFrame()
 		// textures
 		for (u64 i = 0; i < shader.mTextures.size(); ++i)
 		{
-			bool foundTexture = false;
 			for (u64 j = 0; j < state.mNumTextures; ++j)
 			{
 				u32 nameHash = state.mTextures[j].mNameHash;
@@ -664,8 +656,6 @@ void Renderer::EndFrame()
 				{
 					TextureHandle handle = state.mTextures[j].mHandle;
 					glBindTextureUnit(static_cast<GLuint>(i), handle.idx);
-
-					foundTexture = true;
 					break;
 				}
 			}
@@ -674,7 +664,6 @@ void Renderer::EndFrame()
 		// Images
 		for (u64 i = 0; i < shader.mImages.size(); ++i)
 		{
-			bool foundTexture = false;
 			for (u64 j = 0; j < state.mNumImages; ++j)
 			{
 				u32 nameHash = state.mImages[j].mNameHash;
@@ -720,7 +709,6 @@ void Renderer::EndFrame()
 					}
 
 					glBindImageTexture(static_cast<GLuint>(i), handle.idx, 0, GL_TRUE, 0, access, format);
-					foundTexture = true;
 					break;
 				}
 			}
@@ -768,7 +756,7 @@ void Renderer::EndFrame()
 				{
 					glEnable(GL_DEPTH_TEST);
 				}
-				glDepthFunc(depthFuncGL(state.mDepthFunc));
+				glDepthFunc(DepthFuncToGL(state.mDepthFunc));
 			}
 		}
 
@@ -781,7 +769,7 @@ void Renderer::EndFrame()
 		{
 			if (state.mAlphaBlendEnabled)
 			{
-				glEnable(GL_BLEND);		
+				glEnable(GL_BLEND);
 			}
 			else
 			{

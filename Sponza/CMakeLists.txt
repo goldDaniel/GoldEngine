@@ -12,6 +12,7 @@ target_link_libraries(Sponza Engine)
 
 if(MSVC)
   target_compile_options(Sponza PRIVATE /W4 /WX)
+  set_target_properties(Sponza PROPERTIES VS_DEBUGGER_COMMAND_ARGUMENTS "DataFolderRedirect=../../../Sponza/Assets")
 else()
   target_compile_options(Sponza PRIVATE -Wall -Wextra -Wpedantic -Werror)
 endif()

@@ -231,6 +231,7 @@ void RenderSystem::InitRenderData(scene::Scene& scene)
 		desc.mHeight = mVoxel.size;
 		desc.mDepth  = mVoxel.size;
 		
+		desc.mWrap = TextureWrap::CLAMP;
 		desc.mFormat = TextureFormat::R_U32;
 		desc.mFilter = TextureFilter::POINT;
 	
@@ -730,8 +731,8 @@ void RenderSystem::VoxelizeScene(scene::Scene& scene)
 	// TODO (danielg): Maybe set up a view-rendering system instead of a per frame
 	const PerFrameConstants savedConstants = mPerFrameConstants;
 	
-	mPerFrameConstants.u_view = glm::identity<glm::mat4>();
-	mPerFrameConstants.u_viewInv = glm::identity<glm::mat4>();
+	mPerFrameConstants.u_view = glm::lookAt(glm::vec3(0,0,0), glm::vec3(0,0,-1), glm::vec3(0,1,0));
+	mPerFrameConstants.u_viewInv = glm::inverse(mPerFrameConstants.u_view);
 	
 	mPerFrameConstants.u_proj = glm::ortho(-halfVoxelSize,
 											halfVoxelSize,
@@ -748,8 +749,8 @@ void RenderSystem::VoxelizeScene(scene::Scene& scene)
 	auto materialManager = Singletons::Get()->Resolve<MaterialManager>();
 
 	RenderPass passDesc;
-	passDesc.mClearColor = false;
-	passDesc.mClearDepth = false;
+	passDesc.mClearColor = true;
+	passDesc.mClearDepth = true;
 	passDesc.mName = "Voxelization";
 	passDesc.mTarget = mGBuffer.mHandle;
 	u8 passID = mEncoder->AddRenderPass(passDesc);
@@ -768,7 +769,10 @@ void RenderSystem::VoxelizeScene(scene::Scene& scene)
 		RenderState state;
 		state.mRenderPass = passID;
 		state.mColorWriteEnabled = false;
+		state.mDepthWriteEnabled = false;
 		state.mShader = mVoxelizeShader;
+		state.mAlphaBlendEnabled = false;
+		state.mCullFace = CullFace::DISABLED;
 		state.mDepthFunc = DepthFunction::DISABLED;
 		state.mViewport = { 0, 0, static_cast<int>(mVoxel.size), static_cast<int>(mVoxel.size) };
 
@@ -800,7 +804,7 @@ void RenderSystem::FillGBuffer(const Camera& camera, scene::Scene& scene)
 	PushFrustumCull(scene, camera.GetProjectionMatrix() * camera.GetViewMatrix());
 
 	//GBuffer fill
-	uint8_t pass = mEncoder->AddRenderPass("GBuffer Fill", mGBuffer.mHandle, ClearColor::YES, ClearDepth::YES);
+	uint8_t pass = mEncoder->AddRenderPass("GBuffer Fill", mGBuffer.mHandle, ClearColor::NO, ClearDepth::NO);
 	scene.ForEach<TransformComponent, RenderComponent, NotFrustumCulledComponent>([&](const scene::GameObject obj)
 	{
 		const auto& render = obj.GetComponent<RenderComponent>();

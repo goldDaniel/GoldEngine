@@ -55,7 +55,8 @@ protected:
 		}));
 
 		auto camera = mScene.CreateGameObject("Camera");
-		camera.AddComponent<DebugCameraComponent>();
+		auto& cam = camera.AddComponent<DebugCameraComponent>();
+		cam.mCamera.Far = 500;
 
 		mCameraSystem = DebugCameraSystem(this);
 
@@ -68,7 +69,7 @@ protected:
 		if(mFirstFrame)
 		{
 			auto obj = scene::Loader::LoadGameObjectFromModel(mScene, encoder, "sponza2/sponza.gltf");
-			obj.GetComponent<TransformComponent>().scale = { 0.05f, 0.05f, 0.05f };
+			obj.GetComponent<TransformComponent>().scale = { 0.125f, 0.125f, 0.125f };
 
 			{
 				auto lightObj = mScene.CreateGameObject("Red Light");
@@ -86,7 +87,7 @@ protected:
 				shadow.perspective.aspect = 1;
 				shadow.perspective.FOV = glm::radians(90.f);
 				shadow.nearPlane = 0.5;
-				shadow.farPlane = 100;
+				shadow.farPlane = 500;
 				shadow.shadowMapBias.fill(0);
 			}
 			{
@@ -105,7 +106,7 @@ protected:
 				shadow.perspective.aspect = 1;
 				shadow.perspective.FOV = glm::radians(90.f);
 				shadow.nearPlane = 0.5;
-				shadow.farPlane = 100;
+				shadow.farPlane = 500;
 				shadow.shadowMapBias.fill(0);
 			}
 			{
@@ -124,7 +125,7 @@ protected:
 				shadow.perspective.aspect = 1;
 				shadow.perspective.FOV = glm::radians(90.f);
 				shadow.nearPlane = 0.5;
-				shadow.farPlane = 100;
+				shadow.farPlane = 500;
 				shadow.shadowMapBias.fill(0);
 			}
 

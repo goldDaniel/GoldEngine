@@ -167,8 +167,8 @@ u8 FrameEncoder::AddRenderPass(const graphics::RenderPass& pass)
 	u8 clearBits =	(pass.mClearColor ? clearColorBit : 0) |
 					(pass.mClearDepth ? clearDepthBit : 0);
 	mWriter.Write(clearBits);
-	
-	mWriter.Write(pass.mColor); 
+
+	mWriter.Write(pass.mColor);
 	mWriter.Write(pass.mDepth);
 
 	return mNextPass++;
