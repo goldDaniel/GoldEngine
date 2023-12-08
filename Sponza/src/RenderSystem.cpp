@@ -345,6 +345,20 @@ void RenderSystem::Tick(scene::Scene& scene, float dt)
 	{
 		InitRenderData(scene);
 	}
+		
+	// Dispatch voxel clear early, reduces time waiting on memory barrier in voxel pass
+	
+	// TODO (danielg): client side needs some way to access local work group size. Assumed to be 8 currently
+	{
+		RenderState clearState{};
+		clearState.mRenderPass = mEncoder->AddRenderPass("Voxel Clear", ClearColor::NO, ClearDepth::YES);
+		clearState.mShader = mVoxelClearShader;
+
+		u16 groupSize = static_cast<u16>(mVoxel.size / 8);
+		mEncoder->DispatchCompute(clearState, groupSize, groupSize, groupSize);
+	}
+	
+
 
 	// retrieve camera
 	Camera* camera = nullptr;
@@ -421,9 +435,7 @@ void RenderSystem::ProcessPointLights(scene::Scene& scene)
 		lightBuffer = &obj.GetComponent<LightBufferComponent>();
 	});
 
-	
 
-	
 	const i32 numPointLights = lightBuffer->lightBuffer.lightCounts.y;
 	const auto& pointLights = lightBuffer->lightBuffer.pointLights;
 
@@ -744,14 +756,7 @@ void RenderSystem::FillShadowAtlas(scene::Scene& scene)
 
 void RenderSystem::VoxelizeScene(scene::Scene& scene)
 {
-	// TODO (danielg): client side needs some way to access local work group size. Assumed to be 8 currently
-	RenderState clearState{};
-	clearState.mRenderPass = mEncoder->AddRenderPass("Voxel Clear", ClearColor::NO, ClearDepth::YES);
-	clearState.mShader = mVoxelClearShader;
-
-	u16 groupSize = static_cast<u16>(mVoxel.size / 8u);
-	mEncoder->DispatchCompute(clearState, groupSize, groupSize, groupSize);
-	mEncoder->IssueMemoryBarrier();
+	mEncoder->IssueMemoryBarrier(); // wait for voxel clear to finish
 
 	const float voxelSize = static_cast<float>(mVoxel.size);
 	const float halfVoxelSize = voxelSize / 2.0f;
@@ -760,22 +765,12 @@ void RenderSystem::VoxelizeScene(scene::Scene& scene)
 	// TODO (danielg): Maybe set up a view-rendering system instead of a per frame
 	const PerFrameConstants savedConstants = mPerFrameConstants;
 	
-	mPerFrameConstants.u_view = glm::lookAt(glm::vec3(0,0,0), glm::vec3(0,0,-1), glm::vec3(0,1,0));
-	mPerFrameConstants.u_viewInv = glm::inverse(mPerFrameConstants.u_view);
-	
-	mPerFrameConstants.u_proj = glm::ortho(-halfVoxelSize,
-											halfVoxelSize,
-										   -halfVoxelSize,
-											halfVoxelSize,
-										   -halfVoxelSize,
-											halfVoxelSize);
-
-
-	mPerFrameConstants.u_projInv = glm::inverse(mPerFrameConstants.u_proj);
-	mEncoder->UpdateUniformBuffer(mPerFrameContantsBuffer, &mPerFrameConstants, sizeof(PerFrameConstants), 0);
-	
-	
-	auto materialManager = Singletons::Get()->Resolve<MaterialManager>();
+	const std::array<glm::mat4, 3> views =
+	{
+		glm::lookAt(glm::vec3(0,0,0), glm::vec3(0,0,-1), glm::vec3(0,1,0)),
+		glm::lookAt(glm::vec3(0,0,0), glm::vec3(0,-1,0), glm::vec3(0,0,-1)),
+		glm::lookAt(glm::vec3(0,0,0), glm::vec3(-1,0,0), glm::vec3(0,1,0)),
+	};
 
 	RenderPass passDesc;
 	passDesc.mClearColor = true;
@@ -784,46 +779,65 @@ void RenderSystem::VoxelizeScene(scene::Scene& scene)
 	passDesc.mTarget = mGBuffer.mHandle;
 	u8 passID = mEncoder->AddRenderPass(passDesc);
 
-	scene.ForEach<RenderComponent>([this, passID, &materialManager](scene::GameObject obj)
+	auto materialManager = Singletons::Get()->Resolve<MaterialManager>();
+
+	for (const auto& view : views)
 	{
-		const auto& render = obj.GetComponent<RenderComponent>();
+		mPerFrameConstants.u_view = view;
+		mPerFrameConstants.u_viewInv = glm::inverse(mPerFrameConstants.u_view);
 
-		PerDrawConstants draw;
-		draw.u_model = obj.GetWorldSpaceTransform();
-		draw.materialHandle = render.material.idx;
-		mEncoder->UpdateUniformBuffer(mPerDrawConstantsBuffer, &draw, sizeof(PerDrawConstants), 0);
+		mPerFrameConstants.u_proj = glm::ortho(-halfVoxelSize,
+			halfVoxelSize,
+			-halfVoxelSize,
+			halfVoxelSize,
+			-halfVoxelSize,
+			halfVoxelSize);
 
-		auto material = materialManager->GetMaterial(render.material);
+		mPerFrameConstants.u_projInv = glm::inverse(mPerFrameConstants.u_proj);
+		mEncoder->UpdateUniformBuffer(mPerFrameContantsBuffer, &mPerFrameConstants, sizeof(PerFrameConstants), 0);
 
-		RenderState state;
-		state.mRenderPass = passID;
-		state.mColorWriteEnabled = false;
-		state.mDepthWriteEnabled = false;
-		state.mShader = mVoxelizeShader;
-		state.mAlphaBlendEnabled = false;
-		state.mCullFace = CullFace::DISABLED;
-		state.mDepthFunc = DepthFunction::DISABLED;
-		state.mViewport = { 0, 0, static_cast<int>(mVoxel.size), static_cast<int>(mVoxel.size) };
+		scene.ForEach<RenderComponent>([this, passID, &materialManager](scene::GameObject obj)
+		{
+			const auto& render = obj.GetComponent<RenderComponent>();
 
-		state.SetUniformBlock("PerFrameConstants_UBO", mPerFrameContantsBuffer);
-		state.SetUniformBlock("PerDrawConstants_UBO", mPerDrawConstantsBuffer);
-		state.SetUniformBlock("Materials_UBO", mMaterialBuffer);
+			PerDrawConstants draw;
+			draw.u_model = obj.GetWorldSpaceTransform();
+			draw.materialHandle = render.material.idx;
+			mEncoder->UpdateUniformBuffer(mPerDrawConstantsBuffer, &draw, sizeof(PerDrawConstants), 0);
 
-		state.SetImage("u_voxelGrid", mVoxel.mHandle, false, true);
+			auto material = materialManager->GetMaterial(render.material);
 
-		// TODO (danielg): is this a weird way to store textures?
-		if (material.mapFlags.x > 0) state.SetTexture("u_albedoMap", { material.mapFlags.x });
-		if (material.mapFlags.y > 0) state.SetTexture("u_normalMap", { material.mapFlags.y });
-		if (material.mapFlags.z > 0) state.SetTexture("u_metallicMap", { material.mapFlags.z });
-		if (material.mapFlags.w > 0) state.SetTexture("u_roughnessMap", { material.mapFlags.w });
+			RenderState state;
+			state.mRenderPass = passID;
+			state.mColorWriteEnabled = false;
+			state.mDepthWriteEnabled = false;
+			state.mShader = mVoxelizeShader;
+			state.mAlphaBlendEnabled = false;
+			state.mCullFace = CullFace::DISABLED;
+			state.mDepthFunc = DepthFunction::DISABLED;
+			state.mViewport = { 0, 0, static_cast<int>(mVoxel.size), static_cast<int>(mVoxel.size) };
 
-		mEncoder->DrawMesh(render.mesh, state);
-	});
+			state.SetUniformBlock("PerFrameConstants_UBO", mPerFrameContantsBuffer);
+			state.SetUniformBlock("PerDrawConstants_UBO", mPerDrawConstantsBuffer);
+			state.SetUniformBlock("Materials_UBO", mMaterialBuffer);
 
+			state.SetImage("u_voxelGrid", mVoxel.mHandle, false, true);
+
+			// TODO (danielg): is this a weird way to store textures?
+			if (material.mapFlags.x > 0) state.SetTexture("u_albedoMap", { material.mapFlags.x });
+			if (material.mapFlags.y > 0) state.SetTexture("u_normalMap", { material.mapFlags.y });
+			if (material.mapFlags.z > 0) state.SetTexture("u_metallicMap", { material.mapFlags.z });
+			if (material.mapFlags.w > 0) state.SetTexture("u_roughnessMap", { material.mapFlags.w });
+
+			mEncoder->DrawMesh(render.mesh, state);
+		});
+
+		
+		// restore
+		mPerFrameConstants = savedConstants;
+		mEncoder->UpdateUniformBuffer(mPerFrameContantsBuffer, &mPerFrameConstants, sizeof(PerFrameConstants), 0);
+	}
 	mEncoder->IssueMemoryBarrier();
-	// restore
-	mPerFrameConstants = savedConstants;
-	mEncoder->UpdateUniformBuffer(mPerFrameContantsBuffer, &mPerFrameConstants, sizeof(PerFrameConstants), 0);
 }
 
 void RenderSystem::FillGBuffer(const Camera& camera, scene::Scene& scene)

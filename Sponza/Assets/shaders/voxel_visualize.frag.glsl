@@ -41,7 +41,7 @@ Ray GetFragmentRay(vec2 NDC)
 void main()
 {
     const ivec3 IMAGE_SIZE = imageSize(u_voxelGrid);
-    const float STEP_SIZE = 0.1;
+    const float STEP_SIZE = 0.5;
     const float STEP_SIZE_INV = 1.0 / STEP_SIZE;
     const uint STEP_COUNT = uint(STEP_SIZE_INV * IMAGE_SIZE.x);
 

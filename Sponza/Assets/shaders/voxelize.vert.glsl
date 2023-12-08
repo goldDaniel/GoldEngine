@@ -4,7 +4,6 @@ in layout(location = 0) vec3 a_position;
 in layout(location = 2) vec2 a_texcoord0;
 
 out vec2 Texcoord;
-
 void main()
 {
 	Texcoord = a_texcoord0;
