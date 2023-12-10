@@ -70,7 +70,6 @@ protected:
 		{
 			auto obj = scene::Loader::LoadGameObjectFromModel(mScene, encoder, "sponza2/sponza.gltf");
 			obj.GetComponent<TransformComponent>().scale = { 0.125f, 0.125f, 0.125f };
-
 			{
 				auto lightObj = mScene.CreateGameObject("Red Light");
 

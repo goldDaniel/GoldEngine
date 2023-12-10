@@ -70,6 +70,18 @@ void main()
 	ivec3 voxelCoords = ivec3(v_worldPos) + IMAGE_CENTER;
 	voxelCoords = clamp(voxelCoords, ivec3(0), IMAGE_SIZE - ivec3(1));
 
-	vec4 color = vec4(texture(u_albedoMap, v_texCoord).xyz, 1.0 / 256.0);
-	imageAtomicAverage(voxelCoords, color);
+	ivec2 size = textureSize(u_albedoMap, 0);
+	
+	int mipsAvailable = textureQueryLevels(u_albedoMap);
+	vec4 sampledColor = textureLod(u_albedoMap, v_texCoord, mipsAvailable - 1);
+
+	if(sampledColor.a > 0.0)
+	{
+		vec4 color = vec4(sampledColor.xyz, 1.0 / 256.0);
+		imageAtomicAverage(voxelCoords, color);
+	}
+	else 
+	{
+		discard;
+	}
 }

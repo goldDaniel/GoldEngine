@@ -303,11 +303,9 @@ void RenderSystem::ReloadShaders()
 	{
 		ShaderSourceDescription desc{};
 		std::string vertSrc = util::LoadStringFromFile("shaders/voxelize.vert.glsl");
-		std::string geomSrc = util::LoadStringFromFile("shaders/voxelize.geom.glsl");
 		std::string fragSrc = util::LoadStringFromFile("shaders/voxelize.frag.glsl");
 
 		desc.vertSrc = vertSrc.c_str();
-		desc.geoSrc = geomSrc.c_str();
 		desc.fragSrc = fragSrc.c_str();
 		mVoxelizeShader = mEncoder->CreateShader(desc);
 	}
@@ -764,8 +762,14 @@ void RenderSystem::VoxelizeScene(scene::Scene& scene)
 	// save/restore these: we need to change the viewproj 
 	// TODO (danielg): Maybe set up a view-rendering system instead of a per frame
 	const PerFrameConstants savedConstants = mPerFrameConstants;
-	
-	const std::array<glm::mat4, 3> views =
+	util::Finally finally([&]()
+	{
+		// restore
+		mPerFrameConstants = savedConstants;
+		mEncoder->UpdateUniformBuffer(mPerFrameContantsBuffer, &mPerFrameConstants, sizeof(PerFrameConstants), 0);
+	});
+
+	const std::array<glm::mat4, 6> views =
 	{
 		glm::lookAt(glm::vec3(0,0,0), glm::vec3(0,0,-1), glm::vec3(0,1,0)),
 		glm::lookAt(glm::vec3(0,0,0), glm::vec3(0,-1,0), glm::vec3(0,0,-1)),
@@ -815,7 +819,8 @@ void RenderSystem::VoxelizeScene(scene::Scene& scene)
 			state.mAlphaBlendEnabled = false;
 			state.mCullFace = CullFace::DISABLED;
 			state.mDepthFunc = DepthFunction::DISABLED;
-			state.mViewport = { 0, 0, static_cast<int>(mVoxel.size), static_cast<int>(mVoxel.size) };
+
+			state.mViewport = { 0, 0, static_cast<u16>(mVoxel.size * 2), static_cast<u16>(mVoxel.size * 2) };
 
 			state.SetUniformBlock("PerFrameConstants_UBO", mPerFrameContantsBuffer);
 			state.SetUniformBlock("PerDrawConstants_UBO", mPerDrawConstantsBuffer);
@@ -833,11 +838,10 @@ void RenderSystem::VoxelizeScene(scene::Scene& scene)
 		});
 
 		
-		// restore
-		mPerFrameConstants = savedConstants;
-		mEncoder->UpdateUniformBuffer(mPerFrameContantsBuffer, &mPerFrameConstants, sizeof(PerFrameConstants), 0);
+		
 	}
 	mEncoder->IssueMemoryBarrier();
+
 }
 
 void RenderSystem::FillGBuffer(const Camera& camera, scene::Scene& scene)

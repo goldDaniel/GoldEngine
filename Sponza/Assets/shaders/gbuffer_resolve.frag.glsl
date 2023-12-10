@@ -74,6 +74,8 @@ vec3 colorAdjust = vec3(0,0,0);
 
 uniform sampler2D shadowMap;
 
+layout(r32ui) uniform readonly uimage3D u_voxelGrid;
+
 uniform sampler2D albedos;
 uniform sampler2D normals;
 uniform sampler2D coefficients;
