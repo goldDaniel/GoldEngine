@@ -1329,6 +1329,20 @@ void Renderer::DestroyTexture(TextureHandle handle)
 
 void Renderer::GenerateMipMaps(TextureHandle handle)
 {
+	const auto& desc = textureDescriptions[handle];
+
+	bool supportsMipmaps = false;
+	switch (desc.mType)
+	{
+	case TextureType::Texture2D:
+		supportsMipmaps = desc.desc2D.mMipmaps;
+	case TextureType::Texture3D:
+		supportsMipmaps = desc.desc3D.mMipmaps;
+	case TextureType::Cubemap:
+		supportsMipmaps = false;
+	}
+
+	DEBUG_ASSERT(supportsMipmaps, "Attempting to generate mipmaps without mip storage!");
 	glGenerateTextureMipmap(handle.idx);
 }
 
