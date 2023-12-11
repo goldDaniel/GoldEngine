@@ -1336,10 +1336,13 @@ void Renderer::GenerateMipMaps(TextureHandle handle)
 	{
 	case TextureType::Texture2D:
 		supportsMipmaps = desc.desc2D.mMipmaps;
+		break;
 	case TextureType::Texture3D:
 		supportsMipmaps = desc.desc3D.mMipmaps;
+		break;
 	case TextureType::Cubemap:
 		supportsMipmaps = false;
+		break;
 	}
 
 	DEBUG_ASSERT(supportsMipmaps, "Attempting to generate mipmaps without mip storage!");
