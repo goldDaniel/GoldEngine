@@ -1327,6 +1327,11 @@ void Renderer::DestroyTexture(TextureHandle handle)
 	deletions.push_back(command);
 }
 
+void Renderer::GenerateMipMaps(TextureHandle handle)
+{
+	glGenerateTextureMipmap(handle.idx);
+}
+
 TextureHandle Renderer::CreateTexture3D(const TextureDescription3D& desc)
 {
 	DEBUG_ASSERT(desc.mFormat != TextureFormat::INVALID, "Invalid texture format!");

@@ -370,6 +370,13 @@ void FrameDecoder::Decode(Renderer& renderer, ServerResources& resources, Binary
 			renderer.DestroyTexture(serverHandle);
 			break;
 		}
+		case RenderCommand::GenerateMipMaps:
+		{
+			TextureHandle serverHandle = resources.get(reader.Read<TextureHandle>());
+			renderer.GenerateMipMaps(serverHandle);
+			break;
+		}
+
 		// Frame Buffers
 		case RenderCommand::CreateFrameBuffer:
 		{

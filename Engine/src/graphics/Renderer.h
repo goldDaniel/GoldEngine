@@ -48,8 +48,8 @@ namespace graphics
 		TextureHandle CreateTexture2D(const TextureDescription2D& description);
 		TextureHandle CreateTexture3D(const TextureDescription3D& description);
 		TextureHandle CreateCubemap(const CubemapDescription& description);
-
 		void DestroyTexture(TextureHandle handle);
+		void GenerateMipMaps(TextureHandle handle);
 
 		// frame buffers /////////////////////////////////////
 		FrameBuffer CreateFramebuffer(const TextureDescription2D& description, FramebufferAttachment attachment);

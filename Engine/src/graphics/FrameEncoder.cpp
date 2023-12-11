@@ -541,6 +541,12 @@ void FrameEncoder::DestroyTexture(TextureHandle clientHandle)
 	mWriter.Write(clientHandle);
 }
 
+void FrameEncoder::GenerateMipMaps(graphics::TextureHandle clientHandle)
+{
+	mWriter.Write(RenderCommand::GenerateMipMaps);
+	mWriter.Write(clientHandle);
+}
+
 FrameBuffer FrameEncoder::CreateFrameBuffer(const FrameBufferDescription& desc)
 {
 	mWriter.Write(RenderCommand::CreateFrameBuffer);

@@ -64,6 +64,7 @@ namespace gold
 		graphics::TextureHandle CreateTexture3D(const graphics::TextureDescription3D& desc);
 		graphics::TextureHandle CreateCubemap(const graphics::CubemapDescription& desc);
 		void DestroyTexture(graphics::TextureHandle clientHandle);
+		void GenerateMipMaps(graphics::TextureHandle clientHandle);
 
 		graphics::FrameBuffer CreateFrameBuffer(const graphics::FrameBufferDescription& desc);
 		void DestroyFrameBuffer(graphics::FrameBufferHandle handle);

@@ -21,7 +21,7 @@ namespace util
 	struct Finally
 	{
 		std::function<void()> mAction;
-
+		
 		Finally(std::function<void()>&& action)
 			: mAction(std::move(action))
 		{

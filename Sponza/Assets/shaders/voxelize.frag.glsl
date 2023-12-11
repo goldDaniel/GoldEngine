@@ -1,6 +1,7 @@
 #version 460 core
 
 in vec3 v_worldPos;
+in vec3 v_worldNormal;
 in vec2 v_texCoord;
 
 struct Material
@@ -73,7 +74,7 @@ void main()
 	ivec2 size = textureSize(u_albedoMap, 0);
 	
 	int mipsAvailable = textureQueryLevels(u_albedoMap);
-	vec4 sampledColor = textureLod(u_albedoMap, v_texCoord, mipsAvailable - 1);
+	vec4 sampledColor = texture(u_albedoMap, v_texCoord);
 
 	if(sampledColor.a > 0.0)
 	{

@@ -74,7 +74,7 @@ vec3 colorAdjust = vec3(0,0,0);
 
 uniform sampler2D shadowMap;
 
-layout(r32ui) uniform readonly uimage3D u_voxelGrid;
+uniform sampler3D u_voxelGrid;
 
 uniform sampler2D albedos;
 uniform sampler2D normals;
@@ -203,7 +203,7 @@ vec3 getLighting(vec3 L, vec3 N, vec3 V, vec3 H, vec3 F0, vec3 radiance, vec3 al
 	kD *= 1.0 - metalness;
 		
 	vec3 numerator    = NDF * G * F;
-	float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + 0.0001;
+	float denominator = 4.0 * max(dot(N, V), 0.0) * max(dot(N, L), 0.0) + Epsilon;
 	vec3 specular     = numerator / denominator;
 			
 	float NdotL = max(dot(N, L), 0.0);
@@ -304,9 +304,109 @@ float getPointShadow(uint pointLightIndex, vec4 fragmentPosWorldSpace, vec3 norm
 	return getShadowPCF(projCoords, NdotL, shadowMapIndex, bias);
 }
 
+vec3 getDirectionalLightContribution(vec3 albedo, vec3 normal, float metallic, float roughness, float depth, vec3 worldPos, vec3 view, vec3 F0)
+{
+	vec3 Lo = vec3(0);
+
+	// direct lighting (directional lights)
+	for(int i = 0; i < lightCounts.x; ++i) 
+	{
+		vec3 L = normalize(-directionalLights[i].direction.xyz);
+		vec3 H = normalize(view + L);
+		vec3 radiance = directionalLights[i].color.rgb;
+		
+		int shadowMapIndex = directionalLights[i].params.w;
+
+		vec3 lighting = getLighting(L, normal, view, H, F0, radiance, albedo.rgb, roughness, metallic);
+		if(directionalLights[i].params.w != -1) // if shadowmaps are enabled for this light
+		{
+			float NdotL = dot(normal, normalize(directionalLights[i].direction.xyz));
+			float shadow = getDirectionalShadow(shadowMapIndex, mLightSpace[shadowMapIndex] * vec4(worldPos, 1.0), NdotL);
+			lighting *= (1.0 - shadow);
+		}
+
+		Lo +=  lighting;
+	}
+
+	return Lo;
+}
+
+vec3 getPointLightContribution(vec3 albedo, vec3 normal, float metallic, float roughness, float depth, vec3 worldPos, vec3 view, vec3 F0)
+{
+	vec3 Lo = vec3(0);
+
+	// direct lighting (point lights)
+	uvec2 lightBin = getLightBin(Texcoord);
+	for(uint idx = lightBin.x; idx < lightBin.y; ++idx) 
+	{
+		uint lightIndex = uint(u_lightBinIndices[idx]);
+
+		vec3 L = normalize(pointLights[lightIndex].position.xyz - worldPos);
+		vec3 H = normalize(view + L);
+		float dist = length(pointLights[lightIndex].position.xyz - worldPos);
+
+		float falloff = pointLights[lightIndex].params0.x;
+		{
+			float attenuation = 1.0/(dist*dist) - 1.0/(falloff*falloff);
+
+			vec3 radiance = clamp(pointLights[lightIndex].color.rgb * attenuation, 0, 1);
+
+			vec3 lighting = getLighting(L, normal, view, H, F0, radiance, albedo.rgb, roughness, metallic);
+			if(pointLights[lightIndex].params0.z != -1) // if shadowmaps are enabled for this light
+			{
+				float shadow = getPointShadow(lightIndex, vec4(worldPos, 1.0), normal);
+				lighting *= (1.0 - shadow);
+			}
+			Lo +=  lighting;
+		}
+	}
+
+	return Lo;
+}
+
+
+vec3 coneTrace(vec3 worldPos, vec3 normal, vec3 direction, float aperture, float voxelSize)
+{
+	return vec3(0);
+}
+
+vec3 getIndirectDiffuseContribution(vec3 worldPos, vec3 normal, float voxelSize)
+{
+	// normal, tangent, bitangent
+	vec3 N = normal;
+	vec3 T = cross(N, vec3(0.0, 1.0, 0.0));
+    vec3 B = cross(T, N);
+ 
+    vec3 Lo = vec3(0.0f);
+ 
+    float aperture = PI / 3.0;
+    vec3 direction = N;
+    Lo += coneTrace(worldPos, normal, direction, aperture, voxelSize);
+    
+	direction = 0.7071 * N + 0.7071 * T;
+	Lo += coneTrace(worldPos, normal, direction, aperture, voxelSize);
+	
+    direction = 0.7071 * N + 0.7071 * (0.309 * T + 0.951 * B);
+    Lo += coneTrace(worldPos, normal, direction, aperture, voxelSize);
+
+    direction = 0.7071 * N + 0.7071 * (-0.809 * T + 0.588 * B);
+    Lo += coneTrace(worldPos, normal, direction, aperture, voxelSize);
+
+    direction = 0.7071 * N - 0.7071 * (-0.809 * T - 0.588 * B);
+    Lo += coneTrace(worldPos, normal, direction, aperture, voxelSize);
+
+    direction = 0.7071 * N - 0.7071 * (0.309 * T - 0.951 * B);
+    Lo += coneTrace(worldPos, normal, direction, aperture, voxelSize);
+ 
+    return Lo / 6.0;
+}
+
 void main()
 {
-	vec4 albedo     = texture(albedos, Texcoord).rgba;
+	// assumption - uniform size (NxNxN)
+	const float VOXEL_SIZE = 1.0 / float(textureSize(u_voxelGrid, 0).x);
+
+	vec3 albedo     = texture(albedos, Texcoord).rgb;
 	vec3 normal     = texture(normals, Texcoord).xyz;
 	float metallic  = texture(coefficients, Texcoord).r;
 	float roughness = texture(coefficients, Texcoord).g;
@@ -315,54 +415,12 @@ void main()
 	vec3 position = WorldPosFromDepth(d);
 
 	vec3 V = normalize(u_viewInv[3].xyz - position);
-	vec3 F0 = vec3(0.04); 
-	F0 = mix(F0, albedo.rgb, metallic);
-	// reflectance equation
+	vec3 F0 = mix(vec3(0.04), albedo.rgb, metallic);
 	vec3 Lo = vec3(0.0);
 
-	for(int i = 0; i < lightCounts.x; ++i) 
-	{
-		vec3 L = normalize(-directionalLights[i].direction.xyz);
-		vec3 H = normalize(V + L);
-		vec3 radiance = directionalLights[i].color.rgb;
-		
-		int shadowMapIndex = directionalLights[i].params.w;
-
-		vec3 lighting = getLighting(L, normal, V, H, F0, radiance, albedo.rgb, roughness, metallic);
-		if(directionalLights[i].params.w != -1) // if shadowmaps are enabled for this light
-		{
-			float NdotL = dot(normal, normalize(directionalLights[i].direction.xyz));
-			float shadow = getDirectionalShadow(shadowMapIndex, mLightSpace[shadowMapIndex] * vec4(position, 1.0), NdotL);
-			lighting *= (1.0 - shadow);
-		}
-
-		Lo +=  lighting;
-	}
-
-	uvec2 lightBin = getLightBin(Texcoord);
-	for(uint idx = lightBin.x; idx < lightBin.y; ++idx) 
-	{
-		uint lightIndex = uint(u_lightBinIndices[idx]);
-
-		vec3 L = normalize(pointLights[lightIndex].position.xyz - position);
-		vec3 H = normalize(V + L);
-		float dist = length(pointLights[lightIndex].position.xyz - position);
-
-		float falloff = pointLights[lightIndex].params0.x;
-		{
-			float attenuation = 1.0/(dist*dist) - 1.0/(falloff*falloff);
-
-			vec3 radiance = clamp(pointLights[lightIndex].color.rgb * attenuation, 0, 1);
-
-			vec3 lighting = getLighting(L, normal, V, H, F0, radiance, albedo.rgb, roughness, metallic);
-			if(pointLights[lightIndex].params0.z != -1) // if shadowmaps are enabled for this light
-			{
-				float shadow = getPointShadow(lightIndex, vec4(position, 1.0), normal);
-				lighting *= (1.0 - shadow);
-			}
-			Lo +=  lighting;
-		}
-	}
+	Lo += getDirectionalLightContribution(albedo, normal, metallic, roughness, d, position, V, F0);
+	Lo += getPointLightContribution(albedo, normal, metallic, roughness, d, position, V, F0);
+	Lo += getIndirectDiffuseContribution(position, normal, VOXEL_SIZE);
 
 	vec3 ambient = 1.0 / 255.0 * albedo.rgb;
 	vec3 color = ambient + (Lo);

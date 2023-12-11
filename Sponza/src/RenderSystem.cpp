@@ -233,7 +233,8 @@ void RenderSystem::InitRenderData(scene::Scene& scene)
 		
 		desc.mWrap = TextureWrap::CLAMP;
 		desc.mFormat = TextureFormat::R_U32;
-		desc.mFilter = TextureFilter::POINT;
+		desc.mFilter = TextureFilter::LINEAR;
+		desc.mMipmaps = true;
 	
 		mVoxel.mHandle = mEncoder->CreateTexture3D(desc);
 	}
@@ -841,6 +842,7 @@ void RenderSystem::VoxelizeScene(scene::Scene& scene)
 		
 	}
 	mEncoder->IssueMemoryBarrier();
+	mEncoder->GenerateMipMaps(mVoxel.mHandle);
 
 }
 
@@ -898,24 +900,24 @@ void RenderSystem::ResolveGBuffer(scene::Scene& scene)
 
 	RenderState state;
 	state.mRenderPass = mEncoder->AddRenderPass(pass);
-	state.mShader = mVoxelVisualizeShader;
+	state.mShader = mGBufferResolveShader;
 	state.mAlphaBlendEnabled = false;
 
 	state.SetUniformBlock("PerFrameConstants_UBO", mPerFrameContantsBuffer);
-	/*state.SetUniformBlock("Lights_UBO", mLightingBuffer);
+	state.SetUniformBlock("Lights_UBO", mLightingBuffer);
 	state.SetUniformBlock("LightSpaceMatrices_UBO", mLightMatricesBuffer);
 	state.SetUniformBlock("ShadowPages_UBO", mShadowPagesBuffer);
 	state.SetStorageBlock("LightBins_UBO", mLightBinsBuffer);
-	state.SetStorageBlock("LightBinIndices_UBO", mLightBinIndicesBuffer);*/
+	state.SetStorageBlock("LightBinIndices_UBO", mLightBinIndicesBuffer);
 
-	state.SetImage("u_voxelGrid", mVoxel.mHandle, true, false);
+	state.SetTexture("u_voxelGrid", mVoxel.mHandle);
 
-	//state.SetTexture("albedos", mGBuffer.AsTexture<OutputSlot::Color0>());
-	//state.SetTexture("normals", mGBuffer.AsTexture<OutputSlot::Color1>());
-	//state.SetTexture("coefficients", mGBuffer.AsTexture<OutputSlot::Color2>());
-	//state.SetTexture("depth", mGBuffer.AsTexture<OutputSlot::Depth>());
+	state.SetTexture("albedos", mGBuffer.AsTexture<OutputSlot::Color0>());
+	state.SetTexture("normals", mGBuffer.AsTexture<OutputSlot::Color1>());
+	state.SetTexture("coefficients", mGBuffer.AsTexture<OutputSlot::Color2>());
+	state.SetTexture("depth", mGBuffer.AsTexture<OutputSlot::Depth>());
 
-	//state.SetTexture("shadowMap", mShadowMapFrameBuffer.AsTexture<OutputSlot::Depth>());
+	state.SetTexture("shadowMap", mShadowMapFrameBuffer.AsTexture<OutputSlot::Depth>());
 
 	mEncoder->DrawMesh(mFullscreenQuad, state);
 }

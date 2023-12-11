@@ -29,6 +29,7 @@ namespace gold
 		CreateTexture3D, //e, d
 		CreateCubemap, //e, d
 		DestroyTexture, //e, d
+		GenerateMipMaps, //e, d
 
 		CreateFrameBuffer, //e, d
 		DestroyFrameBuffer, //e, D
