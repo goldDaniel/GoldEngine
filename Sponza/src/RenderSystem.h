@@ -81,7 +81,9 @@ private:
 
 	graphics::ShaderHandle mVoxelVisualizeShader{};
 	graphics::ShaderHandle mVoxelClearShader{};
+	graphics::ShaderHandle mVoxelDownsampleShader{};
 	graphics::ShaderHandle mVoxelizeShader{};
+	
 
 	graphics::FrameBuffer mGBuffer{};
 	graphics::FrameBuffer mShadowMapFrameBuffer{};

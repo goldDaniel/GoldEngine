@@ -365,51 +365,109 @@ vec3 getPointLightContribution(vec3 albedo, vec3 normal, float metallic, float r
 }
 
 
-vec3 coneTrace(vec3 worldPos, vec3 normal, vec3 direction, float aperture, float voxelSize)
+vec3 coneTrace(vec3 worldPos, vec3 normal, vec3 direction, float aperture)
 {
-	return vec3(0);
+	const ivec3 VOXEL_GRID_SIZE = textureSize(u_voxelGrid, 0);
+	const float VOXEL_SIZE = 1.0;
+
+	vec3 start = worldPos + (VOXEL_SIZE * 2 + Epsilon) * direction;
+	vec3 result = vec3(0);
+	int count = 0;
+
+	float tanHalfAperture = 2.0 * tan(aperture / 2.0);
+	float tanEighthAperture = 2.0 * tan(aperture / 8.0);
+	float stepSizeCorrectionFactor = (1.0 + tanEighthAperture) / (1.0 - tanEighthAperture);
+	float stepSize = stepSizeCorrectionFactor * VOXEL_SIZE / 2.0;
+
+	float dist = stepSize;
+
+	for(int i = 0; i < 20; ++i)
+	{
+		vec3 position = start + dist * direction;
+		ivec3 voxelCoords = ivec3(position) + (VOXEL_GRID_SIZE / 2);
+
+		if(voxelCoords.x < 0 || voxelCoords.y < 0 || voxelCoords.z < 0 ||
+		   voxelCoords.x >= VOXEL_GRID_SIZE.x || voxelCoords.y >= VOXEL_GRID_SIZE.y || voxelCoords.z >= VOXEL_GRID_SIZE.z)
+		{
+			break;
+		}
+
+		float diameter = 2.0 * tanHalfAperture * dist;
+		float mipLevel = log2(diameter / VOXEL_SIZE);	
+		vec3 uvw = vec3(voxelCoords) / vec3(VOXEL_GRID_SIZE);
+		
+		float sampledVoxel = textureLod(u_voxelGrid, uvw, mipLevel).r;
+		uint packedColor = floatBitsToUint(sampledVoxel);
+		vec4 color = unpackUnorm4x8(packedColor);
+		if(color.a > 0)
+		{
+			result += color.rgb / (mipLevel + 1);
+			count += int(round(mipLevel) + 1);
+		}
+
+		dist += stepSize;
+	}
+
+	return result.rgb / max(count, 1);
 }
 
-vec3 getIndirectDiffuseContribution(vec3 worldPos, vec3 normal, float voxelSize)
+const int NUM_DIFFUSE_CONES = 32;
+const vec3 DIFFUSE_CONE_DIRECTIONS[32] = 
 {
-	// normal, tangent, bitangent
-	vec3 N = normal;
-	vec3 T = cross(N, vec3(0.0, 1.0, 0.0));
-    vec3 B = cross(T, N);
- 
-    vec3 Lo = vec3(0.0f);
- 
-    float aperture = PI / 3.0;
-    vec3 direction = N;
-    Lo += coneTrace(worldPos, normal, direction, aperture, voxelSize);
-    
-	direction = 0.7071 * N + 0.7071 * T;
-	Lo += coneTrace(worldPos, normal, direction, aperture, voxelSize);
-	
-    direction = 0.7071 * N + 0.7071 * (0.309 * T + 0.951 * B);
-    Lo += coneTrace(worldPos, normal, direction, aperture, voxelSize);
+    vec3(0.898904, 0.435512, 0.0479745),
+    vec3(0.898904, -0.435512, -0.0479745),
+    vec3(0.898904, 0.0479745, -0.435512),
+    vec3(0.898904, -0.0479745, 0.435512),
+    vec3(-0.898904, 0.435512, -0.0479745),
+    vec3(-0.898904, -0.435512, 0.0479745),
+    vec3(-0.898904, 0.0479745, 0.435512),
+    vec3(-0.898904, -0.0479745, -0.435512),
+    vec3(0.0479745, 0.898904, 0.435512),
+    vec3(-0.0479745, 0.898904, -0.435512),
+    vec3(-0.435512, 0.898904, 0.0479745),
+    vec3(0.435512, 0.898904, -0.0479745),
+    vec3(-0.0479745, -0.898904, 0.435512),
+    vec3(0.0479745, -0.898904, -0.435512),
+    vec3(0.435512, -0.898904, 0.0479745),
+    vec3(-0.435512, -0.898904, -0.0479745),
+    vec3(0.435512, 0.0479745, 0.898904),
+    vec3(-0.435512, -0.0479745, 0.898904),
+    vec3(0.0479745, -0.435512, 0.898904),
+    vec3(-0.0479745, 0.435512, 0.898904),
+    vec3(0.435512, -0.0479745, -0.898904),
+    vec3(-0.435512, 0.0479745, -0.898904),
+    vec3(0.0479745, 0.435512, -0.898904),
+    vec3(-0.0479745, -0.435512, -0.898904),
+    vec3(0.57735, 0.57735, 0.57735),
+    vec3(0.57735, 0.57735, -0.57735),
+    vec3(0.57735, -0.57735, 0.57735),
+    vec3(0.57735, -0.57735, -0.57735),
+    vec3(-0.57735, 0.57735, 0.57735),
+    vec3(-0.57735, 0.57735, -0.57735),
+    vec3(-0.57735, -0.57735, 0.57735),
+    vec3(-0.57735, -0.57735, -0.57735)
+};
 
-    direction = 0.7071 * N + 0.7071 * (-0.809 * T + 0.588 * B);
-    Lo += coneTrace(worldPos, normal, direction, aperture, voxelSize);
+vec3 getIndirectDiffuseContribution(vec3 worldPos, vec3 normal)
+{
+    float aperture = 0.628319;
+	vec3 result = vec3(0.0);
 
-    direction = 0.7071 * N - 0.7071 * (-0.809 * T - 0.588 * B);
-    Lo += coneTrace(worldPos, normal, direction, aperture, voxelSize);
+	for(int i = 0; i < NUM_DIFFUSE_CONES; ++i)
+	{
+		result += coneTrace(worldPos, normal, DIFFUSE_CONE_DIRECTIONS[i], aperture);
+	}
+	result /= NUM_DIFFUSE_CONES;
 
-    direction = 0.7071 * N - 0.7071 * (0.309 * T - 0.951 * B);
-    Lo += coneTrace(worldPos, normal, direction, aperture, voxelSize);
- 
-    return Lo / 6.0;
+	return result;
 }
 
 void main()
 {
-	// assumption - uniform size (NxNxN)
-	const float VOXEL_SIZE = 1.0 / float(textureSize(u_voxelGrid, 0).x);
-
 	vec3 albedo     = texture(albedos, Texcoord).rgb;
-	vec3 normal     = texture(normals, Texcoord).xyz;
-	float metallic  = texture(coefficients, Texcoord).r;
-	float roughness = texture(coefficients, Texcoord).g;
+	vec3 normal     = normalize(texture(normals, Texcoord).xyz);
+	float metallic  = 0.1;//texture(coefficients, Texcoord).r;
+	float roughness = 0.1;//texture(coefficients, Texcoord).g;
 
 	float d = texture(depth, Texcoord).r;
 	vec3 position = WorldPosFromDepth(d);
@@ -418,11 +476,11 @@ void main()
 	vec3 F0 = mix(vec3(0.04), albedo.rgb, metallic);
 	vec3 Lo = vec3(0.0);
 
-	Lo += getDirectionalLightContribution(albedo, normal, metallic, roughness, d, position, V, F0);
-	Lo += getPointLightContribution(albedo, normal, metallic, roughness, d, position, V, F0);
-	Lo += getIndirectDiffuseContribution(position, normal, VOXEL_SIZE);
+	// Lo += getDirectionalLightContribution(albedo, normal, metallic, roughness, d, position, V, F0);
+	// Lo += getPointLightContribution(albedo, normal, metallic, roughness, d, position, V, F0);
+	Lo += 0.5 * getIndirectDiffuseContribution(position, normal);
 
-	vec3 ambient = 1.0 / 255.0 * albedo.rgb;
+	vec3 ambient = 1.0 / 512.0 * albedo.rgb;
 	vec3 color = ambient + (Lo);
 	color0 = vec4(color, 1.0);
 

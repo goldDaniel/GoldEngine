@@ -77,6 +77,7 @@ static RenderState ReadRenderState(BinaryReader& reader, ServerResources& resour
 
 		image.read = (readWrite & readBit) > 0;
 		image.write = (readWrite & writeBit) > 0;
+		image.mipLevel = reader.Read<u8>();
 	}
 
 	// Render pass 

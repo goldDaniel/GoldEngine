@@ -233,7 +233,7 @@ void RenderSystem::InitRenderData(scene::Scene& scene)
 		
 		desc.mWrap = TextureWrap::CLAMP;
 		desc.mFormat = TextureFormat::R_U32;
-		desc.mFilter = TextureFilter::LINEAR;
+		desc.mFilter = TextureFilter::POINT;
 		desc.mMipmaps = true;
 	
 		mVoxel.mHandle = mEncoder->CreateTexture3D(desc);
@@ -318,6 +318,15 @@ void RenderSystem::ReloadShaders()
 
 		desc.compSrc = compSrc.c_str();
 		mVoxelClearShader = mEncoder->CreateShader(desc);
+	}
+
+	// Voxel downsample
+	{
+		ShaderSourceDescription desc{};
+		std::string compSrc = util::LoadStringFromFile("shaders/voxel_downsample.comp.glsl");
+
+		desc.compSrc = compSrc.c_str();
+		mVoxelDownsampleShader = mEncoder->CreateShader(desc);
 	}
 
 	// Voxel Visualization
@@ -842,8 +851,35 @@ void RenderSystem::VoxelizeScene(scene::Scene& scene)
 		
 	}
 	mEncoder->IssueMemoryBarrier();
-	mEncoder->GenerateMipMaps(mVoxel.mHandle);
+	
+#if 1
+	// Downsample voxelized scene
+	{
+		float log = glm::log2((float)mVoxel.size);
+		int mipmapLevels = 1 + static_cast<int>(glm::floor(log));
 
+		RenderState state{};
+		state.mShader = mVoxelDownsampleShader;
+		state.mRenderPass = mEncoder->AddRenderPass("Voxel Downsample", ClearColor::NO, ClearDepth::NO);
+		for ( u8 i = 0; i < mipmapLevels; ++i)
+		{
+			u8 srcLevel = i;
+			u8 dstLevel = srcLevel + 1;
+
+			state.SetImage("u_voxelGridUpper", mVoxel.mHandle, true, false, srcLevel);
+			state.SetImage("u_voxelGridLower", mVoxel.mHandle, false, true, dstLevel);
+
+			// TODO (danielg): gotta fix this localSize assumption
+			u16 groupSizeDivisor = 1 << dstLevel;
+			u16 groupSize = static_cast<u16>(mVoxel.size / (8 * groupSizeDivisor));
+			mEncoder->DispatchCompute(state, groupSize, groupSize, groupSize);
+			mEncoder->IssueMemoryBarrier();
+		}
+	}
+#else
+	mEncoder->GenerateMipMaps(mVoxel.mHandle);
+	mEncoder->IssueMemoryBarrier();
+#endif
 }
 
 void RenderSystem::FillGBuffer(const Camera& camera, scene::Scene& scene)
@@ -853,7 +889,7 @@ void RenderSystem::FillGBuffer(const Camera& camera, scene::Scene& scene)
 	PushFrustumCull(scene, camera.GetProjectionMatrix() * camera.GetViewMatrix());
 
 	//GBuffer fill
-	uint8_t pass = mEncoder->AddRenderPass("GBuffer Fill", mGBuffer.mHandle, ClearColor::NO, ClearDepth::NO);
+	uint8_t pass = mEncoder->AddRenderPass("GBuffer Fill", mGBuffer.mHandle, ClearColor::YES, ClearDepth::YES);
 	scene.ForEach<TransformComponent, RenderComponent, NotFrustumCulledComponent>([&](const scene::GameObject obj)
 	{
 		const auto& render = obj.GetComponent<RenderComponent>();

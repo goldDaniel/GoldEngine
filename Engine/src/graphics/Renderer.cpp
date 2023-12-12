@@ -708,7 +708,8 @@ void Renderer::EndFrame()
 						DEBUG_ASSERT(false, "Invalid access type");
 					}
 
-					glBindImageTexture(static_cast<GLuint>(i), handle.idx, 0, GL_TRUE, 0, access, format);
+					GLint mipLevel = static_cast<GLint>(state.mImages[j].mipLevel);
+					glBindImageTexture(static_cast<GLuint>(i), handle.idx, mipLevel, GL_TRUE, 0, access, format);
 					break;
 				}
 			}

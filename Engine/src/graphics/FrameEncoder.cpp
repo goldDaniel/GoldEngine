@@ -68,6 +68,7 @@ static void WriteRenderState(const RenderState& state, BinaryWriter& writer)
 		u8 readWrite = readBit | writeBit;
 
 		writer.Write(readWrite);
+		writer.Write(image.mipLevel);
 	}
 
 	// Render pass

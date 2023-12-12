@@ -454,6 +454,7 @@ namespace graphics
 			TextureHandle mHandle{};
 			bool read{};
 			bool write{};
+			u8 mipLevel{};
 		};
 
 		std::array<UniformBlock, 12> mUniformBlocks{};
@@ -554,7 +555,7 @@ namespace graphics
 			mNumTextures++;
 		}
 
-		void SetImage(const std::string& name, TextureHandle texture, bool read = true, bool write = true)
+		void SetImage(const std::string& name, TextureHandle texture, bool read = true, bool write = true, u8 mipLevel = 0)
 		{
 			u32 nameHash = util::Hash(name.c_str(), name.size());
 
@@ -564,6 +565,9 @@ namespace graphics
 				if (mImages[i].mNameHash == nameHash)
 				{
 					mImages[i].mHandle = texture;
+					mImages[i].read = read;
+					mImages[i].write = write;
+					mImages[i].mipLevel = mipLevel;
 					return;
 				}
 			}
@@ -575,6 +579,7 @@ namespace graphics
 			mImages[mNumImages].mHandle = texture;
 			mImages[mNumImages].read = read;
 			mImages[mNumImages].write = write;
+			mImages[mNumImages].mipLevel = mipLevel;
 			mNumImages++;
 		}
 	};
