@@ -40,20 +40,17 @@ void main()
     vec4 downsampledColor = vec4(0);
     for(int i = 0; i < 8; ++i)
     {
-        if(!boundsCheck(srcCoords[i], upperDim))
+        if(boundsCheck(srcCoords[i], upperDim))
         {
-            continue;
-        }
+            uint packedColor = imageLoad(u_voxelGridUpper, srcCoords[i]).r;
+            vec4 unpackedColor = unpackUnorm4x8(packedColor); 
 
-        uint packedColor = imageLoad(u_voxelGridUpper, srcCoords[i]).r;
-        vec4 unpackedColor = unpackUnorm4x8(packedColor); 
-
-        if(unpackedColor.a > 0)
-        {
-            downsampledColor.rgb += unpackedColor.rgb;
-            downsampledColor.a += 1;
+            if(unpackedColor.a > 0)
+            {
+                downsampledColor.rgb += unpackedColor.rgb;
+                downsampledColor.a += 1;
+            }
         }
-        
     }
 
     if(downsampledColor.a > 0)

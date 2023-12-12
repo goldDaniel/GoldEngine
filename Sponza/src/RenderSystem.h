@@ -23,6 +23,7 @@ private:
 		glm::mat4 u_view{};
 		glm::mat4 u_viewInv{};
 
+		glm::vec4 u_viewPos{};
 		glm::vec4 u_time{};
 	};
 	PerFrameConstants mPerFrameConstants{};

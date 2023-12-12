@@ -387,6 +387,8 @@ void RenderSystem::Tick(scene::Scene& scene, float dt)
 
 		mPerFrameConstants.u_view = camera->GetViewMatrix();
 		mPerFrameConstants.u_viewInv = glm::inverse(mPerFrameConstants.u_view);
+
+		mPerFrameConstants.u_viewPos = glm::vec4(camera->Position, 1.0);
 		mPerFrameConstants.u_time.x += dt;
 
 		mEncoder->UpdateUniformBuffer(mPerFrameContantsBuffer, &mPerFrameConstants, sizeof(PerFrameConstants));
@@ -832,9 +834,15 @@ void RenderSystem::VoxelizeScene(scene::Scene& scene)
 
 			state.mViewport = { 0, 0, static_cast<u16>(mVoxel.size * 2), static_cast<u16>(mVoxel.size * 2) };
 
+
 			state.SetUniformBlock("PerFrameConstants_UBO", mPerFrameContantsBuffer);
 			state.SetUniformBlock("PerDrawConstants_UBO", mPerDrawConstantsBuffer);
+			state.SetUniformBlock("Lights_UBO", mLightingBuffer);
+			state.SetUniformBlock("LightSpaceMatrices_UBO", mLightMatricesBuffer);
+			state.SetUniformBlock("ShadowPages_UBO", mShadowPagesBuffer);
 			state.SetUniformBlock("Materials_UBO", mMaterialBuffer);
+
+			state.SetTexture("shadowMap", mShadowMapFrameBuffer.AsTexture<OutputSlot::Depth>());
 
 			state.SetImage("u_voxelGrid", mVoxel.mHandle, false, true);
 

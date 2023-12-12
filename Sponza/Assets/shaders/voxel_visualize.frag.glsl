@@ -8,6 +8,7 @@ layout(std140) uniform PerFrameConstants_UBO
 	mat4 u_view;
 	mat4 u_viewInv;
 
+	vec4 u_viewPos;
 	vec4 u_time;
 };
 

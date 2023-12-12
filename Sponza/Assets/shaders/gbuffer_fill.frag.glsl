@@ -80,7 +80,7 @@ void main()
     if(material.mapFlags.z > 0)
     {
         float value = texture(u_metallicMap, Texcoord.xy * material.coefficients.w).g;
-        if(value <= 0) 
+        if(value <= 0)
         {
             value = texture(u_metallicMap, Texcoord.xy * material.coefficients.w).r;
         }

@@ -79,7 +79,7 @@ protected:
 
 				transform.position.x = -50;
 				transform.position.y = 10;
-				light.color = { 100, 0, 0, 1 };
+				light.color = { 100, 100, 100, 1 };
 				light.falloff = 100;
 
 				shadow.PCFSize = 9;
@@ -98,7 +98,7 @@ protected:
 
 				transform.position.x = 0;
 				transform.position.y = 10;
-				light.color = { 0, 100, 0, 1 };
+				light.color = { 100, 100, 100, 1 };
 				light.falloff = 100;
 
 				shadow.PCFSize = 9;
@@ -117,7 +117,7 @@ protected:
 
 				transform.position.x = 40;
 				transform.position.y = 10;
-				light.color = { 0, 0, 100, 1 };
+				light.color = { 100, 100, 100, 1 };
 				light.falloff = 100;
 
 				shadow.PCFSize = 9;

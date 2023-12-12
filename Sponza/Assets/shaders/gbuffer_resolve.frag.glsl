@@ -62,6 +62,7 @@ layout(std140) uniform PerFrameConstants_UBO
 	mat4 u_view;
 	mat4 u_viewInv;
 
+	vec4 u_viewPos;
 	vec4 u_time;
 };
 
@@ -101,6 +102,24 @@ uvec2 getLightBin(vec2 screenPos)
 	
 	return bin;
 }
+
+vec3 mipToColor(float mipLevel)
+{
+	vec3 colors[] =
+	{
+		vec3(1.0 / 7.0),
+		vec3(1.0 / 6.0),
+		vec3(1.0 / 5.0),
+		vec3(1.0 / 4.0),
+		vec3(1.0 / 3.0),
+		vec3(1.0 / 2.0),
+		vec3(1.0 / 1.0),
+	};
+
+	int level = clamp(int(round(mipLevel)), 0, 7);
+	return colors[level];
+}
+
 
 const int CubemapFace_XP = 0;
 const int CubemapFace_XN = 1;
@@ -364,13 +383,12 @@ vec3 getPointLightContribution(vec3 albedo, vec3 normal, float metallic, float r
 	return Lo;
 }
 
-
 vec3 coneTrace(vec3 worldPos, vec3 normal, vec3 direction, float aperture)
 {
 	const ivec3 VOXEL_GRID_SIZE = textureSize(u_voxelGrid, 0);
 	const float VOXEL_SIZE = 1.0;
 
-	vec3 start = worldPos + (VOXEL_SIZE * 2 + Epsilon) * direction;
+	vec3 start = worldPos + (VOXEL_SIZE * 2) * direction;
 	vec3 result = vec3(0);
 	int count = 0;
 
@@ -381,7 +399,7 @@ vec3 coneTrace(vec3 worldPos, vec3 normal, vec3 direction, float aperture)
 
 	float dist = stepSize;
 
-	for(int i = 0; i < 20; ++i)
+	for(int i = 0; i < 40; ++i)
 	{
 		vec3 position = start + dist * direction;
 		ivec3 voxelCoords = ivec3(position) + (VOXEL_GRID_SIZE / 2);
@@ -393,7 +411,7 @@ vec3 coneTrace(vec3 worldPos, vec3 normal, vec3 direction, float aperture)
 		}
 
 		float diameter = 2.0 * tanHalfAperture * dist;
-		float mipLevel = log2(diameter / VOXEL_SIZE);	
+		float mipLevel = log2(diameter / VOXEL_SIZE);
 		vec3 uvw = vec3(voxelCoords) / vec3(VOXEL_GRID_SIZE);
 		
 		float sampledVoxel = textureLod(u_voxelGrid, uvw, mipLevel).r;
@@ -457,7 +475,7 @@ vec3 getIndirectDiffuseContribution(vec3 worldPos, vec3 normal)
 	{
 		result += coneTrace(worldPos, normal, DIFFUSE_CONE_DIRECTIONS[i], aperture);
 	}
-	result /= NUM_DIFFUSE_CONES;
+	result /= NUM_DIFFUSE_CONES * 0.5;
 
 	return result;
 }
@@ -466,8 +484,8 @@ void main()
 {
 	vec3 albedo     = texture(albedos, Texcoord).rgb;
 	vec3 normal     = normalize(texture(normals, Texcoord).xyz);
-	float metallic  = 0.1;//texture(coefficients, Texcoord).r;
-	float roughness = 0.1;//texture(coefficients, Texcoord).g;
+	float metallic = texture(coefficients, Texcoord).r;
+	float roughness = 1.0 - texture(coefficients, Texcoord).g;
 
 	float d = texture(depth, Texcoord).r;
 	vec3 position = WorldPosFromDepth(d);
@@ -476,11 +494,11 @@ void main()
 	vec3 F0 = mix(vec3(0.04), albedo.rgb, metallic);
 	vec3 Lo = vec3(0.0);
 
-	// Lo += getDirectionalLightContribution(albedo, normal, metallic, roughness, d, position, V, F0);
-	// Lo += getPointLightContribution(albedo, normal, metallic, roughness, d, position, V, F0);
-	Lo += 0.5 * getIndirectDiffuseContribution(position, normal);
+	Lo += getDirectionalLightContribution(albedo, normal, metallic, roughness, d, position, V, F0);
+	Lo += getPointLightContribution(albedo, normal, metallic, roughness, d, position, V, F0);
+	Lo += 4 * getIndirectDiffuseContribution(position, normal);
 
-	vec3 ambient = 1.0 / 512.0 * albedo.rgb;
+	vec3 ambient = 0.0 / 256.0 * albedo.rgb;
 	vec3 color = ambient + (Lo);
 	color0 = vec4(color, 1.0);
 

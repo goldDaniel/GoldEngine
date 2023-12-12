@@ -7,13 +7,14 @@ in layout(location = 2) vec2 a_texcoord0;
 
 layout(std140) uniform PerFrameConstants_UBO
 {
-    mat4 u_proj;
+	mat4 u_proj;
 	mat4 u_projInv;
-    
+	
 	mat4 u_view;
 	mat4 u_viewInv;
 
-    vec4 u_time;
+	vec4 u_viewPos;
+	vec4 u_time;
 };
  
 layout(std140) uniform PerDrawConstants_UBO
