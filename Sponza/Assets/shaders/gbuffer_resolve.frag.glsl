@@ -519,7 +519,7 @@ void main()
 		Lo += albedo * getIndirectSpecularContribution(position, reflectDir, roughness);
 	}
 
-	vec3 ambient = 4.0 / 256.0 * albedo.rgb;
+	vec3 ambient = 0.0 / 256.0 * albedo.rgb;
 	vec3 color = ambient + (Lo);
 	color0 = vec4(color, 1.0);
 

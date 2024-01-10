@@ -75,7 +75,7 @@ protected:
 		{
 			auto obj = scene::Loader::LoadGameObjectFromModel(mScene, encoder, "sponza2/sponza.gltf");
 			obj.GetComponent<TransformComponent>().scale = { 0.125f, 0.125f, 0.125f };
-			/*
+			
 			{
 				auto lightObj = mScene.CreateGameObject("Red Light");
 
@@ -83,10 +83,10 @@ protected:
 				auto& light = lightObj.AddComponent<PointLightComponent>();
 				auto& shadow = lightObj.AddComponent<ShadowMapComponent>();
 
-				transform.position.x = -50;
-				transform.position.y = 10;
-				light.color = { 100, 0, 0, 1 };
-				light.falloff = 100;
+				transform.position.x = -120;
+				transform.position.y = 20;
+				light.color = { 5000, 0, 0, 1 };
+				light.falloff = 500;
 
 				shadow.PCFSize = 9;
 				shadow.perspective.aspect = 1;
@@ -103,9 +103,9 @@ protected:
 				auto& shadow = lightObj.AddComponent<ShadowMapComponent>();
 
 				transform.position.x = 0;
-				transform.position.y = 10;
-				light.color = { 0, 100, 0, 1 };
-				light.falloff = 100;
+				transform.position.y = 70;
+				light.color = { 0, 5000, 0, 1 };
+				light.falloff = 500;
 
 				shadow.PCFSize = 9;
 				shadow.perspective.aspect = 1;
@@ -121,10 +121,10 @@ protected:
 				auto& light = lightObj.AddComponent<PointLightComponent>();
 				auto& shadow = lightObj.AddComponent<ShadowMapComponent>();
 
-				transform.position.x = 40;
-				transform.position.y = 10;
-				light.color = { 0, 0, 100, 1 };
-				light.falloff = 100;
+				transform.position.x = 120;
+				transform.position.y = 20;
+				light.color = { 0, 0, 5000, 1 };
+				light.falloff = 500;
 
 				shadow.PCFSize = 9;
 				shadow.perspective.aspect = 1;
@@ -132,9 +132,9 @@ protected:
 				shadow.nearPlane = 0.5;
 				shadow.farPlane = 500;
 				shadow.shadowMapBias.fill(0);
-			}*/
+			}
 
-			{
+			/*{
 				auto lightObj = mScene.CreateGameObject("Directional Light");
 
 				auto& light = lightObj.AddComponent<DirectionalLightComponent>();
@@ -150,7 +150,7 @@ protected:
 				shadow.farPlane = 256;
 				shadow.PCFSize = 2;
 				shadow.shadowMapBias.fill(0);
-			}
+			}*/
 
 			mFirstFrame = false;
 		}
