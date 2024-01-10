@@ -3,6 +3,7 @@
 #include <imgui.h>
 
 #include "scene/BaseComponents.h"
+#include <graphics/MaterialManager.h>
 
 static bool DrawVec3Control(const std::string& label, glm::vec3& values, bool isColor = false, float resetValue = 0.0f, float columnWidth = 100.0f);
 
@@ -160,17 +161,63 @@ PropertyWindow::PropertyWindow(scene::Scene& scene, std::function<scene::GameObj
 		}
 	});
 
-	AddComponentControl<RenderComponent>("Render", [this](auto& render)
+	AddComponentControl<RenderComponent>("Material", [this](auto& render)
 	{
-		UNUSED_VAR(render);
-		/*uint32_t materialID = render.material;
-		uint32_t meshID = render.mesh;*/
+		auto materialManager = Singletons::Get()->Resolve<MaterialManager>();
+		graphics::Material material = materialManager->GetMaterial(render.material);
+				
+		bool isDirty = false;
+		auto setDirty = [&](bool dirty) { if (dirty) isDirty = true; };
 
-		// auto materialService = core::Singletons::Get()->Resolve<MaterialResourceService>();
-		// auto meshService = core::Singletons::Get()->Resolve<MeshResourceService>();
+		setDirty(ImGui::InputFloat3("Albedo", &material.albedo[0]));
+		setDirty(ImGui::InputFloat3("Emissive", &material.emissive[0]));
 
-		// TODO (danielg): draw mesh
-		// TODO (danielg): draw material
+		setDirty(ImGui::InputFloat("Metallic", &material.coefficients.x));
+		setDirty(ImGui::InputFloat("Roughness", &material.coefficients.y));
+		setDirty(ImGui::InputFloat("UV Scale", &material.coefficients.w));
+
+		if (material.mapFlags.x > 0)
+		{
+			bool value = material.mapFlags.x > 0;
+			if (ImGui::Checkbox("Use Albedo Map", &value))
+			{
+				material.mapFlags.x = static_cast<u32>(value);
+				isDirty = true;
+			}
+		}
+		if (material.mapFlags.y > 0)
+		{
+			bool value = material.mapFlags.y > 0;
+			if (ImGui::Checkbox("Use Normal Map", &value))
+			{
+				material.mapFlags.y = static_cast<u32>(value);
+				isDirty = true;
+			}
+		}
+		if (material.mapFlags.z > 0)
+		{
+			bool value = material.mapFlags.z > 0;
+			if (ImGui::Checkbox("Use Metallic Map", &value))
+			{
+				material.mapFlags.z = static_cast<u32>(value);
+				isDirty = true;
+			}
+		}
+		if (material.mapFlags.w > 0)
+		{
+			bool value = material.mapFlags.w > 0;
+			if (ImGui::Checkbox("Use Roughness Map", &value))
+			{
+				material.mapFlags.w = static_cast<u32>(value);
+				isDirty = true;
+			}
+		}
+		
+
+		if (isDirty)
+		{
+			materialManager->UpdateMaterial(render.material, material);
+		}
 	});
 }
 

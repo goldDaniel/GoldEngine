@@ -410,7 +410,7 @@ void RenderSystem::Tick(scene::Scene& scene, float dt)
 			auto& materials = materialManager->GetMaterials();
 			u32 materialBufferSize = static_cast<u32>(materials.size()) * sizeof(graphics::Material);
 
-			mMaterialBuffer = mEncoder->CreateUniformBuffer(materials.data(), materialBufferSize);
+			mEncoder->UpdateUniformBuffer(mMaterialBuffer, materials.data(), materialBufferSize, 0);
 		}
 	}
 
