@@ -7,6 +7,8 @@
 
 #include "ShadowMapService.h"
 
+#include "RenderingToggles.h"
+
 using namespace graphics;
 
 bool RenderSystem::kReloadShaders = true;
@@ -353,6 +355,9 @@ void RenderSystem::Tick(scene::Scene& scene, float dt)
 	{
 		InitRenderData(scene);
 	}
+
+	auto toggles = Singletons::Get()->Resolve<RenderingToggles>();
+
 		
 	// Dispatch voxel clear early, reduces time waiting on memory barrier in voxel pass
 	
@@ -391,6 +396,9 @@ void RenderSystem::Tick(scene::Scene& scene, float dt)
 		mPerFrameConstants.u_viewPos = glm::vec4(camera->Position, 1.0);
 		mPerFrameConstants.u_time.x += dt;
 
+		mPerFrameConstants.u_time.z = static_cast<float>(toggles->mipLevel);
+		mPerFrameConstants.u_time.w = toggles->doGlobalIllumination ? 1.0f : 0.0f;
+
 		mEncoder->UpdateUniformBuffer(mPerFrameContantsBuffer, &mPerFrameConstants, sizeof(PerFrameConstants));
 	}
 
@@ -424,10 +432,18 @@ void RenderSystem::Tick(scene::Scene& scene, float dt)
 		onlyOneBuffer = false;
 	});
 
+	
 	FillShadowAtlas(scene);
 	VoxelizeScene(scene);
-	FillGBuffer(*camera, scene);
-	ResolveGBuffer(scene);
+	if (toggles->renderVoxelizedScene)
+	{
+		RenderVoxelizedScene(*camera, scene);
+	}
+	else
+	{
+		FillGBuffer(*camera, scene);
+		ResolveGBuffer(scene);
+	}
 	DrawSkybox();
 	Tonemap();
 
@@ -599,15 +615,21 @@ void RenderSystem::ProcessPointLights(scene::Scene& scene)
 
 void RenderSystem::FillShadowAtlas(scene::Scene& scene)
 {
+	auto toggles = Singletons::Get()->Resolve<RenderingToggles>();
+
 	bool bufferDirty = false;
 	scene.ForEach<ShadowMapComponent>([&bufferDirty](scene::GameObject obj)
 	{
 		bufferDirty = bufferDirty || obj.GetComponent<ShadowMapComponent>().dirty;
 	});	
 
-	// HACK (danielg): broke shadowmap caching, does not seem to update on the first frame.
-	// fix and remove framecount check
-	if (!bufferDirty && mFrameCount > 2) return;
+	if (toggles->cacheShadowMaps)
+	{
+		// HACK (danielg): broke shadowmap caching, does not seem to update on the first frame.
+		// fix and remove framecount check
+		if (!bufferDirty && mFrameCount > 2) return;
+	}
+	
 	
 
 	RenderPass shadowPass;
@@ -888,6 +910,30 @@ void RenderSystem::VoxelizeScene(scene::Scene& scene)
 	mEncoder->GenerateMipMaps(mVoxel.mHandle);
 	mEncoder->IssueMemoryBarrier();
 #endif
+}
+
+void RenderSystem::RenderVoxelizedScene(const Camera& camera, scene::Scene& scene)
+{
+	UNUSED_VAR(scene);
+	UNUSED_VAR(camera);
+	mEncoder->IssueMemoryBarrier();
+
+	RenderPass pass;
+	pass.mName = "Voxel Visualization";
+	pass.mClearColor = true;
+	pass.mClearDepth = true;
+	pass.mTarget = mHDRBuffer.mHandle;
+
+	RenderState state;
+	state.mRenderPass = mEncoder->AddRenderPass(pass);
+	state.mShader = mVoxelVisualizeShader;
+	
+	auto toggles = Singletons::Get()->Resolve<RenderingToggles>();
+
+	state.SetUniformBlock("PerFrameConstants_UBO", mPerFrameContantsBuffer);
+	state.SetImage("u_voxelGrid", mVoxel.mHandle, true, false, static_cast<u8>(toggles->mipLevel));
+
+	mEncoder->DrawMesh(mFullscreenQuad, state);
 }
 
 void RenderSystem::FillGBuffer(const Camera& camera, scene::Scene& scene)

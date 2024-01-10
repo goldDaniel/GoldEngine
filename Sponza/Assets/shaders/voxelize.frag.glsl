@@ -438,6 +438,11 @@ vec3 getPointLightContribution(vec3 albedo, vec3 normal, float metallic, float r
 	return Lo;
 }
 
+vec3 getAmbientLightContribution(vec3 albedo)
+{
+	return albedo * 0.00;
+}
+
 void main()
 {
 	const ivec3 IMAGE_SIZE = imageSize(u_voxelGrid); 
@@ -455,16 +460,18 @@ void main()
 	float metallic  = getMetallic(material);
 	float roughness = getRoughness(material);
 
-	if(albedo.a > 0.4)
+	if(albedo.a > 0)
 	{
 		vec3 position = v_worldPos;
 		
 		vec3 V = normalize(u_viewPos.xyz - position);
 		vec3 F0 = mix(vec3(0.04), albedo.rgb, metallic);
 		vec3 Lo = vec3(0.0);
-
+		
+		Lo += getAmbientLightContribution(albedo.rgb);
 		Lo += getDirectionalLightContribution(albedo.rgb, normal, metallic, roughness, gl_FragCoord.z, position, V, F0);
 		Lo += getPointLightContribution(albedo.rgb, normal, metallic, roughness, gl_FragCoord.z, position, V, F0);
+
 
 		imageAtomicAverage(voxelCoords, vec4(Lo, 1.0/256.0));
 	}

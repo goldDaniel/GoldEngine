@@ -333,13 +333,16 @@ ShaderBufferHandle FrameEncoder::CreateShaderBuffer(const void* data, u32 size)
 
 void FrameEncoder::UpdateShaderBuffer(graphics::ShaderBufferHandle clientHandle, const void* data, u32 size, u32 offset)
 {
-	mWriter.Write(RenderCommand::UpdateShaderBuffer);
-	mWriter.Write(clientHandle);
-	
-	void* frameData = mAllocator->Allocate(size);
-	memcpy(frameData, data, size);
-	mWriter.Write(Memory{ frameData, size });
-	mWriter.Write(offset);
+	if (size > 0)
+	{
+		mWriter.Write(RenderCommand::UpdateShaderBuffer);
+		mWriter.Write(clientHandle);
+
+		void* frameData = mAllocator->Allocate(size);
+		memcpy(frameData, data, size);
+		mWriter.Write(Memory{ frameData, size });
+		mWriter.Write(offset);
+	}
 }
 
 void FrameEncoder::DestroyShaderBuffer(graphics::ShaderBufferHandle clientHandle)

@@ -116,6 +116,7 @@ private:
 	void ProcessPointLights(scene::Scene& scene);
 	void FillShadowAtlas(scene::Scene& scene);
 	void VoxelizeScene(scene::Scene& scene);
+	void RenderVoxelizedScene(const Camera& camera, scene::Scene& scene);
 	void FillGBuffer(const Camera& camera, scene::Scene& scene);
 	void ResolveGBuffer(scene::Scene& scene);
 	void DrawSkybox();

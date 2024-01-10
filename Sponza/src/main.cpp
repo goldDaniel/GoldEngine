@@ -15,10 +15,13 @@
 #include "ui/ViewportWindow.h"
 #include "ui/PerformanceWindow.h"
 
+#include "RenderingToggles.h"
+
 #include "RenderSystem.h"
 #include "LightingSystem.h"
 #include "DebugCameraSystem.h"
 
+#include "RenderingToggles.h"
 #include "ShadowMapService.h"
 
 class TestApp : public gold::Application
@@ -47,6 +50,7 @@ protected:
 	virtual void Init() override
 	{
 		AddEditorWindow(std::make_unique<LogWindow>());
+		AddEditorWindow(std::make_unique<RenderingTogglesWindow>());
 		AddEditorWindow(std::make_unique<PerformanceWindow>(true));
 		auto sceneWindow = AddEditorWindow(std::make_unique<SceneWindow>(&mScene));
 		AddEditorWindow(std::make_unique<PropertyWindow>(mScene, [sceneWindow]()
@@ -62,6 +66,7 @@ protected:
 
 		Singletons::Get()->Register<ShadowMapService>([]() { return std::make_shared<ShadowMapService>(); });
 		Singletons::Get()->Register<MaterialManager>([]() { return std::make_shared<MaterialManager>(); });
+		Singletons::Get()->Register<RenderingToggles>([]() { return std::make_shared<RenderingToggles>(); });
 	}
 
 	virtual void Update(float delta, gold::FrameEncoder& encoder) override
@@ -70,6 +75,7 @@ protected:
 		{
 			auto obj = scene::Loader::LoadGameObjectFromModel(mScene, encoder, "sponza2/sponza.gltf");
 			obj.GetComponent<TransformComponent>().scale = { 0.125f, 0.125f, 0.125f };
+			/*
 			{
 				auto lightObj = mScene.CreateGameObject("Red Light");
 
@@ -79,7 +85,7 @@ protected:
 
 				transform.position.x = -50;
 				transform.position.y = 10;
-				light.color = { 100, 100, 100, 1 };
+				light.color = { 100, 0, 0, 1 };
 				light.falloff = 100;
 
 				shadow.PCFSize = 9;
@@ -98,7 +104,7 @@ protected:
 
 				transform.position.x = 0;
 				transform.position.y = 10;
-				light.color = { 100, 100, 100, 1 };
+				light.color = { 0, 100, 0, 1 };
 				light.falloff = 100;
 
 				shadow.PCFSize = 9;
@@ -117,7 +123,7 @@ protected:
 
 				transform.position.x = 40;
 				transform.position.y = 10;
-				light.color = { 100, 100, 100, 1 };
+				light.color = { 0, 0, 100, 1 };
 				light.falloff = 100;
 
 				shadow.PCFSize = 9;
@@ -125,6 +131,24 @@ protected:
 				shadow.perspective.FOV = glm::radians(90.f);
 				shadow.nearPlane = 0.5;
 				shadow.farPlane = 500;
+				shadow.shadowMapBias.fill(0);
+			}*/
+
+			{
+				auto lightObj = mScene.CreateGameObject("Directional Light");
+
+				auto& light = lightObj.AddComponent<DirectionalLightComponent>();
+				auto& shadow = lightObj.AddComponent<ShadowMapComponent>();
+
+				light.color = { 8, 8, 7, 1 };
+				light.direction = {0.0f, -0.7f, 0.3f, 0.0f};
+				shadow.ortho.bottom = -256;
+				shadow.ortho.top = 256;
+				shadow.ortho.left = -256;
+				shadow.ortho.right = 256;
+				shadow.nearPlane = -256;
+				shadow.farPlane = 256;
+				shadow.PCFSize = 2;
 				shadow.shadowMapBias.fill(0);
 			}
 

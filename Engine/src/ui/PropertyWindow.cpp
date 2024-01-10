@@ -72,7 +72,6 @@ PropertyWindow::PropertyWindow(scene::Scene& scene, std::function<scene::GameObj
 			color = glm::max({ 0,0,0 }, color);
 
 			l.color = { color, 1 };
-			l.direction.w = 1;
 		}
 	});
 

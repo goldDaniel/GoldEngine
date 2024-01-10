@@ -63,7 +63,7 @@ layout(std140) uniform PerFrameConstants_UBO
 	mat4 u_viewInv;
 
 	vec4 u_viewPos;
-	vec4 u_time;
+	vec4 u_time; // time, ?, ?, conetraceEnabled
 };
 
 out vec4 color0;
@@ -383,62 +383,52 @@ vec3 getPointLightContribution(vec3 albedo, vec3 normal, float metallic, float r
 	return Lo;
 }
 
-vec3 coneTrace(vec3 worldPos, vec3 direction, float aperture)
+float updateStepSize(float currentDistance, float initialStepSize, vec3 gridSize) {
+    float stepSize = initialStepSize;
+
+    stepSize += currentDistance * 0.01;
+    stepSize = clamp(stepSize, 0.0, gridSize.x);
+    return stepSize;
+}
+
+vec3 coneTrace(vec3 worldPos, vec3 direction, float aperture, vec3 gridSize)
 {
-	const int numMips = textureQueryLevels(u_voxelGrid);
-	const float VOXEL_GRID_SIZE = textureSize(u_voxelGrid, 0).x;
-	const float VOXEL_SIZE_BASE = 1;
+	vec3 result = vec3(0.0);
+	float totalWeight = 0;
+	float stepSize = 1;
+	float voxelSize = 1; // 1 voxel is 1 world unit
+	float tanHalfApeture = tan(aperture * 0.5);
 
-	vec4 result = vec4(0);
-	
-	float currentMip = 0;
-	float coneCoeff = 2.0 * tan(aperture * 0.5);
+	worldPos += direction;
 
-	float voxelSize = 1 * exp2(currentMip);
-
-	vec3 start = worldPos + (VOXEL_SIZE_BASE * 2) * direction;
-	
-	const float minRadius = VOXEL_SIZE_BASE * VOXEL_GRID_SIZE * 0.5;
-
-	float s = 0;
-	float diameter = max(s * coneCoeff, VOXEL_SIZE_BASE);
-	vec3 weight = direction*direction;
-	float currSegmentLength = voxelSize;
-
-	while (s < VOXEL_GRID_SIZE)
+	for(float distance = 0.0; distance < gridSize.x; distance += stepSize)
 	{
-		vec3 position = start + direction * s;
-		ivec3 voxelCoords = ivec3(position) + ivec3(VOXEL_GRID_SIZE / 2);
+		float diameter = 2.0 * distance * tanHalfApeture;
+		float mip = log2(diameter / voxelSize);
 
-		float distanceToCenter = length(voxelCoords - ivec3(VOXEL_GRID_SIZE / 2.0));
-		float minMip = ceil(log2(distanceToCenter / minRadius));
-
-		currentMip = log2(diameter / VOXEL_SIZE_BASE);
-		currentMip = min(max(max(0, currentMip), minMip), numMips - 1);
-
-		vec3 uvw = vec3(voxelCoords) / vec3(VOXEL_GRID_SIZE);
-		float floatBits = textureLod(u_voxelGrid, uvw, currentMip).r;
-		uint packedColor = floatBitsToUint(floatBits);
-		vec4 color = unpackUnorm4x8(packedColor);
-		
-		voxelSize = VOXEL_SIZE_BASE * exp2(currentMip);
-
-		// Radiance correction
-		float correctionQuotient = currSegmentLength / voxelSize;
-		color.rgb = color.rgb * correctionQuotient;
-		
-		if (color.a > 0)
+		vec3 pos = worldPos + distance * direction;
+		if(abs(pos.x) > gridSize.x / 2 || abs(pos.y) > gridSize.y / 2 || abs(pos.z) > gridSize.z / 2)
 		{
-			result += color;
+			break;
 		}
 
-		float sLast = s;
-		s += max(diameter, VOXEL_SIZE_BASE) * 0.2;
-		currSegmentLength = (s - sLast);
-		diameter = s * coneCoeff;
+		ivec3 voxelCoords = ivec3(pos) + ivec3(gridSize / 2);
+		vec3 uvw = voxelCoords / gridSize;
+
+		float floatBits = textureLod(u_voxelGrid, uvw, mip).r;
+		uint packedColor = floatBitsToUint(floatBits);
+		vec4 color = unpackUnorm4x8(packedColor);
+
+		if(color.a > 0)
+		{
+			result += color.rgb;
+			totalWeight += 1;
+		}
+
+		stepSize = updateStepSize(distance, 1, gridSize);
 	}
 
-	return result.rgb;
+	return result / max(totalWeight, 1);
 }
 
 const int NUM_DIFFUSE_CONES = 32;
@@ -478,28 +468,31 @@ const vec3 DIFFUSE_CONE_DIRECTIONS[32] =
     vec3(-0.57735, -0.57735, -0.57735)
 };
 
-vec3 getIndirectDiffuseContribution(vec3 worldPos, vec3 normal)
+vec3 getIndirectDiffuseContribution(vec3 worldPos, vec3 normal, float roughness)
 {
-    float aperture = 0.628319;
+    float aperture = max(roughness, 0.0001);
 	vec3 result = vec3(0.0);
+	vec3 gridSize = textureSize(u_voxelGrid, 0);
 
 	for(int i = 0; i < NUM_DIFFUSE_CONES; ++i)
 	{
 		float cosTheta = dot(normal, DIFFUSE_CONE_DIRECTIONS[i]);
 		if (cosTheta > 0)
 		{
-			result += coneTrace(worldPos, DIFFUSE_CONE_DIRECTIONS[i], aperture) * cosTheta;
+			result += coneTrace(worldPos, DIFFUSE_CONE_DIRECTIONS[i], aperture, gridSize) * cosTheta;
 		}
 	}
-	result /= NUM_DIFFUSE_CONES * 0.5;
+	result /= NUM_DIFFUSE_CONES;
 
 	return result;
 }
 
 vec3 getIndirectSpecularContribution(vec3 worldPos, vec3 direction, float roughness)
 {
-	float aperture = max(roughness, 0.01);
-	return coneTrace(worldPos, direction, aperture);
+	vec3 gridSize = textureSize(u_voxelGrid, 0);
+	float aperture = max(roughness, 0.0001);
+
+	return coneTrace(worldPos, direction, aperture, gridSize);
 }
 void main()
 {
@@ -512,19 +505,23 @@ void main()
 	vec3 position = WorldPosFromDepth(d);
 
 	vec3 V = normalize(u_viewPos.xyz - position);
-	vec3 reflectDir = (-V);
 	vec3 F0 = mix(vec3(0.04), albedo.rgb, metallic);
 	vec3 Lo = vec3(0.0);
 
 	Lo += getDirectionalLightContribution(albedo, normal, metallic, roughness, d, position, V, F0);
 	Lo += getPointLightContribution(albedo, normal, metallic, roughness, d, position, V, F0);
-	Lo += getIndirectDiffuseContribution(position, normal);
-	Lo += getIndirectSpecularContribution(position, reflectDir, roughness);
 
-	vec3 ambient = 0.0 / 256.0 * albedo.rgb;
+	if(u_time.w > 0)
+	{
+		vec3 reflectDir = reflect(-V, normal);
+
+		Lo += albedo * getIndirectDiffuseContribution(position, normal, roughness);
+		Lo += albedo * getIndirectSpecularContribution(position, reflectDir, roughness);
+	}
+
+	vec3 ambient = 4.0 / 256.0 * albedo.rgb;
 	vec3 color = ambient + (Lo);
 	color0 = vec4(color, 1.0);
 
 	gl_FragDepth = d;
-	
 }
