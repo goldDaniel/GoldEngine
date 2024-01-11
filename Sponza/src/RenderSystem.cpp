@@ -8,6 +8,7 @@
 #include "ShadowMapService.h"
 
 #include "RenderingToggles.h"
+#include <graphics/ShaderCompiler.h>
 
 using namespace graphics;
 
@@ -250,8 +251,8 @@ void RenderSystem::ReloadShaders()
 	{
 		ShaderSourceDescription desc{};
 
-		std::string vertSrc = util::LoadStringFromFile("shaders/shadow.vert.glsl");
-		std::string fragSrc = util::LoadStringFromFile("shaders/shadow.frag.glsl");
+		std::string vertSrc = graphics::ShaderCompiler::CompileShader("shaders/shadow.vert.glsl");
+		std::string fragSrc = graphics::ShaderCompiler::CompileShader("shaders/shadow.frag.glsl");
 		
 		desc.vertSrc = vertSrc.c_str();
 		desc.fragSrc = fragSrc.c_str();
@@ -261,8 +262,8 @@ void RenderSystem::ReloadShaders()
 	//GBuffer fill
 	{
 		ShaderSourceDescription desc{};
-		std::string vertSrc = util::LoadStringFromFile("shaders/gbuffer_fill.vert.glsl");
-		std::string fragSrc = util::LoadStringFromFile("shaders/gbuffer_fill.frag.glsl");
+		std::string vertSrc = graphics::ShaderCompiler::CompileShader("shaders/gbuffer_fill.vert.glsl");
+		std::string fragSrc = graphics::ShaderCompiler::CompileShader("shaders/gbuffer_fill.frag.glsl");
 
 		desc.vertSrc = vertSrc.c_str();
 		desc.fragSrc = fragSrc.c_str();
@@ -272,8 +273,8 @@ void RenderSystem::ReloadShaders()
 	//GBuffer resolve
 	{
 		ShaderSourceDescription desc{};
-		std::string vertSrc = util::LoadStringFromFile("shaders/gbuffer_resolve.vert.glsl");
-		std::string fragSrc = util::LoadStringFromFile("shaders/gbuffer_resolve.frag.glsl");
+		std::string vertSrc = graphics::ShaderCompiler::CompileShader("shaders/gbuffer_resolve.vert.glsl");
+		std::string fragSrc = graphics::ShaderCompiler::CompileShader("shaders/gbuffer_resolve.frag.glsl");
 
 		desc.vertSrc = vertSrc.c_str();
 		desc.fragSrc = fragSrc.c_str();
@@ -283,8 +284,8 @@ void RenderSystem::ReloadShaders()
 	// Skybox
 	{
 		ShaderSourceDescription desc{};
-		std::string vertSrc = util::LoadStringFromFile("shaders/skybox.vert.glsl");
-		std::string fragSrc = util::LoadStringFromFile("shaders/skybox.frag.glsl");
+		std::string vertSrc = graphics::ShaderCompiler::CompileShader("shaders/skybox.vert.glsl");
+		std::string fragSrc = graphics::ShaderCompiler::CompileShader("shaders/skybox.frag.glsl");
 
 		desc.vertSrc = vertSrc.c_str();
 		desc.fragSrc = fragSrc.c_str();
@@ -294,8 +295,8 @@ void RenderSystem::ReloadShaders()
 	//Tonemap
 	{
 		ShaderSourceDescription desc{};
-		std::string vertSrc = util::LoadStringFromFile("shaders/tonemap.vert.glsl");
-		std::string fragSrc = util::LoadStringFromFile("shaders/tonemap.frag.glsl");
+		std::string vertSrc = graphics::ShaderCompiler::CompileShader("shaders/tonemap.vert.glsl");
+		std::string fragSrc = graphics::ShaderCompiler::CompileShader("shaders/tonemap.frag.glsl");
 
 		desc.vertSrc = vertSrc.c_str();
 		desc.fragSrc = fragSrc.c_str();
@@ -305,8 +306,8 @@ void RenderSystem::ReloadShaders()
 	// Voxelize
 	{
 		ShaderSourceDescription desc{};
-		std::string vertSrc = util::LoadStringFromFile("shaders/voxelize.vert.glsl");
-		std::string fragSrc = util::LoadStringFromFile("shaders/voxelize.frag.glsl");
+		std::string vertSrc = graphics::ShaderCompiler::CompileShader("shaders/voxelize.vert.glsl");
+		std::string fragSrc = graphics::ShaderCompiler::CompileShader("shaders/voxelize.frag.glsl");
 
 		desc.vertSrc = vertSrc.c_str();
 		desc.fragSrc = fragSrc.c_str();
@@ -316,7 +317,7 @@ void RenderSystem::ReloadShaders()
 	// Voxel clear
 	{
 		ShaderSourceDescription desc{};
-		std::string compSrc = util::LoadStringFromFile("shaders/voxel_clear.comp.glsl");
+		std::string compSrc = graphics::ShaderCompiler::CompileShader("shaders/voxel_clear.comp.glsl");
 
 		desc.compSrc = compSrc.c_str();
 		mVoxelClearShader = mEncoder->CreateShader(desc);
@@ -325,7 +326,7 @@ void RenderSystem::ReloadShaders()
 	// Voxel downsample
 	{
 		ShaderSourceDescription desc{};
-		std::string compSrc = util::LoadStringFromFile("shaders/voxel_downsample.comp.glsl");
+		std::string compSrc = graphics::ShaderCompiler::CompileShader("shaders/voxel_downsample.comp.glsl");
 
 		desc.compSrc = compSrc.c_str();
 		mVoxelDownsampleShader = mEncoder->CreateShader(desc);
@@ -334,8 +335,8 @@ void RenderSystem::ReloadShaders()
 	// Voxel Visualization
 	{
 		ShaderSourceDescription desc{};
-		std::string vertSrc = util::LoadStringFromFile("shaders/voxel_visualize.vert.glsl");
-		std::string fragSrc = util::LoadStringFromFile("shaders/voxel_visualize.frag.glsl");
+		std::string vertSrc = graphics::ShaderCompiler::CompileShader("shaders/voxel_visualize.vert.glsl");
+		std::string fragSrc = graphics::ShaderCompiler::CompileShader("shaders/voxel_visualize.frag.glsl");
 
 		desc.vertSrc = vertSrc.c_str();
 		desc.fragSrc = fragSrc.c_str();
@@ -396,8 +397,8 @@ void RenderSystem::Tick(scene::Scene& scene, float dt)
 		mPerFrameConstants.u_viewPos = glm::vec4(camera->Position, 1.0);
 		mPerFrameConstants.u_time.x += dt;
 
-		mPerFrameConstants.u_time.z = static_cast<float>(toggles->mipLevel);
-		mPerFrameConstants.u_time.w = toggles->doGlobalIllumination ? 1.0f : 0.0f;
+		mPerFrameConstants.u_toggles0.z = static_cast<float>(toggles->mipLevel);
+		mPerFrameConstants.u_toggles0.w = toggles->doGlobalIllumination ? 1.0f : 0.0f;
 
 		mEncoder->UpdateUniformBuffer(mPerFrameContantsBuffer, &mPerFrameConstants, sizeof(PerFrameConstants));
 	}
@@ -832,6 +833,8 @@ void RenderSystem::VoxelizeScene(scene::Scene& scene)
 			halfVoxelSize);
 
 		mPerFrameConstants.u_projInv = glm::inverse(mPerFrameConstants.u_proj);
+
+		mPerFrameConstants.u_toggles0.y = 1;
 		mEncoder->UpdateUniformBuffer(mPerFrameContantsBuffer, &mPerFrameConstants, sizeof(PerFrameConstants), 0);
 
 		scene.ForEach<RenderComponent>([this, passID, &materialManager](scene::GameObject obj)
@@ -864,7 +867,7 @@ void RenderSystem::VoxelizeScene(scene::Scene& scene)
 			state.SetUniformBlock("ShadowPages_UBO", mShadowPagesBuffer);
 			state.SetUniformBlock("Materials_UBO", mMaterialBuffer);
 
-			state.SetTexture("shadowMap", mShadowMapFrameBuffer.AsTexture<OutputSlot::Depth>());
+			state.SetTexture("u_shadowMap", mShadowMapFrameBuffer.AsTexture<OutputSlot::Depth>());
 
 			state.SetImage("u_voxelGrid", mVoxel.mHandle, false, true);
 
@@ -1002,12 +1005,12 @@ void RenderSystem::ResolveGBuffer(scene::Scene& scene)
 
 	state.SetTexture("u_voxelGrid", mVoxel.mHandle);
 
-	state.SetTexture("albedos", mGBuffer.AsTexture<OutputSlot::Color0>());
-	state.SetTexture("normals", mGBuffer.AsTexture<OutputSlot::Color1>());
-	state.SetTexture("coefficients", mGBuffer.AsTexture<OutputSlot::Color2>());
-	state.SetTexture("depth", mGBuffer.AsTexture<OutputSlot::Depth>());
+	state.SetTexture("u_albedos", mGBuffer.AsTexture<OutputSlot::Color0>());
+	state.SetTexture("u_normals", mGBuffer.AsTexture<OutputSlot::Color1>());
+	state.SetTexture("u_coefficients", mGBuffer.AsTexture<OutputSlot::Color2>());
+	state.SetTexture("u_depth", mGBuffer.AsTexture<OutputSlot::Depth>());
 
-	state.SetTexture("shadowMap", mShadowMapFrameBuffer.AsTexture<OutputSlot::Depth>());
+	state.SetTexture("u_shadowMap", mShadowMapFrameBuffer.AsTexture<OutputSlot::Depth>());
 
 	mEncoder->DrawMesh(mFullscreenQuad, state);
 }

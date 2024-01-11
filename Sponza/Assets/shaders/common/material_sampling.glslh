@@ -1,0 +1,63 @@
+
+vec4 getAlbedo(Material material, vec2 texcoord)
+{
+	vec4 result = material.albedo;
+	if (material.mapFlags.x > 0)
+	{
+		result = texture(u_albedoMap, texcoord * material.coefficients.w);
+	}
+	return result;
+}
+
+vec3 getNormal(Material material, vec3 pos, vec3 normal, vec2 texcoord)
+{
+	vec3 result = normalize(normal);
+	if (material.mapFlags.y > 0)
+	{
+		vec3 tangentNormal = texture(u_normalMap, texcoord).xyz * 2.0 - 1.0;
+
+		vec3 Q1  = dFdx(pos);
+		vec3 Q2  = dFdy(pos);
+		vec2 st1 = dFdx(texcoord);
+		vec2 st2 = dFdy(texcoord);
+
+		vec3 N   = normalize(normal);
+		vec3 T   = normalize(Q1*st2.t - Q2*st1.t);
+		vec3 B   = -normalize(cross(N, T));
+		mat3 TBN = mat3(T, B, N);
+
+		result = normalize(TBN * tangentNormal);
+	}
+
+	return result;
+}
+
+//note (danielg): sometimes the textures we get have the values in the g channel? 
+float getMetallic(Material material, vec2 texcoord)
+{
+	float result = material.coefficients.x;
+	if (material.mapFlags.z > 0)
+	{
+		result = texture(u_metallicMap, texcoord.xy * material.coefficients.w).g;
+		if (result <= 0)
+		{
+			result = texture(u_metallicMap, texcoord.xy * material.coefficients.w).r;
+		}
+	}
+	return result;
+}
+
+//note (danielg): sometimes the textures we get have the values in the g channel? 
+float getRoughness(Material material, vec2 texcoord)
+{
+	float result = material.coefficients.y;
+	if (material.mapFlags.w > 0)
+	{
+		result = texture(u_roughnessMap, texcoord.xy * material.coefficients.w).g;
+		if (result <= 0)
+		{
+			result = texture(u_roughnessMap, texcoord.xy * material.coefficients.w).r;
+		}
+	}
+	return result;
+}

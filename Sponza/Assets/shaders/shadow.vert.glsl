@@ -2,11 +2,7 @@
 layout (location = 0) in vec3 a_position;
 layout (location = 2) in vec2 a_texcoord;
 
-layout(std140) uniform PerDrawConstants_UBO
-{
-    mat4 u_model;
-	int u_materialID;
-};
+#include "common/uniforms.glslh"
 
 out vec2 Texcoord;
 

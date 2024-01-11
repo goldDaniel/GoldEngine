@@ -94,5 +94,5 @@ std::string ShaderCompiler::CompileShader(const char* shaderPath)
 		return {};
 	}
 
-	return std::move(src);
+	return src;
 }

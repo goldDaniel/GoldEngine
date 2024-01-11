@@ -25,6 +25,8 @@ private:
 
 		glm::vec4 u_viewPos{};
 		glm::vec4 u_time{};
+		
+		glm::vec4 u_toggles0{}; // ?, ?, voxelMipmapLevel, enableGI
 	};
 	PerFrameConstants mPerFrameConstants{};
 	graphics::UniformBufferHandle mPerFrameContantsBuffer{};

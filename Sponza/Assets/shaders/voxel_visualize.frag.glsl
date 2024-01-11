@@ -1,16 +1,6 @@
 #version 460 core
 
-layout(std140) uniform PerFrameConstants_UBO
-{
-	mat4 u_proj;
-	mat4 u_projInv;
-	
-	mat4 u_view;
-	mat4 u_viewInv;
-
-	vec4 u_viewPos;
-	vec4 u_time;
-};
+#include "common/uniforms.glslh"
 
 layout(r32ui) uniform readonly uimage3D u_voxelGrid;
 
@@ -53,7 +43,7 @@ void main()
     {
         const vec3 worldPos = ray.origin + STEP_SIZE * i * ray.dir;
         ivec3 voxelPos = ivec3(worldPos) + (IMAGE_SIZE / 2);
-        voxelPos /= int(pow(2, u_time.z));
+        voxelPos /= int(pow(2, u_voxelMipmapLevel));
 
         if(voxelPos.x >= 0 && voxelPos.y >= 0 && voxelPos.z >= 0 &&
            voxelPos.x < IMAGE_SIZE.x && voxelPos.y < IMAGE_SIZE.y && voxelPos.z < IMAGE_SIZE.z)

@@ -1,0 +1,72 @@
+
+const float PI = 3.141592;
+const float Epsilon = 0.00001;
+
+
+/////////////////////////////////////////////////////////////////
+
+float mapValue(float x, float in_min, float in_max, float out_min, float out_max)
+{
+  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+
+vec2 mapValue(vec2 x, vec2 in_min, vec2 in_max, vec2 out_min, vec2 out_max)
+{
+  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+
+vec3 mapValue(vec3 x, vec3 in_min, vec3 in_max, vec3 out_min, vec3 out_max)
+{
+  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
+}
+
+/////////////////////////////////////////////////////////////////
+
+const int CubemapFace_XP = 0;
+const int CubemapFace_XN = 1;
+const int CubemapFace_YP = 2;
+const int CubemapFace_YN = 3;
+const int CubemapFace_ZP = 4;
+const int CubemapFace_ZN = 5;
+vec2 sampleVirtualCubemap(vec3 v, out int faceIndex)
+{
+	vec3 vAbs = abs(v);
+	float ma;
+	vec2 uv;
+	if(vAbs.z >= vAbs.x && vAbs.z >= vAbs.y)
+	{
+		faceIndex = v.z < 0 ? CubemapFace_ZN : CubemapFace_ZP;
+		ma = 0.5 / vAbs.z;
+		uv = vec2(v.z < 0.0 ? -v.x : v.x, -v.y);
+	}
+	else if(vAbs.y >= vAbs.x)
+	{
+		faceIndex = v.y < 0 ? CubemapFace_YN : CubemapFace_YP;
+		ma = 0.5 / vAbs.y;
+		uv = vec2(v.x, v.y < 0.0 ? -v.z : v.z);
+	}
+	else
+	{
+		faceIndex = v.x < 0 ? CubemapFace_XN : CubemapFace_XP;
+		ma = 0.5 / vAbs.x;
+		uv = vec2(v.x < 0.0 ? v.z : -v.z, -v.y);
+	}
+	return uv * ma + 0.5;
+}
+
+/////////////////////////////////////////////////////////////////
+
+vec3 WorldPosFromDepth(vec2 texCoord, float depth) 
+{
+	float z = depth * 2.0 - 1.0;
+
+	vec4 clipSpacePosition = vec4(texCoord * 2.0 - 1.0, z, 1.0);
+	vec4 viewSpacePosition = u_projInv * clipSpacePosition;
+
+	// Perspective division
+	viewSpacePosition /= viewSpacePosition.w;
+
+	vec4 worldSpacePosition = u_viewInv * viewSpacePosition;
+
+	return worldSpacePosition.xyz;
+}

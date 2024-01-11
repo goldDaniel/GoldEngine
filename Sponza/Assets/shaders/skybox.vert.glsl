@@ -4,17 +4,7 @@ layout (location = 0) in vec3 a_Position;
 
 out vec3 TextureDir;
 
-layout(std140) uniform PerDrawConstants_UBO
-{
-    mat4 u_model;
-		
-	// for use when maps are not present
-	vec4 u_albedo;
-	vec4 u_emissive;
-	vec4 u_coefficients;// metallic, roughness, ?, uvScale
-
-	vec4 u_flags; // albedoMap, normalMap, metallicMap, roughnessMap
-};
+#include "common/uniforms.glslh"
 
 void main()
 {

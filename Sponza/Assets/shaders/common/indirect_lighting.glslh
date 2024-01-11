@@ -1,0 +1,113 @@
+
+float updateStepSize(float currentDistance, float initialStepSize, vec3 gridSize) 
+{
+    float stepSize = initialStepSize;
+
+    stepSize += currentDistance * 0.01;
+    stepSize = clamp(stepSize, 0.0, gridSize.x);
+    return stepSize;
+}
+
+vec3 coneTrace(vec3 worldPos, vec3 direction, float aperture, vec3 gridSize)
+{
+	vec3 result = vec3(0.0);
+	float totalWeight = 0;
+	float stepSize = 1;
+	float voxelSize = 1; // 1 voxel is 1 world unit
+	float tanHalfApeture = tan(aperture * 0.5);
+
+	worldPos += direction;
+
+	for(float distance = 0.0; distance < gridSize.x; distance += stepSize)
+	{
+		float diameter = 2.0 * distance * tanHalfApeture;
+		float mip = log2(diameter / voxelSize);
+
+		vec3 pos = worldPos + distance * direction;
+		if(abs(pos.x) > gridSize.x / 2 || abs(pos.y) > gridSize.y / 2 || abs(pos.z) > gridSize.z / 2)
+		{
+			break;
+		}
+
+		ivec3 voxelCoords = ivec3(pos) + ivec3(gridSize / 2);
+		vec3 uvw = voxelCoords / gridSize;
+
+		float floatBits = textureLod(u_voxelGrid, uvw, mip).r;
+		uint packedColor = floatBitsToUint(floatBits);
+		vec4 color = unpackUnorm4x8(packedColor);
+
+		if(color.a > 0)
+		{
+			result += color.rgb;
+			totalWeight += 1;
+		}
+
+		stepSize = updateStepSize(distance, 1, gridSize);
+	}
+
+	return result / max(totalWeight, 1);
+}
+
+const int NUM_DIFFUSE_CONES = 32;
+const vec3 DIFFUSE_CONE_DIRECTIONS[32] = 
+{
+    vec3(0.898904, 0.435512, 0.0479745),
+    vec3(0.898904, -0.435512, -0.0479745),
+    vec3(0.898904, 0.0479745, -0.435512),
+    vec3(0.898904, -0.0479745, 0.435512),
+    vec3(-0.898904, 0.435512, -0.0479745),
+    vec3(-0.898904, -0.435512, 0.0479745),
+    vec3(-0.898904, 0.0479745, 0.435512),
+    vec3(-0.898904, -0.0479745, -0.435512),
+    vec3(0.0479745, 0.898904, 0.435512),
+    vec3(-0.0479745, 0.898904, -0.435512),
+    vec3(-0.435512, 0.898904, 0.0479745),
+    vec3(0.435512, 0.898904, -0.0479745),
+    vec3(-0.0479745, -0.898904, 0.435512),
+    vec3(0.0479745, -0.898904, -0.435512),
+    vec3(0.435512, -0.898904, 0.0479745),
+    vec3(-0.435512, -0.898904, -0.0479745),
+    vec3(0.435512, 0.0479745, 0.898904),
+    vec3(-0.435512, -0.0479745, 0.898904),
+    vec3(0.0479745, -0.435512, 0.898904),
+    vec3(-0.0479745, 0.435512, 0.898904),
+    vec3(0.435512, -0.0479745, -0.898904),
+    vec3(-0.435512, 0.0479745, -0.898904),
+    vec3(0.0479745, 0.435512, -0.898904),
+    vec3(-0.0479745, -0.435512, -0.898904),
+    vec3(0.57735, 0.57735, 0.57735),
+    vec3(0.57735, 0.57735, -0.57735),
+    vec3(0.57735, -0.57735, 0.57735),
+    vec3(0.57735, -0.57735, -0.57735),
+    vec3(-0.57735, 0.57735, 0.57735),
+    vec3(-0.57735, 0.57735, -0.57735),
+    vec3(-0.57735, -0.57735, 0.57735),
+    vec3(-0.57735, -0.57735, -0.57735)
+};
+
+vec3 getIndirectDiffuseContribution(vec3 worldPos, vec3 normal, float roughness)
+{
+    float aperture = max(roughness, 0.0001);
+	vec3 result = vec3(0.0);
+	vec3 gridSize = textureSize(u_voxelGrid, 0);
+
+	for(int i = 0; i < NUM_DIFFUSE_CONES; ++i)
+	{
+		float cosTheta = dot(normal, DIFFUSE_CONE_DIRECTIONS[i]);
+		if (cosTheta > 0)
+		{
+			result += coneTrace(worldPos, DIFFUSE_CONE_DIRECTIONS[i], aperture, gridSize) * cosTheta;
+		}
+	}
+	result /= NUM_DIFFUSE_CONES;
+
+	return result;
+}
+
+vec3 getIndirectSpecularContribution(vec3 worldPos, vec3 direction, float roughness)
+{
+	vec3 gridSize = textureSize(u_voxelGrid, 0);
+	float aperture = max(roughness, 0.0001);
+
+	return coneTrace(worldPos, direction, aperture, gridSize);
+}

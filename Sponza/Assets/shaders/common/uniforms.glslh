@@ -1,0 +1,42 @@
+
+layout(std140) uniform PerFrameConstants_UBO
+{
+	mat4 u_proj;
+	mat4 u_projInv;
+	
+	mat4 u_view;
+	mat4 u_viewInv;
+
+	vec4 u_viewPos;
+	vec4 u_time;
+
+	vec4 u_perFrametoggles0; // ?, ignorePCF, voxelMipmapLevel, enableGI
+};
+#define u_ignorePCF u_perFrametoggles0.y > 0
+#define u_voxelMipmapLevel u_perFrametoggles0.z
+#define u_enableGI u_perFrametoggles0.w > 0
+
+
+layout(std140) uniform PerDrawConstants_UBO
+{
+    mat4 u_model;
+	int u_materialID;
+};
+
+struct Material
+{
+	vec4 albedo;
+	vec4 emissive;
+
+    //metallic, roughness, ?, UVScale
+	vec4 coefficients;
+
+	// albedo, normal, metallic, roughness
+	uvec4 mapFlags;
+};
+
+#define MAX_MATERIALS 128
+layout(std140) uniform Materials_UBO
+{
+    Material u_materials[MAX_MATERIALS];
+};
