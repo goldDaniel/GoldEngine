@@ -85,13 +85,13 @@ protected:
 
 				transform.position.x = -120;
 				transform.position.y = 20;
-				light.color = { 5000, 0, 0, 1 };
+				light.color = { 500, 500, 500, 1 };
 				light.falloff = 500;
 
 				shadow.PCFSize = 9;
 				shadow.perspective.aspect = 1;
 				shadow.perspective.FOV = glm::radians(90.f);
-				shadow.nearPlane = 0.5;
+				shadow.nearPlane = 2;
 				shadow.farPlane = 500;
 				shadow.shadowMapBias.fill(0);
 			}
@@ -104,13 +104,13 @@ protected:
 
 				transform.position.x = 0;
 				transform.position.y = 70;
-				light.color = { 0, 5000, 0, 1 };
+				light.color = { 500, 500, 500, 1 };
 				light.falloff = 500;
 
 				shadow.PCFSize = 9;
 				shadow.perspective.aspect = 1;
 				shadow.perspective.FOV = glm::radians(90.f);
-				shadow.nearPlane = 0.5;
+				shadow.nearPlane = 2;
 				shadow.farPlane = 500;
 				shadow.shadowMapBias.fill(0);
 			}
@@ -123,13 +123,13 @@ protected:
 
 				transform.position.x = 120;
 				transform.position.y = 20;
-				light.color = { 0, 0, 5000, 1 };
+				light.color = { 500, 500, 500, 1 };
 				light.falloff = 500;
 
 				shadow.PCFSize = 9;
 				shadow.perspective.aspect = 1;
 				shadow.perspective.FOV = glm::radians(90.f);
-				shadow.nearPlane = 0.5;
+				shadow.nearPlane = 2;
 				shadow.farPlane = 500;
 				shadow.shadowMapBias.fill(0);
 			}
@@ -141,7 +141,7 @@ protected:
 				auto& shadow = lightObj.AddComponent<ShadowMapComponent>();
 
 				light.color = { 8, 8, 7, 1 };
-				light.direction = {0.0f, -0.7f, 0.3f, 0.0f};
+				light.direction = { 0.1f, -0.55f, 0.35f, 0.0f };
 				shadow.ortho.bottom = -256;
 				shadow.ortho.top = 256;
 				shadow.ortho.left = -256;

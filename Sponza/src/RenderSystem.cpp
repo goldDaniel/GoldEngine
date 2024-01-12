@@ -236,7 +236,7 @@ void RenderSystem::InitRenderData(scene::Scene& scene)
 		
 		desc.mWrap = TextureWrap::CLAMP;
 		desc.mFormat = TextureFormat::R_U32;
-		desc.mFilter = TextureFilter::POINT;
+		desc.mFilter = TextureFilter::LINEAR;
 		desc.mMipmaps = true;
 	
 		mVoxel.mHandle = mEncoder->CreateTexture3D(desc);

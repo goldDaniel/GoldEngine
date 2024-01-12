@@ -12,7 +12,7 @@ void main()
     vec3 hdrColor = texture(hdrBuffer, Texcoord).rgb;
   
     // reinhard tone mapping
-    vec3 mapped = vec3(1.0) - exp(-hdrColor * 1.0);
+    vec3 mapped = vec3(1.0) - exp(-hdrColor * 2.1);
     // gamma correction 
     mapped = pow(mapped, vec3(1.0 / gamma));
   

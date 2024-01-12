@@ -47,9 +47,9 @@ void main()
 	if(u_enableGI)
 	{
 		vec3 reflectDir = reflect(-V, normal);
-
-		Lo += albedo * getIndirectDiffuseContribution(position, normal, roughness);
-		Lo += albedo * getIndirectSpecularContribution(position, reflectDir, roughness) * 4;
+		
+		Lo += albedo.rgb * getIndirectDiffuseContribution(position, normal, roughness);
+		Lo += albedo.rgb * getIndirectSpecularContribution(position, reflectDir, roughness);
 	}
 
 	vec3 ambient = 0.0 / 256.0 * albedo.rgb;

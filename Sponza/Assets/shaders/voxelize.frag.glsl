@@ -70,7 +70,7 @@ void main()
 	float metallic  = getMetallic(material, v_texCoord);
 	float roughness = getRoughness(material, v_texCoord);
 
-	if(albedo.a > 0)
+	if(albedo.a >= 0.4)
 	{
 		vec3 position = v_worldPos;
 		
