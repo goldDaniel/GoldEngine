@@ -8,12 +8,17 @@
 
 #include "Components.h"
 
+#include "rendering/LightBinning.h"
+
 class RenderSystem : scene::GameSystem
 {
 public:
 	static bool kReloadShaders;
 private:
 	gold::FrameEncoder* mEncoder = nullptr;
+
+	LightBinning mLightBinning;
+
 
 	struct PerFrameConstants
 	{
@@ -57,22 +62,6 @@ private:
 
 	graphics::UniformBufferHandle mMaterialBuffer{};
 
-	struct LightBins
-	{
-		static constexpr u32 binSize = 32;
-		static constexpr u32 lightsPerBin = 8;
-		
-		glm::uvec4 u_binsCounts{}; //x,y,z, ?
-		std::vector<glm::uvec4> u_lightBins; //start, end, pad, pad;
-	};
-
-	
-	LightBins mLightBins{};
-	graphics::ShaderBufferHandle mLightBinsBuffer{};
-
-	std::vector<glm::int32> mLightBinIndices{};
-	graphics::ShaderBufferHandle mLightBinIndicesBuffer{};
-
 	// holds LightBufferComponent::LightShaderBuffer
 	graphics::UniformBufferHandle mLightingBuffer{};
 
@@ -115,12 +104,13 @@ private:
 	void InitRenderData(scene::Scene& scene);
 	void ReloadShaders();
 
-	void ProcessPointLights(scene::Scene& scene);
+	void ProcessPointLights(scene::Scene& scene, const Camera& cam);
 	void FillShadowAtlas(scene::Scene& scene);
 	void VoxelizeScene(scene::Scene& scene);
 	void RenderVoxelizedScene(const Camera& camera, scene::Scene& scene);
 	void FillGBuffer(const Camera& camera, scene::Scene& scene);
-	void ResolveGBuffer(scene::Scene& scene);
+	void generateSSAO();
+	void ResolveGBuffer();
 	void DrawSkybox();
 	void Tonemap();
 
