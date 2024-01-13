@@ -48,11 +48,11 @@ void main()
 	{
 		vec3 reflectDir = reflect(-V, normal);
 		
-		Lo += albedo.rgb * getIndirectDiffuseContribution(position, normal, roughness);
-		Lo += albedo.rgb * getIndirectSpecularContribution(position, reflectDir, roughness);
+		Lo += getIndirectDiffuseContribution(position, normal, roughness);
+		Lo += getIndirectSpecularContribution(position, reflectDir, roughness);
 	}
 
-	vec3 ambient = 0.0 / 256.0 * albedo.rgb;
+	vec3 ambient = 1 / 256.0 * albedo.rgb;
 	vec3 color = ambient + (Lo);
 	color0 = vec4(color, 1.0);
 

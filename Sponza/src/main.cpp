@@ -85,7 +85,7 @@ protected:
 
 				transform.position.x = -120;
 				transform.position.y = 20;
-				light.color = { 500, 500, 500, 1 };
+				light.color = { 500, 0, 0, 1 };
 				light.falloff = 500;
 
 				shadow.PCFSize = 9;
@@ -93,7 +93,7 @@ protected:
 				shadow.perspective.FOV = glm::radians(90.f);
 				shadow.nearPlane = 2;
 				shadow.farPlane = 500;
-				shadow.shadowMapBias.fill(0);
+				shadow.shadowMapBias.fill(0.001f);
 			}
 			{
 				auto lightObj = mScene.CreateGameObject("Green Light");
@@ -104,7 +104,7 @@ protected:
 
 				transform.position.x = 0;
 				transform.position.y = 70;
-				light.color = { 500, 500, 500, 1 };
+				light.color = { 0, 500, 0, 1 };
 				light.falloff = 500;
 
 				shadow.PCFSize = 9;
@@ -112,7 +112,7 @@ protected:
 				shadow.perspective.FOV = glm::radians(90.f);
 				shadow.nearPlane = 2;
 				shadow.farPlane = 500;
-				shadow.shadowMapBias.fill(0);
+				shadow.shadowMapBias.fill(0.001f);
 			}
 			{
 				auto lightObj = mScene.CreateGameObject("Blue Light");
@@ -123,7 +123,7 @@ protected:
 
 				transform.position.x = 120;
 				transform.position.y = 20;
-				light.color = { 500, 500, 500, 1 };
+				light.color = { 0, 0, 500, 1 };
 				light.falloff = 500;
 
 				shadow.PCFSize = 9;
@@ -131,7 +131,7 @@ protected:
 				shadow.perspective.FOV = glm::radians(90.f);
 				shadow.nearPlane = 2;
 				shadow.farPlane = 500;
-				shadow.shadowMapBias.fill(0);
+				shadow.shadowMapBias.fill(0.001f);
 			}
 
 			/*{

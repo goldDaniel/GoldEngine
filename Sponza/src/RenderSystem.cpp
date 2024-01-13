@@ -894,7 +894,7 @@ void RenderSystem::VoxelizeScene(scene::Scene& scene)
 		RenderState state{};
 		state.mShader = mVoxelDownsampleShader;
 		state.mRenderPass = mEncoder->AddRenderPass("Voxel Downsample", ClearColor::NO, ClearDepth::NO);
-		for ( u8 i = 0; i < mipmapLevels; ++i)
+		for ( u8 i = 0; i < mipmapLevels - 1; ++i)
 		{
 			u8 srcLevel = i;
 			u8 dstLevel = srcLevel + 1;
