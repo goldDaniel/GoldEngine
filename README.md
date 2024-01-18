@@ -1,9 +1,15 @@
 # Gold Engine
 
+## Retrieving 
+`git clone --recursive https://github.com/goldDaniel/GoldEngine.git`
+
 ## Building 
 `cd path/to/GoldEngine`
+
 `mkdir build`
+
 `cd build`
+
 `cmake ..`
 
 ## Running 
