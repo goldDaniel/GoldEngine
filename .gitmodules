@@ -16,3 +16,6 @@
 [submodule "Dependencies/assimp"]
 	path = Dependencies/assimp
 	url = https://github.com/assimp/assimp.git
+[submodule "Dependencies/KTX-Software"]
+	path = Dependencies/KTX-Software
+	url = https://github.com/KhronosGroup/KTX-Software.git
