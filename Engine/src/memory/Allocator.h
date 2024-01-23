@@ -1,14 +1,10 @@
 #pragma once
 
 #include <core/core.h>
+#include "memory/Utils.h"
 
 namespace gold
 {
-	struct Memory
-	{
-		const void* data;
-		u32 size;
-	};
 
 	class Allocator
 	{

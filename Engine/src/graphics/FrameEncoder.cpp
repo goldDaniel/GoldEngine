@@ -4,6 +4,7 @@
 
 using namespace graphics;
 using namespace gold;
+using namespace gold::memory;
 
 static void WriteCreateTexture2D(const TextureDescription2D& desc, BinaryWriter& writer, LinearAllocator& allocator)
 {
@@ -156,7 +157,7 @@ u8 FrameEncoder::AddRenderPass(const graphics::RenderPass& pass)
 
 	// name
 	u32 size = static_cast<u32>(strlen(pass.mName) + 1);
-	mWriter.Write(Memory{ pass.mName, size });
+	mWriter.Write(Memory{ const_cast<char*>(pass.mName), size });
 
 	// framebuffer
 	mWriter.Write(pass.mTarget); // client handle

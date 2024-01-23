@@ -30,4 +30,5 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 add_subdirectory(Dependencies)
 add_subdirectory(Engine)
+add_subdirectory(AssetProcessor)
 add_subdirectory(Sponza)

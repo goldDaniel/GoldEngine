@@ -8,8 +8,6 @@
 using namespace gold;
 
 
-
-
 void Application::Run()
 {
 	Init();

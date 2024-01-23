@@ -4,6 +4,16 @@
 
 namespace gold::memory
 {
+	constexpr u32 KB = 1024;
+	constexpr u32 MB = 1024 * KB;
+	constexpr u32 GB = 1024 * MB;
+
+	struct Memory
+	{
+		void* data;
+		u32 size;
+	};
+
 	template<typename T>
 	static const std::size_t CalculatePaddingWithHeader(const u64  baseAddress, const u64 alignment) 
 	{

@@ -5,9 +5,11 @@
 #include "RenderResources.h"
 #include "memory/BinaryReader.h"
 #include "memory/LinearAllocator.h"
+#include "memory/Utils.h"
 
 using namespace graphics;
 using namespace gold;
+using namespace gold::memory;
 
 static TextureDescription2D ReadCreateTexture2D(BinaryReader& reader)
 {

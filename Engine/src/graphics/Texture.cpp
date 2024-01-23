@@ -10,10 +10,18 @@
 
 using namespace graphics;
 
+Texture2D::Texture2D(u16 width, u16 height, u16 channels, void* data)
+	: mWidth(width)
+	, mHeight(height)
+	, mChannels(channels)
+	, mData(data)
+	, mNameHash(util::Hash(data, width * height * channels))
+{
+
+}
+
 Texture2D::Texture2D(const std::string& filepath)
 {
-	mNameHash = util::Hash(filepath.c_str(), filepath.size());
-
 	std::string extension = filepath.substr(filepath.find_last_of('.'), filepath.size());
 
 	if (extension == ".dds")
@@ -42,8 +50,9 @@ Texture2D::Texture2D(const std::string& filepath)
 		mWidth = static_cast<u16>(w);
 		mHeight = static_cast<u16>(h);
 		mChannels = static_cast<u16>(c);
+
+		mNameHash = util::Hash(mData, w * h * c);
 	}
-	
 }
 
 Texture2D::~Texture2D()
@@ -68,6 +77,11 @@ u16 Texture2D::GetWidth() const
 u16 Texture2D::GetHeight() const
 {
 	return mHeight;
+}
+
+u16 Texture2D::GetChannels() const
+{
+	return mChannels;
 }
 
 u32 Texture2D::GetNameHash() const

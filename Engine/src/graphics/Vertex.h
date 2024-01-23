@@ -183,6 +183,11 @@ namespace graphics
 	class VertexBuffer
 	{
 	public:
+		VertexBuffer() 
+		{
+			
+		}
+
 		VertexBuffer(VertexLayout&& layout)
 			: mLayout(std::move(layout)) { }
 

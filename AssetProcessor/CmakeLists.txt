@@ -1,0 +1,10 @@
+file(GLOB_RECURSE HEADER_LIST CONFIGURE_DEPENDS  "${CMAKE_CURRENT_SOURCE_DIR}/src/*.hpp" 
+                                                 "${CMAKE_CURRENT_SOURCE_DIR}/src/*.h")
+
+file(GLOB_RECURSE SOURCE_LIST CONFIGURE_DEPENDS  "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp"
+                                                 "${CMAKE_CURRENT_SOURCE_DIR}/src/*.c")
+
+add_executable(AssetProcessor ${HEADER_LIST}
+                              ${SOURCE_LIST})
+
+target_link_libraries(AssetProcessor Engine assimp)

@@ -17,17 +17,17 @@ add_library(Engine STATIC   ${ENGINE_HEADER_LIST}
 
 target_compile_definitions(Engine PRIVATE GOLD_ENGINE)
 
-target_compile_features(Engine PRIVATE cxx_std_17)
+target_compile_features(Engine PUBLIC cxx_std_17)
 
 target_include_directories(Engine PUBLIC ${ENGINE_HEADER_DIR})
 
 if(MSVC)
-  target_compile_options(Engine PRIVATE /W4 /WX)
+  target_compile_options(Engine PUBLIC /W4 /WX)
   # for localtime()
   # TODO (danielg): probably shouldnt be disabling warnings
-  target_compile_definitions(Engine PRIVATE _CRT_SECURE_NO_WARNINGS) 
+  target_compile_definitions(Engine PUBLIC _CRT_SECURE_NO_WARNINGS) 
 else()
-  target_compile_options(Engine PRIVATE -Wall -Wextra -Wpedantic -Werror)
+  target_compile_options(Engine PUBLIC -Wall -Wextra -Wpedantic -Werror)
 endif()
 
 #glm

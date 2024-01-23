@@ -11,6 +11,8 @@ namespace graphics
 	public:
 		Texture2D() = default;
 
+		Texture2D(u16 width, u16 height, u16 channels, void* data);
+
 		Texture2D(const std::string& filepath);
 
 		~Texture2D();
@@ -19,6 +21,8 @@ namespace graphics
 
 		u16 GetHeight() const;
 
+		u16 GetChannels() const;
+
 		u32 GetNameHash() const;
 
 		const void* GetData() const;
@@ -26,6 +30,8 @@ namespace graphics
 		graphics::TextureFormat GetFormat() const;
 
 		u32 GetDataSize() const;
+
+		bool operator==(const Texture2D& other) const { return mNameHash == other.mNameHash; }
 
 	private:
 

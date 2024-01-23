@@ -23,9 +23,19 @@ namespace gold
 			return mSize > 0;
 		}
 
+		bool CanReadData() const
+		{
+			return mOffset < (mSize - 1);
+		}
+
 		void Reset()
 		{
 			mOffset = 0;
+		}
+
+		u64 GetSize() const
+		{
+			return mSize;
 		}
 
 		template<typename T>
@@ -41,6 +51,11 @@ namespace gold
 			mOffset += size;
 
 			return result;
+		}
+
+		const u8* GetData() const
+		{
+			return mMemory;
 		}
 
 		void Read(u8* data, u64 size)

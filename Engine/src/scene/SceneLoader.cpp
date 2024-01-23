@@ -130,18 +130,19 @@ static void CreateMesh(const aiMesh* mesh, gold::FrameEncoder& encoder, RenderCo
 static std::mutex kTextureWriteMutex;
 static graphics::TextureHandle FindOrAddTexture(const std::string& file, gold::FrameEncoder& encoder)
 {
-	graphics::Texture2D texture(file);
-	if (kTextureCache.find(texture.GetNameHash()) == kTextureCache.end())
+	u32 nameHash = util::Hash(file.c_str(), file.size());
+	if (kTextureCache.find(nameHash) == kTextureCache.end())
 	{
+		graphics::Texture2D texture(file);
 		graphics::TextureDescription2D desc(texture, true);
 		{
 			std::scoped_lock lock(kTextureWriteMutex);
-			kTextureCache[texture.GetNameHash()] = encoder.CreateTexture2D(desc);
+			kTextureCache[nameHash] = encoder.CreateTexture2D(desc);
 		}
 		
 	}
 
-	return kTextureCache.find(texture.GetNameHash())->second;
+	return kTextureCache.find(nameHash)->second;
 }
 
 static void CreateMaterial(const std::string& filepath, unsigned int index, aiMaterial** const materials, gold::FrameEncoder& encoder, RenderComponent& render)
