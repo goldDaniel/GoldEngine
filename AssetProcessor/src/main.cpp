@@ -25,6 +25,11 @@ int main(int argc, const char** argv)
 		G_ERROR("Cannot find input file: {}", input);
 		return 0;
 	}
+	if (std::filesystem::is_directory(input))
+	{
+		G_ERROR("Input given is not a file, but a directory: {}", input);
+		return 0;
+	}
 
 	std::string file(output);
 	std::replace(file.begin(), file.end(), '\\', '/');
