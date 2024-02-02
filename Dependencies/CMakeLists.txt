@@ -1,4 +1,4 @@
-add_subdirectory_with_folder(glm "glm")
+add_subdirectory_with_folder(Dependencies/glm "glm")
 
 #SDL
 if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC")
@@ -23,9 +23,4 @@ set(ZLIB_LIBRARIES zlibstatic)
 set(ENABLE_BOOST_WORKAROUND ON)
 set(BUILD_STATIC_LIB ON)
 
-add_subdirectory_with_folder(assimp "assimp")
-
-#ktx
-set(KTX_FEATURE_STATIC_LIBRARY ON)
-add_subdirectory_with_folder(KTX "KTX-Software")
-
+add_subdirectory_with_folder(Dependencies/assimp "assimp")
