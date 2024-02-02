@@ -21,7 +21,7 @@ using namespace graphics;
 struct AssetID
 {
 	static constexpr u8 KEY_LENGTH = 16;
-	char key[KEY_LENGTH + 1];
+	char key[KEY_LENGTH];
 
 	bool operator==(const AssetID other)
 	{
@@ -36,9 +36,9 @@ struct AssetID
 		return true;
 	}
 
-	const char* Name() const
+	const std::string Name() const
 	{
-		return key;
+		return std::string(key);
 	}
 };
 
@@ -109,13 +109,11 @@ AssetID createAssetID()
 	const char* v = "0123456789abcdef";
 
 	AssetID result;
-	for (int i = 0; i < AssetID::KEY_LENGTH; i++)
+	for (int i = 0; i < 16; i++)
 	{
 		result.key[i] = v[dist(rng)];
 		result.key[i] = v[dist(rng)];
 	}
-	
-	result.key[AssetID::KEY_LENGTH] = '\0';
 
 	return result;
 }
@@ -129,7 +127,6 @@ static ParsedMesh CreateMesh(const aiMesh* mesh)
 	DEBUG_ASSERT(mesh->HasTextureCoords(0), "Mesh does not have texture coordinates!");
 
 	ParsedMesh result;
-	result.id = createAssetID();
 
 	result.interlacedVertices = VertexBuffer(std::move(VertexLayout().Push<VertexLayout::Position3>()
 																	.Push<VertexLayout::Normal>()
@@ -266,7 +263,7 @@ static void WriteModelFile(const ParsedModel& model, const std::unordered_map<u3
 	for (const auto& entry : materials)
 	{
 		const auto& material = entry.second;
-		G_INFO("Formatting material: {}", material.id.Name());
+		G_INFO("Writing material: {}", material.id.Name());
 		writer.Write(material.id);
 
 		{
@@ -301,7 +298,7 @@ static void WriteModelFile(const ParsedModel& model, const std::unordered_map<u3
 	writer.Write(static_cast<u16>(model.meshes.size()));
 	for (const ParsedMesh& mesh : model.meshes)
 	{
-		G_INFO("Formatting mesh: {}", mesh.id.Name());
+		G_INFO("Writing mesh: ", mesh.id.Name());
 		writer.Write(mesh.id);
 
 		//aabb
@@ -329,7 +326,7 @@ static void WriteModelFile(const ParsedModel& model, const std::unordered_map<u3
 	}
 	gold::BinaryReader reader = writer.ToReader();
 
-	G_INFO("Formatting complete. Now Writing to file: {}", fileName);
+	G_INFO("Writing complete. Now Compressing...");
 
 	std::ofstream stream(fileName, std::ios::out | std::ios::binary | std::ios::trunc);
 
@@ -339,7 +336,7 @@ static void WriteModelFile(const ParsedModel& model, const std::unordered_map<u3
 
 void assets::ProcessModelAsset(const char* inputFile, const char* outputFile)
 {
-	G_INFO("Processing model file: {}", inputFile);
+	G_INFO("Processing model file: ", inputFile);
 
 	constexpr unsigned int assimpFlags = 0	| aiProcess_Triangulate
 											| aiProcess_FlipUVs
@@ -372,7 +369,6 @@ void assets::ProcessModelAsset(const char* inputFile, const char* outputFile)
 	for (u32 i = 0; i < assimpScene->mNumMeshes; ++i)
 	{
 		ParsedMesh mesh = CreateMesh(assimpScene->mMeshes[i]);
-		result.meshes.push_back(mesh);
 		G_INFO("Mesh {} parsed", i);
 
 		if (materials.find(assimpScene->mMeshes[i]->mMaterialIndex) == materials.end())
@@ -383,7 +379,7 @@ void assets::ProcessModelAsset(const char* inputFile, const char* outputFile)
 		mesh.materialID = materials[assimpScene->mMeshes[i]->mMaterialIndex].id;
 	}
 	
-	G_INFO("Parsing successful. Begin formatting...");
+	G_INFO("Parsing successful. Begin writing to: {}", outputFile);
 	WriteModelFile(result, materials, outputFile);
 	G_INFO("Writing complete. Exiting.");
 }
