@@ -10,70 +10,78 @@ namespace graphics
 	class Renderer
 	{
 	public:
-		~Renderer();
+		enum Backend
+		{
+			OpenGL,
+			Vulkan, 
+		};
 
-		void Init(void* windowHandle);
-		void Destroy();
+		static std::unique_ptr<Renderer> CreateRenderer(Backend backend);
 
-		void BeginFrame();
-		void EndFrame();
+		virtual ~Renderer() {}
 
-		void SetBackBufferSize(int w, int h);
+		virtual void Init(void* windowHandle) = 0;
+		virtual void Destroy() = 0;
 
-		u8 AddRenderPass(const RenderPass& description);
-		u8 AddRenderPass(const char* name, ClearColor clearColor = ClearColor::NO, ClearDepth clearDepth = ClearDepth::NO);	
-		u8 AddRenderPass(const char* name, FrameBufferHandle target, ClearColor clearColor = ClearColor::NO, ClearDepth clearDepth = ClearDepth::NO);
+		virtual void BeginFrame() = 0;
+		virtual void EndFrame() = 0;
+
+		virtual void SetBackBufferSize(int w, int h) = 0;
+
+		virtual u8 AddRenderPass(const RenderPass& description) = 0;
+		virtual u8 AddRenderPass(const char* name, ClearColor clearColor = ClearColor::NO, ClearDepth clearDepth = ClearDepth::NO) = 0;
+		virtual u8 AddRenderPass(const char* name, FrameBufferHandle target, ClearColor clearColor = ClearColor::NO, ClearDepth clearDepth = ClearDepth::NO) = 0;
 
 		// Uniform Blocks ////////////////////////////////////////
-		UniformBufferHandle CreateUniformBuffer(const void* data, uint32_t size);
-		void UpdateUniformBuffer(const void* data, uint32_t size, uint32_t offset, UniformBufferHandle binding);
-		void DestroyUniformBuffer(UniformBufferHandle handle);
+		virtual UniformBufferHandle CreateUniformBuffer(const void* data, uint32_t size) = 0;
+		virtual void UpdateUniformBuffer(const void* data, uint32_t size, uint32_t offset, UniformBufferHandle binding) = 0;
+		virtual void DestroyUniformBuffer(UniformBufferHandle handle) = 0;
 
 		// Shader Storage Blocks //////////////////////////////////
-		ShaderBufferHandle CreateShaderBuffer(const void* data, uint32_t size);
-		void UpdateShaderBuffer(const void* data, uint32_t size, uint32_t offset, ShaderBufferHandle binding);
-		void DestroyShaderBuffer(ShaderBufferHandle handle);
+		virtual ShaderBufferHandle CreateShaderBuffer(const void* data, uint32_t size) = 0;
+		virtual void UpdateShaderBuffer(const void* data, uint32_t size, uint32_t offset, ShaderBufferHandle binding) = 0;
+		virtual void DestroyShaderBuffer(ShaderBufferHandle handle) = 0;
 
 		// Vertex Buffers ////////////////////////////////////////
-		VertexBufferHandle CreateVertexBuffer(const void* data = nullptr, uint32_t dataSize = 0, BufferUsage usage = BufferUsage::STATIC);
-		void UpdateVertexBuffer(VertexBufferHandle handle, const void* data, uint32_t dataSize, u32 offset);
-		void DestroyVertexBuffer(VertexBufferHandle hanOdle);
+		virtual VertexBufferHandle CreateVertexBuffer(const void* data = nullptr, uint32_t dataSize = 0, BufferUsage usage = BufferUsage::STATIC) = 0;
+		virtual void UpdateVertexBuffer(VertexBufferHandle handle, const void* data, uint32_t dataSize, u32 offset) = 0;
+		virtual void DestroyVertexBuffer(VertexBufferHandle handle) = 0;
 
 		// index buffers ////////////////////////////////////////
-		IndexBufferHandle CreateIndexBuffer(const void* data = nullptr, uint32_t dataSize = 0, BufferUsage usage = BufferUsage::STATIC);
-		void UpdateIndexBuffer(IndexBufferHandle handle, const void* data, uint32_t dataSize, u32 offset);
-		void DestroyIndexBuffer(IndexBufferHandle handle);
+		virtual IndexBufferHandle CreateIndexBuffer(const void* data = nullptr, uint32_t dataSize = 0, BufferUsage usage = BufferUsage::STATIC) = 0;
+		virtual void UpdateIndexBuffer(IndexBufferHandle handle, const void* data, uint32_t dataSize, u32 offset) = 0;
+		virtual void DestroyIndexBuffer(IndexBufferHandle handle) = 0;
 
 		// textures //////////////////////////////////////////////
-		TextureHandle CreateTexture2D(const TextureDescription2D& description);
-		TextureHandle CreateTexture3D(const TextureDescription3D& description);
-		TextureHandle CreateCubemap(const CubemapDescription& description);
-		void DestroyTexture(TextureHandle handle);
-		void GenerateMipMaps(TextureHandle handle);
+		virtual TextureHandle CreateTexture2D(const TextureDescription2D& description) = 0;
+		virtual TextureHandle CreateTexture3D(const TextureDescription3D& description) = 0;
+		virtual TextureHandle CreateCubemap(const CubemapDescription& description) = 0;
+		virtual void DestroyTexture(TextureHandle handle) = 0;
+		virtual void GenerateMipMaps(TextureHandle handle) = 0;
 
 		// frame buffers /////////////////////////////////////
-		FrameBuffer CreateFramebuffer(const TextureDescription2D& description, FramebufferAttachment attachment);
-		FrameBuffer CreateFramebuffer(const FrameBufferDescription& description);
-		void DestroyFramebuffer(FrameBufferHandle buffer);
+		virtual FrameBuffer CreateFramebuffer(const TextureDescription2D& description, FramebufferAttachment attachment) = 0;
+		virtual FrameBuffer CreateFramebuffer(const FrameBufferDescription& description) = 0;
+		virtual void DestroyFramebuffer(FrameBufferHandle buffer) = 0;
 
 		// shaders /////////////////////////////////////////////
-		ShaderHandle CreateShader(const ShaderSourceDescription& desc);
-		ShaderHandle CreateComputeShader(const char* src);
-		void DestroyShader(ShaderHandle shader);
+		virtual ShaderHandle CreateShader(const ShaderSourceDescription& desc) = 0;
+		virtual ShaderHandle CreateComputeShader(const char* src) = 0;
+		virtual void DestroyShader(ShaderHandle shader) = 0;
 
 		// meshes //////////////////////////////////////////////
-		MeshHandle CreateMesh(const MeshDescription& description);
-		void DestroyMesh(MeshHandle mesh);
+		virtual MeshHandle CreateMesh(const MeshDescription& description) = 0;
+		virtual void DestroyMesh(MeshHandle mesh) = 0;
 
-		void DrawMesh(MeshHandle mesh, const RenderState& state, std::function<void()> preAction = nullptr);
-		void DrawMeshInstanced(MeshHandle mesh, const RenderState& state, VertexBufferHandle instanceData, uint32_t instanceCount, std::function<void()> preAction = nullptr);
+		virtual void DrawMesh(MeshHandle mesh, const RenderState& state, std::function<void()> preAction = nullptr) = 0;
+		virtual void DrawMeshInstanced(MeshHandle mesh, const RenderState& state, VertexBufferHandle instanceData, uint32_t instanceCount, std::function<void()> preAction = nullptr) = 0;
 
-		void DispatchCompute(const RenderState& state, uint16_t groupsX, uint16_t groupsY, uint16_t groupsZ, std::function<void()> preAction = nullptr);
-		void IssueMemoryBarrier();
+		virtual void DispatchCompute(const RenderState& state, uint16_t groupsX, uint16_t groupsY, uint16_t groupsZ, std::function<void()> preAction = nullptr) = 0;
+		virtual void IssueMemoryBarrier() = 0;
 
 
-		void ClearBackBuffer();
+		virtual void ClearBackBuffer() = 0;
 
-		PerfStats GetPerfStats() const;
+		virtual PerfStats GetPerfStats() const = 0;
 	};
 }

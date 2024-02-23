@@ -5,6 +5,7 @@
 #include "graphics/FrameEncoder.h"
 #include "graphics/RenderCommands.h"
 
+
 using namespace gold;
 
 
@@ -71,7 +72,7 @@ void Application::RenderThread()
 {
 	G_ENGINE_WARN("Render thread starting...");
 
-	mRenderer = std::unique_ptr<graphics::Renderer>();
+	mRenderer = std::move(graphics::Renderer::CreateRenderer(graphics::Renderer::Backend::OpenGL));
 	mRenderer->Init(mPlatform->GetWindowHandle());
 
 	while (mRunning)

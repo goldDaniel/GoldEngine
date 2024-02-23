@@ -12,12 +12,13 @@ add_executable(VulkanSandbox ${TEST_APP_HEADER_LIST}
 source_group("shaders" FILES ${SHADER_LIST})
 
 target_compile_features(VulkanSandbox PRIVATE cxx_std_17)
+find_package(Vulkan REQUIRED)
 
-target_link_libraries(VulkanSandbox Engine)
+target_link_libraries(VulkanSandbox Engine Vulkan::Vulkan)
 
 if(MSVC)
   target_compile_options(VulkanSandbox PRIVATE /W4 /WX)
-  set_target_properties(VulkanSandbox PROPERTIES VS_DEBUGGER_COMMAND_ARGUMENTS "DataFolderRedirect=../../../Sponza/Assets")
+  set_target_properties(VulkanSandbox PROPERTIES VS_DEBUGGER_COMMAND_ARGUMENTS "DataFolderRedirect=../../../VulkanSandbox/Assets")
 else()
   target_compile_options(VulkanSandbox PRIVATE -Wall -Wextra -Wpedantic -Werror)
 endif()
